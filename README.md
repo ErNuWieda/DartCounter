@@ -25,7 +25,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 
 2.  **Klonen des Repositories:**
     ```bash
-    git clone <URL_DEINES_REPOSITORIES>
+    git clone https://github.com/ErNuWieda/DartCounter.git
     cd dartcounter
     ```
 
