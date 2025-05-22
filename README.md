@@ -15,6 +15,9 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 *   **Grafisches Dartboard:** Klickbares Dartboard zur Eingabe der Würfe.
 *   **Individuelle Scoreboards:** Jeder Spieler erhält ein eigenes Fenster zur Anzeige des Spielstands und der Wurfhistorie.
 *   **Visuelle Dart-Anzeige:** Getroffene Felder werden mit einem Dart-Symbol auf dem Board markiert.
+![Startfenster](./assets/screenshot_dc3.png)
+![Spiel-Einstellungen](./assets/screenshot_dc2.png)
+![Board, Hits & Scoreboard](./assets/screenshot_dc1.png) 
 
 ## Installation & Ausführung
 
