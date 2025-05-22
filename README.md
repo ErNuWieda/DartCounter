@@ -33,7 +33,6 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     ```bash
     python main.py
     ```
-    (Oder wie auch immer deine Haupt-Startdatei heißt)
 
 ## TODO - Zukünftige Features & Verbesserungen
 
