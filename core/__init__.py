@@ -1,0 +1,1 @@
+# Dieser File macht das 'core' Verzeichnis zu einem Python-Paket.
