@@ -10,8 +10,11 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
         *   Opt-In: Single, Double, Masters
         *   Opt-Out: Single, Double, Masters
     *   **Cricket:** Standard Cricket und Cut Throat Cricket
+    *   **Tactics:** Erweiterte Cricket-Variante (Ziele 10-20 und Bull).
     *   **Around the Clock (ATC):** Mit Varianten für Single, Double, Triple als Ziel
-*   **Spielerverwaltung:** Unterstützung für bis zu 4 Spieler.
+    *   **Micky Maus:** Treffen der Zahlen 20 bis 12 und Bullseye.
+    *   **Killer:** Jeder Spieler erhält ein Lebensfeld; Ziel ist es, "Killer" zu werden und andere Spieler zu eliminieren.
+*   **Spielerverwaltung:** Unterstützung für bis zu 4 Spieler mit individuellen Namen.
 *   **Grafisches Dartboard:** Klickbares Dartboard zur Eingabe der Würfe.
 *   **Individuelle Scoreboards:** Jeder Spieler erhält ein eigenes Fenster zur Anzeige des Spielstands und der Wurfhistorie.
 *   **Visuelle Dart-Anzeige:** Getroffene Felder werden mit einem Dart-Symbol auf dem Board markiert.
@@ -42,9 +45,9 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Features und Bereiche für Verbesserungen:
 
 *   **[ ] Shanghai-Spielmodus:** Implementierung des eigenständigen Spielmodus "Shanghai".
-*   **[ ] Weitere Dart-Spielmodi:** Implementierung zusätzlicher populärer Dartspiele (z.B. Elimination, Killer, etc.).
-*   **[ ] Erweiterte Shanghai-Finish-Logik (x01):** Korrekte Erkennung eines Shanghai-Finish (Single, Double, Triple desselben Segments in einer Runde) für x01-Spiele.
-*   **[ ] Undo/Redo Funktionalität:** Vollständige Implementierung der Rückgängig/Wiederholen-Funktion im Scoreboard (Ctrl+Z, Ctrl+Y).
+*   **[ ] Weitere Dart-Spielmodi:** Implementierung zusätzlicher populärer Dartspiele (z.B. Elimination  etc.).
+*   **[X] Erweiterte Shanghai-Finish-Logik (x01):** Korrekte Erkennung eines Shanghai-Finish (Single, Double, Triple desselben Segments in einer Runde) für x01-Spiele. 
+*   **[ ] Undo/Redo Funktionalität:** Vollständige Implementierung der Rückgängig/Wiederholen-Funktion im einzelner Würfe (Ctrl+Z, Ctrl+Y).
 *   **[ ] Spielerstatistiken:** Erfassung und Anzeige von Statistiken (z.B. Averages, Checkout-Quoten, höchste Würfe).
 *   **[ ] Highscore-Listen:**
     *   **[ ] Implementierung einer Highscore-Liste pro Spielmodus.**
@@ -53,11 +56,10 @@ Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Feat
 *   **[ ] UI/UX Verbesserungen:**
     *   Modernisierung des Designs.
     *   Verbesserte Fehlerbehandlung und Nutzerfeedback.
-    *   Alternative Eingabemethoden (z.B. Tastatureingabe für Scores).
 *   **[ ] Speichern/Laden von Spielständen:** Vollständige Implementierung der Möglichkeit, laufende Spiele zu speichern und später fortzusetzen.
 *   **[ ] Konfigurierbare Regeln:** Mehr Flexibilität bei der Einstellung von Spielregeln (z.B. benutzerdefinierte x01 Startpunkte).
 *   **[ ] Code-Refactoring & Optimierungen:**
-    *   Weitere Modularisierung und Vereinfachung von Code-Abschnitten (z.B. in `ScoreBoard.py` die Aktualisierung der Wurfanzeige).
+    *   Weitere Modularisierung und Vereinfachung von Code-Abschnitten.
 *   **[ ] Ausführliche Testabdeckung:** Erstellung von Unit-Tests und Integrationstests.
 
 ## Danksagung

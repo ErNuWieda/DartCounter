@@ -13,9 +13,10 @@ class GameManager:
         self.opt_out = "Single"
         self.opt_atc = "Single"
         self.anzahl_spieler = "1"
+        self.lifes = "3"
         self.max_players = 4
         self.players = []
-        self.game_select, self.opt_in_select, self.opt_out_select, self.opt_atc_select, self.player_select, self.player_name, self.settings_dlg = self.game_settings_dlg()
+        self.game_select, self.opt_in_select, self.opt_out_select, self.opt_atc_select, self.lifes_select, self.player_select, self.player_name, self.settings_dlg = self.game_settings_dlg()
         
 
     def run(self):
@@ -29,13 +30,17 @@ class GameManager:
 
     def start_game(self):
         self.settings_dlg.destroy()
-        game_options = (self.game, self.opt_in, self.opt_out, self.opt_atc)
+        game_options = (self.game, self.opt_in, self.opt_out, self.opt_atc, self.lifes)
         spiel_instanz = Game(self.root, game_options, self.players)
         db_instanz = DartBoard(spiel_instanz) # Übergibt die Game-Instanz an DartBoard
-        spiel_instanz.db = db_instanz         # Macht die DartBoard-Instanz der Game-Instanz bekannt
+        spiel_instanz.db = db_instanz  # Macht die DartBoard-Instanz der Game-Instanz bekannt
+        spiel_instanz.announce_current_player_turn() # Kündigt den ersten Spieler und dessen Zug an
 
     def set_game(self):
         self.game = self.game_select.get()
+        if self.game == "Cut Throat":
+            self.player_select.current(1)
+            self.set_anzahl_spieler()        
         if self.game not in ["301", "501", "701"]:
             self.opt_in_select.config(state="disabled")
             self.opt_out_select.config(state="disabled")
@@ -47,6 +52,12 @@ class GameManager:
            self.opt_atc_select.config(state="readonly")
         else:
             self.opt_atc_select.config(state="disabled")
+        if self.game == "Killer":
+            self.player_select.current(1)
+            self.set_anzahl_spieler()        
+            self.lifes_select.config(state="readonly")
+        else:
+            self.lifes_select.config(state="disabled")
 
     def set_opt_in(self):
         self.opt_in = self.opt_in_select.get()
@@ -56,6 +67,9 @@ class GameManager:
     
     def set_opt_atc(self):
         self.opt_atc = self.opt_atc_select.get()
+
+    def set_lifes(self):
+        self.lifes = self.lifes_select.get()
 
     def set_anzahl_spieler(self):
         self.anzahl_spieler = int(self.player_select.get())
@@ -73,15 +87,15 @@ class GameManager:
         # Spiel auswählen
         dialog = tk.Toplevel()
         dialog.title("Dartcounter - Spieleinstellungen")
-        dialog.geometry("320x600")
-        dialog.resizable(False, False)
+        dialog.geometry("320x620")
+        dialog.resizable(False, True)
         dialog.protocol("WM_DELETE_WINDOW", lambda: self.goback())
         dialog.bind("<Escape>", lambda e: self.goback())
         dialog.bind("<Alt-x>", lambda e: self.goback())
         dialog.bind("<Alt-q>", lambda e: self.goback())
         
         tk.Label(dialog, text="Spiel", font=("Arial", 14), fg="blue").pack()
-        game_select = ttk.Combobox(dialog, values=['301', '501', '701', 'Around the Clock', 'Cricket', 'Cut Throat', 'Shanghai'], state="readonly")
+        game_select = ttk.Combobox(dialog, values=['301', '501', '701', 'Around the Clock', 'Cricket', 'Cut Throat', 'Killer', 'Micky Mouse', 'Tactics', 'Shanghai'], state="readonly")
         game_select.pack()
         game_select.bind("<<ComboboxSelected>>", lambda event: self.set_game())
         game_select.current(0)
@@ -107,6 +121,14 @@ class GameManager:
         opt_atc_select.pack()
         opt_atc_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_atc())
         opt_atc_select.current(0)
+
+        # Anzahl Leben für Killer
+        life_values = ["3", "5", "7"]
+        tk.Label(dialog, text="Anzahl Leben", font=("Arial", 14), fg="blue").pack(pady=5)
+        lifes_select = ttk.Combobox(dialog, values=life_values, state="disabled")
+        lifes_select.pack()
+        lifes_select.bind("<<ComboboxSelected>>", lambda event: self.set_lifes())
+        lifes_select.current(0)
         
         # Spieleranzahl und -namen
         tk.Label(dialog, text="Spieleranzahl", font=("Arial", 14), fg="blue").pack(pady=5)
@@ -133,4 +155,4 @@ class GameManager:
         btn = tk.Button(dialog, text="Spiel starten", font=("Arial", 14), fg="red", command=self.run)
         btn.pack(pady=20)   
 
-        return game_select, opt_in_select, opt_out_select, opt_atc_select, player_select, player_name, dialog
+        return game_select, opt_in_select, opt_out_select, opt_atc_select, lifes_select, player_select, player_name, dialog

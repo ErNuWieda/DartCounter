@@ -1,4 +1,7 @@
-# hier kommt Spielauswahl und Eingabe Playernamen hin
+
+#!/bin/python 
+# -*- coding: utf-8 -*-
+
 import tkinter as tk
 from tkinter import ttk, messagebox, Menu
 from PIL import Image, ImageTk
@@ -22,7 +25,6 @@ def setup_menu(root):
 
 
 def new_game():
-    root.lower()
     root.withdraw()
     gm = GameManager(root)
 
@@ -33,12 +35,12 @@ def save_game():
     messagebox.showinfo("Spiel speichern", "Noch nicht implementiert!")
 
 def quit_game():
-    confirm = messagebox.askyesno("Spiel beenden", "Soll das Spiel wirklich beendet werden?")
+    confirm = messagebox.askyesno("Programm beenden", "Dartcounter wirklich beenden?")
     if confirm:
         root.quit()
 
 def about():
-    messagebox.showinfo("Dartcounter v1.0", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025-∞ airnooweeda")
+    messagebox.showinfo("Dartcounter v1.0", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda")
 
 
 if __name__ == "__main__":
@@ -57,8 +59,18 @@ if __name__ == "__main__":
     # Menü erstellen
     setup_menu(root)
 
-    # Bild vorbereiten
-    image = Image.open(image_path)
+    # Bild vorbereiten mit Fehlerbehandlung
+    try:
+        image = Image.open(image_path)
+    except FileNotFoundError:
+        messagebox.showerror("Fehler", f"Dartboard nicht gefunden: {image_path}")
+        root.quit()
+        exit() # Beendet das Skript, da das Hauptbild fehlt
+    except Exception as e:
+        messagebox.showerror("Fehler", f"Fehler beim Laden des Dartboards: {e}")
+        root.quit()
+        exit() # Beendet das Skript
+
     # Bildschirmgröße
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
