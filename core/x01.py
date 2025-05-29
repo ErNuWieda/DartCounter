@@ -16,7 +16,6 @@ class X01:
         self.game = game
         self.opt_in = game.opt_in
         self.opt_out = game.opt_out
-        self.shanghai_finish = False
         self.targets = None
 
 
@@ -84,22 +83,40 @@ class X01:
         player.update_score_value(score, subtract=True)
 
         if player.score == 0: # Gilt nur für x01
-            if self.opt_out == "Double" and len(player.throws) == 3:
-                finish_score = 0
-                for throw in player.throws:
-                    match throw[0]:
-                        case "Single":
-                            finish_score += throw[1]
-                        case "Double":
-                            finish_score += throw[1] * 2
-                        case "Triple":
-                            finish_score += throw[1] * 3     
-                if finish_score == 120:
-                    self.shanghai_finish = True
+            self.game.shanghai_finish = False # Standardmäßig kein Shanghai-Finish
+
+            if len(player.throws) == 3:
+                # Prüfen auf spezifisches "120 Shanghai-Finish" (T20, S20, D20 in beliebiger Reihenfolge)
+                # player.throws enthält Tupel (ring_name, segment_value_oder_punkte)
+                # segment_value_oder_punkte ist die Segmentnummer (1-20) oder Punkte (25/50 für Bull/Bullseye)
+
+                all_darts_on_20_segment = True
+                rings_hit_on_20 = set()
+
+                for r_name, seg_val_or_pts in player.throws:
+                    if seg_val_or_pts == 20: # Muss das Segment 20 sein
+                        if r_name in ("Single", "Double", "Triple"):
+                            rings_hit_on_20.add(r_name)
+                        else:
+                            # Getroffenes Segment 20, aber kein S, D, oder T Ring (sollte nicht vorkommen bei korrekter Segmenterkennung)
+                            all_darts_on_20_segment = False
+                            break
+                    else:
+                        # Ein Wurf war nicht auf Segment 20
+                        all_darts_on_20_segment = False
+                        break
+                
+                if all_darts_on_20_segment and rings_hit_on_20 == {"Single", "Double", "Triple"}:
+                    # Alle drei Darts auf Segment 20 und die Ringe sind S, D, T.
+                    # Die Summe ist implizit 120 (20 + 40 + 60), und da player.score == 0 ist, war es ein 120er Finish.
+                    self.game.shanghai_finish = True
+            
             self.game.end = True
             total_darts = (self.game.round - 1) * 3 + len(player.throws)
+            # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
+            # wenn self.game.shanghai_finish True ist.
             return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
-        
+
         if len(player.throws) == 3:
             player.reset_turn()
             self.game.next_player()
