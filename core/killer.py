@@ -39,6 +39,54 @@ class Killer:
 			return "Niemand gewinnt! Alle Spieler wurden eliminiert."
 		return None
 
+	def _handle_throw_undo(self, player, ring, segment, players):
+		"""
+		Macht den letzten Wurf rückgängig, indem der Spielzustand wiederhergestellt wird.
+		Diese Methode wird aufgerufen, NACHDEM der Wurf bereits aus player.throws entfernt wurde.
+		"""
+
+		# --- Schritt 1: Möglichen Lebensverlust rückgängig machen ---
+		# Wir müssen prüfen, ob der rückgängig gemachte Wurf einem Spieler ein Leben gekostet hat.
+		# Das ist der Fall, wenn der Spieler ein Killer war UND ein gültiges Lebensfeld getroffen hat.
+		
+		# Rekonstruieren, ob der Spieler zum Zeitpunkt des Wurfs ein Killer war.
+		was_killer_at_time_of_throw = player.can_kill
+		is_killer_making_throw = (player.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+								 (str(segment) == player.life_segment and player.life_segment != "Bull" and ring in ("Bull", "Bullseye", "Double"))
+
+		if not was_killer_at_time_of_throw and is_killer_making_throw:
+			was_killer_at_time_of_throw = True
+
+		if was_killer_at_time_of_throw:
+			# Finde das potenzielle Opfer, auch wenn es bereits eliminiert wurde.
+			victim = None
+			for p in self.players:
+				is_victim_life_segment_hit = (p.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+											 (str(segment) == p.life_segment and p.life_segment != "Bull")
+				
+				if is_victim_life_segment_hit and ring in ("Bull", "Bullseye", "Double"):
+					victim = p
+					break
+			
+			if victim and victim.lifes < self.game.lifes:
+				victim.lifes += 1
+				if self.game.end: # Spielende-Status zurücksetzen, falls nötig
+					self.game.end = False
+				victim.sb.update_score(victim.lifes)
+				messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.")
+
+		# --- Schritt 2: Killer-Status zurücksetzen, falls nötig ---
+		if player.can_kill and is_killer_making_throw:
+			# Prüfen, ob noch andere "Killer-Würfe" in der Runde vorhanden sind.
+			other_killer_throws_exist = any((player.life_segment == "Bull" and r in ("Bull", "Bullseye")) or (str(s) == player.life_segment and player.life_segment != "Bull" and r in ("Bull", "Bullseye", "Double")) for r, s in player.throws)
+			
+			if not other_killer_throws_exist:
+				player.can_kill = False
+				messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.")
+
+		# --- Schritt 3: Scoreboard des aktuellen Spielers aktualisieren ---
+		player.sb.update_score(player.lifes)
+
 	def _handle_throw(self, player, ring, segment, players):
 		player.throws.append((ring, segment))
 
@@ -47,13 +95,11 @@ class Killer:
 			if ring == "Miss":
 				msg = f"{player.name}, du musst ein Segment treffen, um dein Lebensfeld festzulegen."
 				if len(player.throws) == 3:
-					messagebox.showerror("Fehlwurf", msg + "\nLetzter Wurf der Runde.")
-					player.reset_turn()
-					self.game.next_player()
+					messagebox.showerror("Fehlwurf", msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Zug beenden' klicken.")
 				else:
 					messagebox.showwarning("Fehlwurf", msg + f"\nNoch {3 - len(player.throws)} Darts.")
 				player.sb.update_score(player.lifes) # Wurfhistorie aktualisieren
-				return
+				return None
 
 			determined_segment_for_life = ""
 			# segment ist der numerische Wert (1-20, 25 für Bull, 50 für Bullseye)
@@ -65,13 +111,11 @@ class Killer:
 				# Ungültiger Treffer für Lebensfeldbestimmung
 				msg = f"{player.name}, ungültiger Trefferbereich ({ring}, {segment}) für Lebensfeldbestimmung."
 				if len(player.throws) == 3:
-					messagebox.showerror("Fehler", msg + "\nLetzter Wurf der Runde.")
-					player.reset_turn()
-					self.game.next_player()
+					messagebox.showerror("Fehler", msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Zug beenden' klicken.")
 				else:
 					messagebox.showwarning("Fehler", msg + f"\nNoch {3 - len(player.throws)} Darts.")
 				player.sb.update_score(player.lifes)
-				return
+				return None
 
 			# Prüfen, ob dieses Segment bereits von einem anderen aktiven Spieler belegt ist
 			is_taken = False
@@ -83,14 +127,12 @@ class Killer:
 			if is_taken:
 				msg = f"Das Segment '{determined_segment_for_life}' ist bereits vergeben. Bitte ein anderes treffen."
 				if len(player.throws) == 3:
-					messagebox.showerror("Segment vergeben", msg + "\nLetzter Wurf der Runde.")
-					player.reset_turn()
-					self.game.next_player()
+					messagebox.showerror("Segment vergeben", msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Zug beenden' klicken.")
 				else:
 					messagebox.showwarning("Segment vergeben", msg + f"\nNoch {3 - len(player.throws)} Darts.")
 				player.sb.update_score(player.lifes)
-				return
-
+				return None
+			
 			player.life_segment = determined_segment_for_life
 			messagebox.showinfo("Lebensfeld festgelegt!", f"{player.name} hat Lebensfeld: Double {player.life_segment}")
 			player.sb.update_score(player.lifes) # Scoreboard mit neuem Lebensfeld aktualisieren
@@ -145,6 +187,6 @@ class Killer:
 
 		# --- Zugende prüfen (gilt für alle Phasen nach der Lebensfeld-Vergabe, wenn kein return vorher) ---
 		if len(player.throws) == 3:
-			player.reset_turn()
-			self.game.next_player()
+			# Turn ends, user clicks "Zug beenden"
+			pass # Let it fall through to return None
 		return None # Spiel geht weiter, oder Wurf innerhalb der Runde

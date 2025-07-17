@@ -30,6 +30,7 @@ class Game:
         self.opt_out = game[2]
         self.opt_atc = game[3]
         self.lifes = int(game[4])
+        self.rounds = int(game[5])
         self.current = 0
         self.round = 1
         self.shanghai_finish = False
@@ -87,8 +88,14 @@ class Game:
                 # Sicherstellen, dass self.current gültig bleibt
                 if self.current >= len(self.players):
                     self.current = 0 # Zum ersten Spieler zurück, falls der letzte Spieler entfernt wurde
-        
-        
+    def undo(self):
+        player = self.current_player()
+        if player and player.throws:
+            popped_throw = player.throws.pop()
+            self.game._handle_throw_undo(player, popped_throw[0], popped_throw[1], self.players)
+        self.db.clear_last_dart_image_from_canvas()
+        return 
+            
     def current_player(self):
         """
         Gibt den Spieler zurück, der aktuell am Zug ist.
@@ -115,46 +122,56 @@ class Game:
         round_info = f"Runde {self.round}."
         player_info = f"{player.name} ist am Zug."
         player.is_active = True
-        full_message = f"{round_info}\n{player_info}"
-        # Spezielle Nachricht für den allerersten Wurf des Spiels
-        if self.current == 0 and self.round == 1 and not player.throws:
-            full_message = f"Das Spiel beginnt!\n{full_message}"
         
-        messagebox.showinfo("Nächster Zug", full_message)
+        # Spezielle Nachricht für den allerersten Wurf des Spiels
+        if self.current == 0 and self.round == 1 and not player.throws: # Check for no throws as well
+            full_message_intro = f"Das Spiel beginnt!\n{round_info}\n{player_info}"
+            messagebox.showinfo("Spielstart", full_message_intro)
+        elif self.name == "Killer": # Killer game always announces general turn info
+            full_message_killer = f"{round_info}\n{player_info}"
+            messagebox.showinfo("Nächster Zug", full_message_killer)
+        # else: No generic "Nächster Zug" announcement for other games after the first turn.
         
         # Spezifische Nachricht für Killer-Modus, wenn Lebensfeld bestimmt werden muss
-        if self.name == "Killer" and not player.life_segment:
-            messagebox.showinfo("Lebensfeld ermitteln",
-                                f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                                f"Wirf mit deiner NICHT-dominanten Hand.\n"
-                                f"Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                                f"Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.")
-        elif self.name == "Killer" and not player.can_kill:
-            messagebox.showinfo("Zum Killer werden",
-                                f"{player.name}, jetzt musst du dein Lebensfeld treffen um Killer-Status zu erlangen.\n"
-                                f"Erst dann kannst du andere Spieler eliminieren.\n"
-                                f"VORSICHT!\n"
-                                f"Triffst du als Killer dein eigenes Lebensfeld, verlierst du selbst ein Leben!")
+        if self.name == "Killer":
+            if not player.life_segment:
+                messagebox.showinfo("Lebensfeld ermitteln",
+                                    f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
+                                    f"Wirf mit deiner NICHT-dominanten Hand.\n"
+                                    f"Das Double des getroffenen Segments wird dein Lebensfeld.\n"
+                                    f"Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bullseye'.")
+            elif player.life_segment and not player.can_kill: # Only show if life_segment is set but not yet a killer
+                messagebox.showinfo("Zum Killer werden",
+                                    f"{player.name}, jetzt musst du dein Lebensfeld ({player.life_segment}) treffen um Killer-Status zu erlangen.\n"
+                                    f"Erst dann kannst du andere Spieler eliminieren.\n"
+                                    f"VORSICHT!\n"
+                                    f"Triffst du als Killer dein eigenes Lebensfeld, verlierst du selbst ein Leben!")
         
         if self.db:
             self.db.clear_dart_images_from_canvas()
         
         # Sicherstellen, dass Scoreboard existiert und fokussiert werden kann
         if hasattr(player, 'sb') and player.sb and hasattr(player.sb, 'score_window') and player.sb.score_window.winfo_exists():
+            player.sb.score_window.lift()
             player.sb.score_window.focus_force()
 
     def next_player(self):
         """
         Wechselt zum nächsten Spieler in der Runde oder startet eine neue Runde.
+        Wird durch den "Zug beenden"-Button ausgelöst.
         """
         if not self.players: # Keine Spieler mehr im Spiel
             return
 
+        current_p = self.current_player()
+        if current_p:
+            current_p.reset_turn() # Reset throws for the player whose turn just ended
+
         self.current = (self.current + 1) % len(self.players)
-        if self.current == 0:
+        if self.current == 0: # Moved to next round
             self.round += 1
         
-        self.announce_current_player_turn()
+        self.announce_current_player_turn() # Announce the new current player
 
     def get_game_logic(self):
         match self.name:
@@ -178,6 +195,11 @@ class Game:
                 from . import killer
                 from .killer import Killer
                 return Killer(self) # Spieler werden später via set_players gesetzt
+            case "Shanghai":
+                from . import shanghai
+                from .shanghai import Shanghai
+                return Shanghai(self)
+
 
     def get_score(self, ring, segment):
         """
@@ -220,4 +242,10 @@ class Game:
                          oder None, wenn das Spiel normal weitergeht.
         """
         player = self.current_player()
-        return self.game._handle_throw(player, ring, segment, self.players)
+        if len(player.throws) < 3:
+            return self.game._handle_throw(player, ring, segment, self.players)
+        else:
+            messagebox.showinfo("Zuviel Würfe", "Bitte 'Nächster Spieler' klicken!")
+            return self.db.clear_last_dart_image_from_canvas()
+
+

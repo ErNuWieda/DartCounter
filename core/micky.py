@@ -58,7 +58,24 @@ class Micky:
 			return segment_str, marks
 
 		return None, 0 # Kein Spiel-relevantes Segment getroffen
+    
+	def _handle_throw_undo(self, player, ring, segment, players):
+		target_hit, marks_scored = self._get_target_and_marks(ring, segment)
+		# --- Treffer auf Cricket-Ziel verarbeiten ---
+		for _ in range(marks_scored):
+			if player.hits[target_hit] > 0:
+				player.hits[target_hit] -= 1
 
+		# Nächstes Ziel zurücksetzen
+		all_targets_closed = True
+		for target in player.targets:
+		    hits = player.hits.get(target, 0)
+		    if hits < 3:
+		        all_targets_closed = False
+		        player.next_target = target
+		        break
+
+		player.sb.update_display(player.hits, player.score) # Scoreboard aktualisieren (für Wurfanzeige)
 
 	def _handle_throw(self, player, ring, segment, players):
 		"""
@@ -79,23 +96,20 @@ class Micky:
 		player.throws.append((ring, segment))
 
 		if not target_hit or marks_scored == 0 or target_hit != player.next_target:
-			player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurf-Historie)
-			if len(player.throws) < 3:
-				msg = f"{player.name} muss {player.next_target} noch {3 - player.hits.get(player.next_target, 0)}x treffen!\n{3 - len(player.throws)} verbleibende Darts."
-				messagebox.showerror("Ungültiger Wurf", msg)
+			player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurf-Historie)            
+			msg_base = f"{player.name} muss {player.next_target} noch {3 - player.hits.get(player.next_target, 0)}x treffen!"
+			remaining_darts = 3 - len(player.throws)
+			if remaining_darts > 0:
+				messagebox.showerror("Ungültiger Wurf", msg_base + f"\n{remaining_darts} verbleibende Darts.")
 			else:            
-				msg = f"{player.name} muss {player.next_target}  noch {3 - player.hits.get(player.next_target, 0)}x treffen!"
-				messagebox.showerror("Ungültiger Wurf", msg)
-				player.reset_turn()
-				self.game.next_player()           
-			return 
+				messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme.\nBitte 'Rückgängig' oder 'Zug beenden' klicken.")
+			return None # End processing for this throw
 
 		# --- Treffer auf Mickey Mouse-Ziel verarbeiten ---
 		current_marks_on_target = player.hits.get(target_hit, 0)
 		points_for_this_throw = 0
 		for _ in range(marks_scored):
-		    if player.hits[target_hit] < 3:
-		        player.hits[target_hit] += 1
+		    player.hits[target_hit] += 1
 
 		# --- Gewinnbedingung prüfen ---
 		all_targets_closed_by_player = True
@@ -116,7 +130,6 @@ class Micky:
 
 		# --- Zug beenden / Nächster Spieler ---
 		if len(player.throws) == 3:
-		    player.reset_turn()
-		    self.game.next_player()
-		    return  
-		
+		    # Turn ends
+		    return None
+		return None # Added for consistency

@@ -72,6 +72,12 @@ class DartBoard:
                 self.canvas.delete(dart_id)
         self.dart_image_ids_on_canvas = []
 
+    def clear_last_dart_image_from_canvas(self):
+        """Entfernt das zuletzt angezeigte Dart-Bild vom Canvas."""
+        if self.canvas and self.dart_image_ids_on_canvas:
+            dart_id = self.dart_image_ids_on_canvas.pop()
+            self.canvas.delete(dart_id)
+
     # Spiel verlassen
     def quit_game(self):
         confirm = messagebox.askyesno("Spiel beenden", "Soll das Spiel wirklich beendet werden?")
@@ -154,3 +160,17 @@ class DartBoard:
         canvas.image = photo
 
         canvas.bind("<Button-1>", self.on_click)
+        # Buttons erstellen
+        btn_frame = tk.Frame(self.root)
+        btn_frame.pack() 
+        undo_button = tk.Button(btn_frame, text="Wurf zurücknehmen", command=self.spiel.undo)
+        undo_button.pack()
+        done_button = tk.Button(btn_frame, text="Nächster Spieler", command=self.spiel.next_player)
+        done_button.pack()
+
+        canvas.create_window(
+            new_size[0], new_size[1],
+            window=btn_frame,
+            anchor="se"
+        )
+        
