@@ -12,7 +12,6 @@ class Player:
         self.hits = {}
         self.life_segment = ""
         self.lifes = game.lifes
-        self.is_active = False
         self.can_kill = False
         self.next_target = None
         self.score = 0
@@ -28,7 +27,7 @@ class Player:
 
         self.id = Player.id
         Player.id = self.id+1        
-        self.has_doubled_in = False
+        self.has_opened = False
         self.throws = []
         self.sb = ScoreBoard(root, self, game)
 

@@ -39,11 +39,11 @@ class DartBoard:
         self.canvas = None # Wird in _create_board gesetzt
         self.root = tk.Toplevel()
         if len(spiel.name) == 3: # = x01-Spiele
-            title = f"Dartcounter {spiel.name} - {spiel.opt_in}-in, {spiel.opt_out}-out"
+            title = f"{spiel.name} - {spiel.opt_in}-in, {spiel.opt_out}-out"
         elif spiel.name == "Around the Clock":
-            title = f"Dartcounter - {spiel.name} - {spiel.opt_atc}"
+            title = f"{spiel.name} - {spiel.opt_atc}"
         else:
-            title = f"Dartcounter - {spiel.name}"         
+            title = f"{spiel.name}"         
         self.root.title(title)
         self.root.protocol("WM_DELETE_WINDOW", self.quit_game)
         self.root.resizable(False, False)
@@ -71,6 +71,12 @@ class DartBoard:
             for dart_id in self.dart_image_ids_on_canvas:
                 self.canvas.delete(dart_id)
         self.dart_image_ids_on_canvas = []
+
+    def clear_last_dart_image_from_canvas(self):
+        """Entfernt das zuletzt angezeigte Dart-Bild vom Canvas."""
+        if self.canvas and self.dart_image_ids_on_canvas:
+            dart_id = self.dart_image_ids_on_canvas.pop()
+            self.canvas.delete(dart_id)
 
     # Spiel verlassen
     def quit_game(self):
@@ -124,9 +130,6 @@ class DartBoard:
             if self.spiel.shanghai_finish:
                 msg = "SHANGHAI-FINISH!\n"+msg
             tk.messagebox.showinfo("Dartcounter", msg)
-        if self.spiel.end == True:
-            self.spiel.__del__()
-            self.root.destroy()
 
     def _create_board(self):
         # Bildschirmgröße
@@ -154,3 +157,19 @@ class DartBoard:
         canvas.image = photo
 
         canvas.bind("<Button-1>", self.on_click)
+        # Buttons erstellen
+        btn_frame = tk.Frame(self.root)
+        btn_frame.pack() 
+        undo_button = tk.Button(btn_frame, text=" Zurück  ", fg="red", command=self.spiel.undo)
+        undo_button.pack()
+        done_button = tk.Button(btn_frame, text=" Weiter  ", fg="green", command=self.spiel.next_player)
+        done_button.pack()
+        quit_button = tk.Button(btn_frame, text="Beenden", command=self.quit_game)
+        quit_button.pack()
+
+        canvas.create_window(
+            new_size[0], new_size[1],
+            window=btn_frame,
+            anchor="se"
+        )
+        

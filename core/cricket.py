@@ -36,7 +36,40 @@ class Cricket:
     def get_targets(self):
         return self.targets
 
-        
+    def _handle_throw_undo(self, player, ring, segment, players):
+        target_hit, marks_scored = self._get_target_and_marks(ring, segment)
+        # --- Treffer auf Cricket-Ziel verarbeiten ---
+        current_marks_on_target = player.hits.get(target_hit, 0)
+        points_for_this_throw = 0
+        for _ in range(marks_scored):
+            if player.hits[target_hit] > 0:
+                player.hits[target_hit] -= 1
+            can_score_points = False
+            if current_marks_on_target >= 3: # Ziel ist bereits vom Spieler geschlossen
+                # Prüfen, ob das Ziel für Punktgewinn offen ist (nicht alle Gegner haben es geschlossen)
+                can_score_points = False
+                for opp in players:
+                    if opp != player and opp.hits.get(target_hit, 0) < 3:
+                        can_score_points = True
+                        break
+                if can_score_points:
+                    points_for_this_throw += self.CRICKET_TARGET_VALUES[target_hit]
+
+        if points_for_this_throw > 0:
+            if self.name in ("Cricket", "Tactics"):
+                if can_score_points: # and player.score >= points_for_this_throw:
+                    if player.score < points_for_this_throw:
+                        points_for_this_throw = player.score
+                    player.update_score_value(points_for_this_throw, subtract=True)
+            else:
+                for opp in players:
+                    if opp != player and opp.hits.get(target_hit, 0) < 3:
+                        if opp.score > 0:
+                            opp.update_score_value(points_for_this_throw, subtract=True)        
+ 
+        player.sb.update_display(player.hits, player.score) # Scoreboard aktualisieren (für Wurfanzeige)
+
+
     def _get_target_and_marks (self, ring, segment):
         """
         Ermittelt das Ziel und die Anzahl der erzielten Marks für einen Wurf.
@@ -90,19 +123,18 @@ class Cricket:
         player.throws.append((ring, segment))
         if not target_hit or marks_scored == 0:
             player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurfanzeige)
-            messagebox.showinfo("Fehlwurf!", text=f"{player.name} verfehlt oder Feld ist kein Ziel.")
             if len(player.throws) == 3:
-                player.reset_turn()
-                self.game.next_player()
-            return 
+                # Turn ends
+                return None
+            return None # Throw processed, continue turn
 
         # --- Treffer auf Cricket-Ziel verarbeiten ---
         current_marks_on_target = player.hits.get(target_hit, 0)
         points_for_this_throw = 0
         for _ in range(marks_scored):
-            if player.hits[target_hit] < 3:
-                player.hits[target_hit] += 1
-            else: # Ziel ist bereits vom Spieler geschlossen
+            player.hits[target_hit] += 1
+            if current_marks_on_target >= 3:
+                # Ziel ist bereits vom Spieler geschlossen
                 # Prüfen, ob das Ziel für Punktgewinn offen ist (nicht alle Gegner haben es geschlossen)
                 can_score_points = False
                 for opp in players:
@@ -111,6 +143,7 @@ class Cricket:
                         break
                 if can_score_points:
                     points_for_this_throw += self.CRICKET_TARGET_VALUES[target_hit]
+            current_marks_on_target += 1
 
         if points_for_this_throw > 0:
             if self.name in ("Cricket", "Tactics"):
@@ -146,8 +179,8 @@ class Cricket:
                 total_darts = (self.game.round - 1) * 3 + len(player.throws)
                 return f"🏆 {player.name} gewinnt {self.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
-        # --- Zug beenden / Nächster Spieler ---
+        # --- Weiter / Nächster Spieler ---
         if len(player.throws) == 3:
-            player.reset_turn()
-            self.game.next_player()
-            return  
+            # Turn ends
+            return None
+        return None # Added to ensure a return path if not 3 throws and no win

@@ -14,9 +14,10 @@ class GameManager:
         self.opt_atc = "Single"
         self.anzahl_spieler = "1"
         self.lifes = "3"
+        self.shanghai_rounds = "7"
         self.max_players = 4
         self.players = []
-        self.game_select, self.opt_in_select, self.opt_out_select, self.opt_atc_select, self.lifes_select, self.player_select, self.player_name, self.settings_dlg = self.game_settings_dlg()
+        self.game_select, self.opt_in_select, self.opt_out_select, self.opt_atc_select, self.lifes_select, self.rounds_select, self.player_select, self.player_name, self.settings_dlg = self.game_settings_dlg()
         
 
     def run(self):
@@ -30,7 +31,7 @@ class GameManager:
 
     def start_game(self):
         self.settings_dlg.destroy()
-        game_options = (self.game, self.opt_in, self.opt_out, self.opt_atc, self.lifes)
+        game_options = (self.game, self.opt_in, self.opt_out, self.opt_atc, self.lifes, self.shanghai_rounds)
         spiel_instanz = Game(self.root, game_options, self.players)
         db_instanz = DartBoard(spiel_instanz) # Übergibt die Game-Instanz an DartBoard
         spiel_instanz.db = db_instanz  # Macht die DartBoard-Instanz der Game-Instanz bekannt
@@ -58,6 +59,10 @@ class GameManager:
             self.lifes_select.config(state="readonly")
         else:
             self.lifes_select.config(state="disabled")
+        if self.game == "Shanghai":
+            self.rounds_select.config(state="readonly")
+        else:
+            self.rounds_select.config(state="disabled")
 
     def set_opt_in(self):
         self.opt_in = self.opt_in_select.get()
@@ -70,6 +75,9 @@ class GameManager:
 
     def set_lifes(self):
         self.lifes = self.lifes_select.get()
+
+    def set_rounds(self):
+        self.shanghai_rounds = self.rounds_select.get()
 
     def set_anzahl_spieler(self):
         self.anzahl_spieler = int(self.player_select.get())
@@ -86,29 +94,30 @@ class GameManager:
     def game_settings_dlg(self):
         # Spiel auswählen
         dialog = tk.Toplevel()
-        dialog.title("Dartcounter - Spieleinstellungen")
+        dialog.title("Spieleinstellungen")
         dialog.geometry("320x620")
         dialog.resizable(False, True)
         dialog.protocol("WM_DELETE_WINDOW", lambda: self.goback())
         dialog.bind("<Escape>", lambda e: self.goback())
         dialog.bind("<Alt-x>", lambda e: self.goback())
         dialog.bind("<Alt-q>", lambda e: self.goback())
+
         
-        tk.Label(dialog, text="Spiel", font=("Arial", 14), fg="blue").pack()
-        game_select = ttk.Combobox(dialog, values=['301', '501', '701', 'Around the Clock', 'Cricket', 'Cut Throat', 'Killer', 'Micky Mouse', 'Tactics', 'Shanghai'], state="readonly")
+        tk.Label(dialog, text="Spiel", font=("Arial", 12), fg="blue").pack()
+        game_select = ttk.Combobox(dialog, values=['301', '501', '701', 'Around the Clock', 'Cricket', 'Cut Throat', 'Killer', 'Micky Mouse', 'Shanghai', 'Tactics'], state="readonly")
         game_select.pack()
         game_select.bind("<<ComboboxSelected>>", lambda event: self.set_game())
         game_select.current(0)
         
         # In-/Out-Optionen für x01-Spiele
         values = ["Single", "Double", "Masters"]
-        tk.Label(dialog, text="Opt In ", font=("Arial", 14), fg="blue").pack(pady=5)
+        tk.Label(dialog, text="Opt In ", font=("Arial", 12), fg="blue").pack(pady=5)
         opt_in_select = ttk.Combobox(dialog, values=values, state="readonly")
         opt_in_select.pack()
         opt_in_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_in())
         opt_in_select.current(0)
         
-        tk.Label(dialog, text="Opt Out", font=("Arial", 14), fg="blue").pack(pady=5)
+        tk.Label(dialog, text="Opt Out", font=("Arial", 12), fg="blue").pack(pady=5)
         opt_out_select = ttk.Combobox(dialog, values=values, state="readonly")
         opt_out_select.pack()
         opt_out_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_out())
@@ -116,7 +125,7 @@ class GameManager:
         
         # Around the Clock Varianten
         atc_values = ["Single", "Double", "Triple"]
-        tk.Label(dialog, text="Around The Clock", font=("Arial", 14), fg="blue").pack(pady=5)
+        tk.Label(dialog, text="Around The Clock", font=("Arial", 12), fg="blue").pack(pady=5)
         opt_atc_select = ttk.Combobox(dialog, values=atc_values, state="disabled")
         opt_atc_select.pack()
         opt_atc_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_atc())
@@ -124,14 +133,22 @@ class GameManager:
 
         # Anzahl Leben für Killer
         life_values = ["3", "5", "7"]
-        tk.Label(dialog, text="Anzahl Leben", font=("Arial", 14), fg="blue").pack(pady=5)
+        tk.Label(dialog, text="Anzahl Leben", font=("Arial", 12), fg="blue").pack(pady=5)
         lifes_select = ttk.Combobox(dialog, values=life_values, state="disabled")
         lifes_select.pack()
         lifes_select.bind("<<ComboboxSelected>>", lambda event: self.set_lifes())
         lifes_select.current(0)
         
+        # Anzahl Runden für Shanghai
+        rounds_values = ["7", "10", "20"]
+        tk.Label(dialog, text="Anzahl Runden", font=("Arial", 12), fg="blue").pack(pady=5)
+        rounds_select = ttk.Combobox(dialog, values=rounds_values, state="disabled")
+        rounds_select.pack()
+        rounds_select.bind("<<ComboboxSelected>>", lambda event: self.set_rounds())
+        rounds_select.current(0)
+        
         # Spieleranzahl und -namen
-        tk.Label(dialog, text="Spieleranzahl", font=("Arial", 14), fg="blue").pack(pady=5)
+        tk.Label(dialog, text="Spieleranzahl", font=("Arial", 12), fg="blue").pack(pady=5)
         plr_values = []
         for i in range(1, self.max_players+1):
             plr_values.append(str(i))
@@ -140,19 +157,22 @@ class GameManager:
         player_select.bind("<<ComboboxSelected>>", lambda event: self.set_anzahl_spieler())
         player_select.current(0)
 
-        tk.Label(dialog, text="Spielernamen", font=("Arial", 14), fg="blue").pack(pady=5)
+        tk.Label(dialog, text="Spielernamen", font=("Arial", 12), fg="blue").pack(pady=5)
         spieler = int(player_select.get())
         player_name = [None] * self.max_players
         for i in range(self.max_players):
-            tk.Label(dialog, text=f"Spieler {i+1}", font=("Arial", 13), fg="green").pack()
-            player_name[i] = ttk.Entry(dialog, font=("Arial", 12))
+            tk.Label(dialog, text=f"Spieler {i+1}", font=("Arial", 11), fg="green").pack()
+            player_name[i] = ttk.Entry(dialog, font=("Arial", 10))
             player_name[i].pack()
+            player_name[i].insert(0, f"Sp{i+1}")
             if i >= spieler:
                 player_name[i].config(state="disabled")
         
 
         # Start-Button
-        btn = tk.Button(dialog, text="Spiel starten", font=("Arial", 14), fg="red", command=self.run)
-        btn.pack(pady=20)   
-
-        return game_select, opt_in_select, opt_out_select, opt_atc_select, lifes_select, player_select, player_name, dialog
+        btn = tk.Button(dialog, text="Spiel starten", font=("Arial", 13), fg="red", command=self.run)
+        btn.pack(pady=10)
+        btn.bind("<Return>", lambda event: self.run())
+        btn.focus_set()
+        
+        return game_select, opt_in_select, opt_out_select, opt_atc_select, lifes_select, rounds_select,player_select, player_name, dialog

@@ -22,6 +22,10 @@ class X01:
     def get_targets(self):
         return self.targets
     
+    def _handle_throw_undo(self, player, ring, segment, players):
+        score = self.game.get_score(ring, segment)
+        player.update_score_value(score, subtract=False)
+        
 
     def _handle_throw(self, player, ring, segment, players):
         # --- x01 Logik ---
@@ -29,14 +33,16 @@ class X01:
 
         if ring == "Miss":
             player.throws.append((ring, 0))
-            messagebox.showerror("Daneben", f"{player.name} verfehlt!")
-            player.update_score_value(score, subtract=True) # score ist hier 0 für Miss
+            # No messagebox for simple miss, score is 0.
+            # player.update_score_value(score, subtract=True) # score is 0, so no change.
+            player.sb.update_score(player.score) # Update display for throw history
             if len(player.throws) == 3:
-                player.reset_turn()
-                self.game.next_player()
-            return 
+                # Turn ends, user clicks "Weiter"
+                return None
+            return None # Throw processed
 
-        if not player.has_doubled_in:
+
+        if not player.has_opened:
             opened_successfully = False
             if self.opt_in == "Single":
                 opened_successfully = True
@@ -48,18 +54,21 @@ class X01:
                     opened_successfully = True
 
             if opened_successfully:
-                player.has_doubled_in = True
+                player.has_opened = True
             else:
-                player.throws.append((ring, 0)) 
+                player.throws.append((ring, 0)) # Record the failed attempt
+                player.sb.update_score(player.score) # Update display for throw history
                 option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
-                msg = f"{player.name} braucht ein {option_text} zum Start!"
+                msg_base = f"{player.name} braucht ein {option_text} zum Start!"
+                
+                remaining_darts = 3 - len(player.throws)
                 if len(player.throws) == 3:
-                    messagebox.showerror("Ungültiger Wurf", msg)
-                    player.reset_turn()
-                    self.game.next_player()
-                messagebox.showerror("Ungültiger Wurf", msg+f"\nNoch {3 - len(player.throws)} Darts.")
-                return 
+                    messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.")
+                else: # Show for every failed "in" throw
+                    messagebox.showerror("Ungültiger Wurf", msg_base+f"\nNoch {remaining_darts} Darts.")
+                return None # End processing for this throw, turn might end or continue with next dart
 
+        # If player.has_opened is true, or became true above, proceed to score
 
         new_score = player.score - score
         bust = False
@@ -73,11 +82,19 @@ class X01:
                 elif new_score == 0 and ring not in ("Double", "Triple", "Bullseye"): bust = True
         
         if bust:
-            player.throws.append((ring, 0))
-            messagebox.showerror("Bust", f"{player.name} hat überworfen! Nächster Spieler.")
-            player.reset_turn() # Würfe zurücksetzen, Score bleibt wie vor dem Bust
-            self.game.next_player()
-            return 
+            # Record the throw that caused the bust, but it scores 0 for this throw.
+            # The player.score is NOT updated with this throw's points.
+            # Any points scored by previous darts in THIS turn are typically also voided in a bust.
+            # This requires reverting player.score to its state at the start of the turn.
+            # The current Player.reset_turn() only clears throws.
+            # For now, we'll just show the message and the turn ends.
+            # The score will be as it was BEFORE this busting throw.
+
+            player.throws.append((ring, 0)) # Mark the bust throw in history
+            player.sb.update_score(player.score) # Update display
+
+            messagebox.showerror("Bust", f"{player.name} hat überworfen! Keine Punkte für diesen Wurf. Aufnahme beendet. Bitte 'Weiter' klicken.")
+            return None # Turn ends due to bust. Player clicks "Weiter".
 
         player.throws.append((ring, segment))
         player.update_score_value(score, subtract=True)
@@ -118,8 +135,7 @@ class X01:
             return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
         if len(player.throws) == 3:
-            player.reset_turn()
-            self.game.next_player()
-            return None 
+            # Turn ends, user clicks "Weiter"
+            return None
 
         return None

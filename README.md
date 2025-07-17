@@ -14,6 +14,9 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     *   **Around the Clock (ATC):** Mit Varianten für Single, Double, Triple als Ziel
     *   **Micky Maus:** Treffen der Zahlen 20 bis 12 und Bullseye.
     *   **Killer:** Jeder Spieler erhält ein Lebensfeld; Ziel ist es, "Killer" zu werden und andere Spieler zu eliminieren.
+    *   **Elimination:** Jeder Spieler spielt von einem Startscore (z. B. 301) auf 0 – trifft man exakt den Punktestand eines Gegners, wird dieser zurückgesetzt.
+
+    *   **Shanghai:** Jeder Spieler versucht mit genau drei Darts die Zahlen 1 bis 7 (oder bis 20 bzw. Anzahl vereinbarter Runden) der Reihe nach zu treffen – idealerweise mit einem Single, Double und Triple derselben Zahl in einer Runde, was sofort zum Sieg führt (ein sogenannter "Shanghai")    
 *   **Spielerverwaltung:** Unterstützung für bis zu 4 Spieler mit individuellen Namen.
 *   **Grafisches Dartboard:** Klickbares Dartboard zur Eingabe der Würfe.
 *   **Individuelle Scoreboards:** Jeder Spieler erhält ein eigenes Fenster zur Anzeige des Spielstands und der Wurfhistorie.
@@ -44,10 +47,10 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 
 Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Features und Bereiche für Verbesserungen:
 
-*   **[ ] Shanghai-Spielmodus:** Implementierung des eigenständigen Spielmodus "Shanghai".
-*   **[ ] Weitere Dart-Spielmodi:** Implementierung zusätzlicher populärer Dartspiele (z.B. Elimination  etc.).
-*   **[X] Erweiterte Shanghai-Finish-Logik (x01):** Korrekte Erkennung eines Shanghai-Finish (Single, Double, Triple desselben Segments in einer Runde) für x01-Spiele. 
-*   **[ ] Undo/Redo Funktionalität:** Vollständige Implementierung der Rückgängig/Wiederholen-Funktion im einzelner Würfe (Ctrl+Z, Ctrl+Y).
+*   **[X] Elimination-Spielmodus:** Implementierung des „Mensch ärgere dich nicht“-ähnlichen Punktespiels mit Reset-Mechanik.
+
+*   **[ ] Erweiterte Shanghai-Finish-Logik (x01):** Korrekte Erkennung eines Shanghai-Finish (Single, Double, Triple desselben Segments in einer Runde) für x01-Spiele. 
+*   **[ ] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts
 *   **[ ] Spielerstatistiken:** Erfassung und Anzeige von Statistiken (z.B. Averages, Checkout-Quoten, höchste Würfe).
 *   **[ ] Highscore-Listen:**
     *   **[ ] Implementierung einer Highscore-Liste pro Spielmodus.**
