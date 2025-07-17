@@ -105,7 +105,7 @@ class Shanghai:
 			winner = max(players, key=lambda p: p.score)
 			return f"🏆 Spiel beendet!\n{winner.name} gewinnt mit {winner.score} Punkten.!"
 
-		# --- Zug beenden / Nächster Spieler ---
+		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
 			player.next_target = self.game.round + 1
 			player.sb.update_display(player.hits, player.score) # Checkboxen im Scoreboard aktualisieren

@@ -94,7 +94,7 @@ class GameManager:
     def game_settings_dlg(self):
         # Spiel auswählen
         dialog = tk.Toplevel()
-        dialog.title("Dartcounter - Spieleinstellungen")
+        dialog.title("Spieleinstellungen")
         dialog.geometry("320x620")
         dialog.resizable(False, True)
         dialog.protocol("WM_DELETE_WINDOW", lambda: self.goback())

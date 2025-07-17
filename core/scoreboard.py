@@ -150,7 +150,10 @@ class ScoreBoard:
     def update_score(self, score):
         if self.game.name == "Killer":
             self.lifes_label.config(text=f"Leben: {self.player.lifes}")
-            self.life_segment_label.config(text=f"Lebensfeld: Double {self.player.life_segment}")
+            life_segment = ""
+            if self.player.life_segment:
+                life_segment =  self.player.life_segment if self.player.life_segment == "Bull" else f"Double {self.player.life_segment}"
+            self.life_segment_label.config(text=f"Lebensfeld: {life_segment}")
         elif self.game.name == "Around the Clock":
             if self.game.opt_atc == "Single" or self.player.next_target in ("Bull", "Bullseye"):
                 opt_atc = ""
@@ -182,12 +185,11 @@ class ScoreBoard:
         text = f"Runde {self.game.round}: {throws}"
         if self.game.round > 1:
             text=f"\n{text}"
-        if self.player.is_active:
-            if len(self.player.throws) <= 3:
-                self.text_widget.delete(float(self.game.round), tk.END)
-            if self.round != self.game.round:
-                self.round = self.game.round
-            self.add_text_line(text)
+        if len(self.player.throws) <= 3:
+            self.text_widget.delete(float(self.game.round), tk.END)
+        if self.round != self.game.round:
+            self.round = self.game.round
+        self.add_text_line(text)
     
     def update_display(self, target_hits, current_score):
         if hasattr(self, 'target_vars'):

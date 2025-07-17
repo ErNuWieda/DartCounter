@@ -39,17 +39,19 @@ def quit_game():
         root.quit()
 
 def about():
-    messagebox.showinfo("Dartcounter v1.0", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda")
+    messagebox.showinfo(f"Dartcounter {version}", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda")
 
 
 if __name__ == "__main__":
     ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent / "assets"    
-    image_path = ASSETS_BASE_DIR / "dartboard.png"
+    image_path = ASSETS_BASE_DIR / "darthead.png"
+    version = "v1.1"
+
 
     # Fenster erstellen
     root = tk.Tk()
     root.geometry("300x300")
-    root.title("Dartcounter v1.0")
+    root.title(f"Dartcounter {version}")
     root.resizable(False, False)
     root.protocol("WM_DELETE_WINDOW", quit_game)
     root.bind("<Escape>", lambda e: quit_game())
@@ -62,18 +64,18 @@ if __name__ == "__main__":
     try:
         image = Image.open(image_path)
     except FileNotFoundError:
-        messagebox.showerror("Fehler", f"Dartboard nicht gefunden: {image_path}")
+        messagebox.showerror("Fehler", f"Image nicht gefunden: {image_path}")
         root.quit()
         exit() # Beendet das Skript, da das Hauptbild fehlt
     except Exception as e:
-        messagebox.showerror("Fehler", f"Fehler beim Laden des Dartboards: {e}")
+        messagebox.showerror("Fehler", f"Fehler beim Laden des Images: {e}")
         root.quit()
         exit() # Beendet das Skript
 
     # Bildschirmgröße
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-    target_height = int(screen_height * 0.25)
+    target_height = int(screen_height * 0.33)
     # Bild skalieren
     scale = target_height / image.height
     new_size = (int(image.width * scale), int(image.height * scale))

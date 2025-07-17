@@ -179,7 +179,7 @@ class Cricket:
                 total_darts = (self.game.round - 1) * 3 + len(player.throws)
                 return f"🏆 {player.name} gewinnt {self.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
-        # --- Zug beenden / Nächster Spieler ---
+        # --- Weiter / Nächster Spieler ---
         if len(player.throws) == 3:
             # Turn ends
             return None

@@ -95,7 +95,7 @@ class AtC:
 			if remaining_darts > 0:
 				messagebox.showerror("Ungültiger Wurf", base_msg + f"\nNoch {remaining_darts} verbleibende Darts.")
 			else: # Last dart of the turn
-				messagebox.showerror("Ungültiger Wurf", base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Zug beenden' klicken.")
+				messagebox.showerror("Ungültiger Wurf", base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.")
 			return None # End processing for this throw
 
 		# --- Treffer auf AtC-Ziel verarbeiten ---
@@ -126,7 +126,7 @@ class AtC:
 		    total_darts = (self.game.round - 1) * 3 + len(player.throws)
 		    return f"🏆 {player.name} gewinnt {self.game.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
-		# --- Zug beenden / Nächster Spieler ---
+		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
             # Turn ends
 			return None

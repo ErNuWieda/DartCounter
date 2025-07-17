@@ -102,7 +102,7 @@ class Micky:
 			if remaining_darts > 0:
 				messagebox.showerror("Ungültiger Wurf", msg_base + f"\n{remaining_darts} verbleibende Darts.")
 			else:            
-				messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme.\nBitte 'Rückgängig' oder 'Zug beenden' klicken.")
+				messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme.\nBitte 'Rückgängig' oder 'Weiter' klicken.")
 			return None # End processing for this throw
 
 		# --- Treffer auf Mickey Mouse-Ziel verarbeiten ---
@@ -128,7 +128,7 @@ class Micky:
 		    total_darts = (self.game.round - 1) * 3 + len(player.throws)
 		    return f"🏆 {player.name} gewinnt {self.game.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
-		# --- Zug beenden / Nächster Spieler ---
+		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
 		    # Turn ends
 		    return None

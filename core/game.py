@@ -52,7 +52,11 @@ class Game:
         """
         for player in self.players:
             player.__del__()
-            self.root.deiconify()
+        
+        if self.db:
+            self.db.root.destroy()
+            self.db = None
+        self.root.deiconify()
     
     def leave(self, player_id):
         """
@@ -89,6 +93,8 @@ class Game:
                 if self.current >= len(self.players):
                     self.current = 0 # Zum ersten Spieler zurück, falls der letzte Spieler entfernt wurde
     def undo(self):
+        if self.end:
+            self.end = False
         player = self.current_player()
         if player and player.throws:
             popped_throw = player.throws.pop()
@@ -112,25 +118,18 @@ class Game:
         """
         Kündigt den aktuellen Spieler an, bereitet UI vor und zeigt ggf. Killer-spezifische Nachrichten.
         """
-        for p in self.players:
-            p.is_active = False
-
         player = self.current_player()
         if not player: # Sollte nicht passieren, wenn Spieler vorhanden sind
             return
 
         round_info = f"Runde {self.round}."
         player_info = f"{player.name} ist am Zug."
-        player.is_active = True
         
         # Spezielle Nachricht für den allerersten Wurf des Spiels
         if self.current == 0 and self.round == 1 and not player.throws: # Check for no throws as well
-            full_message_intro = f"Das Spiel beginnt!\n{round_info}\n{player_info}"
-            messagebox.showinfo("Spielstart", full_message_intro)
-        elif self.name == "Killer": # Killer game always announces general turn info
-            full_message_killer = f"{round_info}\n{player_info}"
-            messagebox.showinfo("Nächster Zug", full_message_killer)
-        # else: No generic "Nächster Zug" announcement for other games after the first turn.
+            messagebox.showinfo("Spielstart", f"{player.name} beginnt!")
+        else:
+            messagebox.showinfo("Spielerwechsel", f"{round_info}\n{player_info}")
         
         # Spezifische Nachricht für Killer-Modus, wenn Lebensfeld bestimmt werden muss
         if self.name == "Killer":
@@ -139,10 +138,11 @@ class Game:
                                     f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
                                     f"Wirf mit deiner NICHT-dominanten Hand.\n"
                                     f"Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                                    f"Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bullseye'.")
+                                    f"Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.")
             elif player.life_segment and not player.can_kill: # Only show if life_segment is set but not yet a killer
+                segment_str = "Bull" if player.life_segment == "Bull" else f"Double {player.life_segment}"
                 messagebox.showinfo("Zum Killer werden",
-                                    f"{player.name}, jetzt musst du dein Lebensfeld ({player.life_segment}) treffen um Killer-Status zu erlangen.\n"
+                                    f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.\n"
                                     f"Erst dann kannst du andere Spieler eliminieren.\n"
                                     f"VORSICHT!\n"
                                     f"Triffst du als Killer dein eigenes Lebensfeld, verlierst du selbst ein Leben!")
@@ -158,10 +158,15 @@ class Game:
     def next_player(self):
         """
         Wechselt zum nächsten Spieler in der Runde oder startet eine neue Runde.
-        Wird durch den "Zug beenden"-Button ausgelöst.
+        Wird durch den "Weiter"-Button ausgelöst.
         """
         if not self.players: # Keine Spieler mehr im Spiel
             return
+
+        if self.end == True:
+            self.__del__()
+            return
+
 
         current_p = self.current_player()
         if current_p:
