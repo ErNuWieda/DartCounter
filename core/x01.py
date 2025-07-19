@@ -3,7 +3,7 @@ Dieses Modul definiert die Hauptlogik für x01 Dartspiele.
 Es enthält die x01 Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
@@ -56,7 +56,7 @@ class X01:
             if opened_successfully:
                 player.has_opened = True
             else:
-                player.throws.append((ring, 0)) # Record the failed attempt
+                player.throws.append((ring, segment)) # Record the failed attempt
                 player.sb.update_score(player.score) # Update display for throw history
                 option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
                 msg_base = f"{player.name} braucht ein {option_text} zum Start!"
@@ -82,18 +82,11 @@ class X01:
                 elif new_score == 0 and ring not in ("Double", "Triple", "Bullseye"): bust = True
         
         if bust:
-            # Record the throw that caused the bust, but it scores 0 for this throw.
-            # The player.score is NOT updated with this throw's points.
-            # Any points scored by previous darts in THIS turn are typically also voided in a bust.
-            # This requires reverting player.score to its state at the start of the turn.
-            # The current Player.reset_turn() only clears throws.
-            # For now, we'll just show the message and the turn ends.
             # The score will be as it was BEFORE this busting throw.
-
-            player.throws.append((ring, 0)) # Mark the bust throw in history
+            player.throws.append((ring, segment)) # Mark the bust throw in history
             player.sb.update_score(player.score) # Update display
 
-            messagebox.showerror("Bust", f"{player.name} hat überworfen! Keine Punkte für diesen Wurf. Aufnahme beendet. Bitte 'Weiter' klicken.")
+            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
             return None # Turn ends due to bust. Player clicks "Weiter".
 
         player.throws.append((ring, segment))

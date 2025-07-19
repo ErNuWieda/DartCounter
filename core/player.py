@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk
 from . import scoreboard
 from .scoreboard import ScoreBoard 
@@ -13,6 +13,7 @@ class Player:
         self.life_segment = ""
         self.lifes = game.lifes
         self.can_kill = False
+        self.killer_throws = 0
         self.next_target = None
         self.score = 0
         self.game = game

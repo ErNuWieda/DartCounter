@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
 
 class ScoreBoard:
@@ -9,6 +9,9 @@ class ScoreBoard:
         self.round = game.round
         if len(game.name) == 3:
             self.score = int (game.name)
+            self.score_window_x01()
+        elif game.name == "Elimination":
+            self.score = 0
             self.score_window_x01()
         else:
             self.score = 0
@@ -169,19 +172,24 @@ class ScoreBoard:
             self.score_label.config(text=f"Punkte: {score}")
 
         throws = ""
-        for i in range(len(self.player.throws)):
-            ring, segment = self.player.throws[i]
-            if ring == "Miss":
-                throw = "X"
-            elif ring == "Bullseye":
-                throw = "Bullseye"
-            elif ring == "Bull":
-                throw = "Bull"
-            else:    
-                throw = ring[0] + str(segment) 
+        i = 0
+        for p_throw in self.player.throws:
+            ring, segment = p_throw
+            match ring:
+                case "Miss":
+                    throw = "X"
+                case "Bull" | "Bullseye":
+                    throw = ring
+                case "Single":
+                    throw = str(segment)
+                case "Double" | "Triple":
+                    throw = ring[0] + str(segment) 
+
             if i < 2:
                 throw += ", "
-            throws += throw  
+            throws += throw
+            i += 1
+        
         text = f"Runde {self.game.round}: {throws}"
         if self.game.round > 1:
             text=f"\n{text}"

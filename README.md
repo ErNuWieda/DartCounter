@@ -47,9 +47,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 
 Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Features und Bereiche für Verbesserungen:
 
-*   **[X] Elimination-Spielmodus:** Implementierung des „Mensch ärgere dich nicht“-ähnlichen Punktespiels mit Reset-Mechanik.
-*   **[ ] Erweiterte Shanghai-Finish-Logik (x01):** Korrekte Erkennung eines Shanghai-Finish (Single, Double, Triple desselben Segments in einer Runde) für x01-Spiele. 
-*   **[ ] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts
+*   **[X] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts
 *   **[ ] Spielerstatistiken:** Erfassung und Anzeige von Statistiken (z.B. Averages, Checkout-Quoten, höchste Würfe).
 *   **[ ] Highscore-Listen:**
     *   **[ ] Implementierung einer Highscore-Liste pro Spielmodus.**

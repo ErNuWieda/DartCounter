@@ -3,7 +3,7 @@ Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
@@ -54,21 +54,26 @@ class Killer:
 		if player.can_kill:
 			# Finde das potenzielle Opfer
 			victim = None
+			is_killer_making_throw = False
 			for p in self.players:
-				is_life_segment_hit = (p.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+				life_segment_hit = (p.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
 											 (str(segment) == p.life_segment and ring == "Double")
-				if is_life_segment_hit:
+				if life_segment_hit:
+					if p == player: 
+						if player.killer_throws > 0:
+							player.killer_throws -= 1
+						else:
+							is_killer_making_throw = True
+							player.can_kill = False
+							messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.")
 					victim = p
 					break
-			if victim:
+
+			if victim and not is_killer_making_throw:
 				if victim.lifes < 3:
 					victim.lifes += 1
 					victim.sb.lifes_label.config(text=f"Leben: {victim.lifes}")
 					messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.")
-				elif victim == player:
-					player.can_kill = False
-					messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.")
-
 		# --- Scoreboard des aktuellen Spielers aktualisieren ---
 		player.sb.update_score(player.lifes)
 
@@ -128,6 +133,7 @@ class Killer:
 
 		# --- Phase 3: Spieler ist ein Killer ---
 		else:
+			player.killer_throws += 1
 			victim = None
 			for opp in self._get_active_players():
 				is_opp_life_segment_hit = (opp.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or (str(segment) == opp.life_segment and opp.life_segment != "Bull")
@@ -137,6 +143,7 @@ class Killer:
 
 			if victim:
 				victim.lifes -= 1
+				victim.sb.lifes_label.config(text=f"Leben: {victim.lifes}")
 				if victim == player:
 					title = "Eigentor"
 					opp_name = "sich selbst"
@@ -146,7 +153,6 @@ class Killer:
 
 				if victim.lifes > 0:
 					messagebox.showinfo(title, f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.lifes} Leben.")
-					victim.sb.lifes_label.config(text=f"Leben: {victim.lifes}")
 				else:
 					messagebox.showinfo("Eliminiert!", f"{player.name} hat {opp_name} eliminiert!")
 					win_msg = self._check_and_handle_win_condition()

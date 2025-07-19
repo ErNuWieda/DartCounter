@@ -2,7 +2,7 @@
 Dieses Modul definiert die Hauptlogik für Cricket und Cut Throat.
 Es enthält die Cricket-Klasse, die den Spielablauf und Regeln der Cricket-Varianten verwaltet.
 """
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
@@ -65,7 +65,9 @@ class Cricket:
                 for opp in players:
                     if opp != player and opp.hits.get(target_hit, 0) < 3:
                         if opp.score > 0:
-                            opp.update_score_value(points_for_this_throw, subtract=True)        
+                            opp.score -= points_for_this_throw
+                            opp.sb.score_label.config(text=f"Punkte: {opp.score}")
+                        break
  
         player.sb.update_display(player.hits, player.score) # Scoreboard aktualisieren (für Wurfanzeige)
 
@@ -151,8 +153,9 @@ class Cricket:
             else:
                 for opp in players:
                     if opp != player and opp.hits.get(target_hit, 0) < 3:
-                        opp.update_score_value(points_for_this_throw, subtract=False)
-
+                        opp.score += points_for_this_throw
+                        opp.sb.score_label.config(text=f"Punkte: {opp.score}")
+                        
         # Marks und Score aktualisieren
         player.sb.update_display(player.hits, player.score) 
 
