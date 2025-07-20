@@ -2,7 +2,7 @@
 Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
 """
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
@@ -20,7 +20,7 @@ class Game:
         Initialisiert eine neue Spielinstanz.
 
         Args:
-            root: Das Tkinter-Hauptfenster.
+            root: Das tk inter-Hauptfenster.
             game (tuple): Ein Tupel mit Spielinformationen (Spielname, Opt-In, Opt-Out, Opt-Atc, Killerleben).
             player_names (list): Eine Liste der Namen der teilnehmenden Spieler.
         """
@@ -29,8 +29,9 @@ class Game:
         self.opt_in = game[1]
         self.opt_out = game[2]
         self.opt_atc = game[3]
-        self.lifes = int(game[4])
-        self.rounds = int(game[5])
+        self.count_to = int(game[4])
+        self.lifes = int(game[5])
+        self.rounds = int(game[6])
         self.current = 0
         self.round = 1
         self.shanghai_finish = False
@@ -192,6 +193,10 @@ class Game:
                 from . import atc
                 from .atc import AtC
                 return AtC(self)
+            case "Elimination":
+                from . import elimination
+                from .elimination import Elimination
+                return Elimination(self)
             case "Micky Mouse":
                 from . import micky
                 from .micky import Micky

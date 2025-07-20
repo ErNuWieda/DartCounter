@@ -3,7 +3,7 @@ Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox
 from . import player 
 from .player import Player

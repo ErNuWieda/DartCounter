@@ -1,4 +1,4 @@
-import tkinter as tk
+import tkinter as tk 
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import math
@@ -161,11 +161,11 @@ class DartBoard:
         btn_frame = tk.Frame(self.root)
         btn_frame.pack() 
         undo_button = tk.Button(btn_frame, text=" Zurück  ", fg="red", command=self.spiel.undo)
-        undo_button.pack()
+        undo_button.pack(pady=5)
         done_button = tk.Button(btn_frame, text=" Weiter  ", fg="green", command=self.spiel.next_player)
-        done_button.pack()
+        done_button.pack(pady=5)
         quit_button = tk.Button(btn_frame, text="Beenden", command=self.quit_game)
-        quit_button.pack()
+        quit_button.pack(pady=5)
 
         canvas.create_window(
             new_size[0], new_size[1],

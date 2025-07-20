@@ -1,7 +1,7 @@
-#!/bin/python 
+#!/usr/bin/python3 
 # -*- coding: utf-8 -*-
 
-import tkinter as tk
+import tkinter as tk 
 from tkinter import ttk, messagebox, Menu
 from PIL import Image, ImageTk
 import pathlib
