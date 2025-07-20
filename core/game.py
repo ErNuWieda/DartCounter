@@ -250,7 +250,7 @@ class Game:
         if len(player.throws) < 3:
             return self.game._handle_throw(player, ring, segment, self.players)
         else:
-            messagebox.showinfo("Zuviel Würfe", "Bitte 'Nächster Spieler' klicken!")
+            messagebox.showinfo("Zuviel Würfe", "Bitte 'Weiter' klicken!")
             return self.db.clear_last_dart_image_from_canvas()
 
 
