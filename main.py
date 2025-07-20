@@ -72,13 +72,8 @@ if __name__ == "__main__":
         root.quit()
         exit() # Beendet das Skript
 
-    # Bildschirmgröße
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    target_height = int(screen_height * 0.33)
     # Bild skalieren
-    scale = target_height / image.height
-    new_size = (int(image.width * scale), int(image.height * scale))
+    new_size = (275, 275)
     resized = image.resize(new_size, Image.Resampling.LANCZOS)
     photo = ImageTk.PhotoImage(resized)
     # Canvas erstellen
