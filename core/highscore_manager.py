@@ -7,24 +7,57 @@ import os
 
 class HighscoreManager:
     """
-    Verwaltet die Highscore-Logik und -Anzeige durch Interaktion mit dem DatabaseManager.
+    Verwaltet die Highscore-Logik und die Interaktion mit dem Benutzer.
+
+    Diese Klasse dient als Schnittstelle zwischen der Benutzeroberfläche und der
+    Datenbanklogik für Highscores. Sie ist verantwortlich für:
+    - Das Anzeigen der Highscores in einem eigenen Fenster.
+    - Das Hinzufügen neuer Highscore-Einträge nach einem Spielende.
+    - Das Exportieren der Highscores in eine CSV-Datei.
+    - Das sichere Zurücksetzen von Highscores nach Benutzerbestätigung.
+
+    Sie delegiert alle direkten Datenbankoperationen an eine Instanz des
+    `DatabaseManager`.
     """
     def __init__(self):
+        """
+        Initialisiert den HighscoreManager.
+
+        Erstellt eine Instanz des `DatabaseManager`, um die Verbindung zur
+        Datenbank zu verwalten.
+        """
         self.db_manager = DatabaseManager()
 
-    def add_score(self, game_mode, player_name, darts_used):
-        """Fügt einen neuen Score hinzu, wenn es ein Highscore ist."""
+    def add_score(self, game_mode, player_name, score_metric):
+        """
+        Fügt einen neuen Highscore-Eintrag hinzu.
+
+        Prüft, ob eine Datenbankverbindung besteht und ob der Spielmodus für Highscores
+        relevant ist. Delegiert das Hinzufügen des Eintrags an den `DatabaseManager`.
+
+        Args:
+            game_mode (str): Der Spielmodus (z.B. "301").
+            player_name (str): Der Name des Spielers.
+            score_metric (float or int): Die Punktzahl (z.B. Darts für X01, MPR für Cricket).
+        """
         if not self.db_manager.is_connected:
             return
         
-        # Nur für definierte X01-Spiele verfolgen
-        if str(game_mode) not in ["301", "501", "701"]:
+        # Nur für definierte Spiele verfolgen
+        valid_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
+        if str(game_mode) not in valid_modes:
             return
         
-        self.db_manager.add_score(str(game_mode), player_name, darts_used)
+        self.db_manager.add_score(str(game_mode), player_name, score_metric)
 
     def export_highscores_to_csv(self):
-        """Exportiert alle Highscores in eine CSV-Datei."""
+        """
+        Exportiert alle Highscores aus der Datenbank in eine CSV-Datei.
+
+        Öffnet einen "Speichern unter"-Dialog, damit der Benutzer einen Speicherort
+        auswählen kann. Ruft alle Highscores für die definierten Spielmodi ab,
+        formatiert sie und schreibt sie in die ausgewählte CSV-Datei.
+        """
         if not self.db_manager.is_connected:
             messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Datenbank möglich.")
             return
@@ -40,23 +73,24 @@ class HighscoreManager:
             return  # User cancelled
 
         all_scores = []
-        for game_mode in ["301", "501", "701"]:
+        highscore_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
+        for game_mode in highscore_modes:
             scores = self.db_manager.get_scores(game_mode)
             for score in scores:
                 all_scores.append({
                     'game_mode': game_mode,
                     'player_name': score['player_name'],
-                    'darts_used': score['darts_used'],
+                    'score': score['score_metric'],
                     'date': score['date'].strftime("%Y-%m-%d")
                 })
 
         if not all_scores:
-            messagebox.showinfo("Export", "Keine Highscores zum Exportieren vorhanden.")
+            messagebox.showinfo("Export", "Keine Highscores zum Exportieren vorhanden.", parent=root)
             return
 
         try:
             with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-                fieldnames = ['game_mode', 'player_name', 'darts_used', 'date']
+                fieldnames = ['game_mode', 'player_name', 'score', 'date']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(all_scores)
@@ -65,7 +99,19 @@ class HighscoreManager:
             messagebox.showerror("Exportfehler", f"Fehler beim Schreiben der CSV-Datei: {e}")
 
     def _prompt_and_reset(self, highscore_win, notebook):
-        """Öffnet einen Dialog zur Bestätigung des Zurücksetzens von Highscores."""
+        """
+        Öffnet einen Dialog zur Bestätigung des Zurücksetzens von Highscores.
+
+        Diese private Hilfsmethode wird durch den "Zurücksetzen"-Button aufgerufen.
+        Sie erstellt ein modales Dialogfenster, das dem Benutzer die Wahl gibt,
+        entweder nur die Highscores des aktuell angezeigten Tabs oder alle
+        Highscores zu löschen. Die eigentliche Löschoperation wird erst nach einer
+        weiteren Bestätigung durchgeführt.
+
+        Args:
+            highscore_win (tk.Toplevel): Das übergeordnete Highscore-Fenster.
+            notebook (ttk.Notebook): Das Notebook-Widget, um den aktuellen Tab zu ermitteln.
+        """
         
         current_tab_index = notebook.index(notebook.select())
         current_game_mode = notebook.tab(current_tab_index, "text")
@@ -99,7 +145,18 @@ class HighscoreManager:
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(side="left", padx=5)
 
     def show_highscores_window(self, root):
-        """Zeigt die Highscores in einem Toplevel-Fenster an."""
+        """
+        Erstellt und zeigt das Highscore-Fenster an.
+
+        Prüft zunächst, ob eine Datenbankverbindung besteht. Erstellt dann ein
+        Toplevel-Fenster mit einem `ttk.Notebook` für die verschiedenen X01-Spielmodi.
+        Für jeden Modus werden die Highscores aus der Datenbank abgerufen und in
+        einem `ttk.Treeview` dargestellt. Fügt außerdem Buttons zum Exportieren
+        und Zurücksetzen der Highscores hinzu.
+
+        Args:
+            root (tk.Tk): Das Hauptfenster der Anwendung, das als Parent dient.
+        """
         if not self.db_manager.is_connected:
             messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.")
             return
@@ -112,19 +169,29 @@ class HighscoreManager:
         notebook = ttk.Notebook(win)
         notebook.pack(expand=True, fill="both", padx=10, pady=10)
 
-        for game_mode in ["301", "501", "701"]:
+        highscore_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
+        for game_mode in highscore_modes:
             frame = ttk.Frame(notebook, padding="10")
             notebook.add(frame, text=f"{game_mode}")
 
-            tree = ttk.Treeview(frame, columns=("Rank", "Player", "Darts", "Date"), show="headings")
+            # Spaltenüberschrift dynamisch anpassen
+            score_header = "MPR" if game_mode in ("Cricket", "Cut Throat", "Tactics") else "Darts"
+
+            tree = ttk.Treeview(frame, columns=("Rank", "Player", "Score", "Date"), show="headings")
             tree.heading("Rank", text="Platz"); tree.column("Rank", width=50, anchor="center")
             tree.heading("Player", text="Spieler"); tree.column("Player", width=150)
-            tree.heading("Darts", text="Darts"); tree.column("Darts", width=80, anchor="center")
+            tree.heading("Score", text=score_header); tree.column("Score", width=80, anchor="center")
             tree.heading("Date", text="Datum"); tree.column("Date", width=100, anchor="center")
 
             scores = self.db_manager.get_scores(game_mode)
             for i, score in enumerate(scores):
-                tree.insert("", "end", values=(f"{i+1}.", score['player_name'], score['darts_used'], score['date'].strftime("%Y-%m-%d")))
+                # Score-Wert korrekt formatieren
+                score_value = score['score_metric']
+                if game_mode in ("Cricket", "Cut Throat", "Tactics"):
+                    formatted_score = f"{score_value:.2f}"
+                else:
+                    formatted_score = int(score_value)
+                tree.insert("", "end", values=(f"{i+1}.", score['player_name'], formatted_score, score['date'].strftime("%Y-%m-%d")))
 
             tree.pack(expand=True, fill="both")
 

@@ -52,6 +52,8 @@ class Player:
             'checkout_opportunities': 0,
             'checkouts_successful': 0,
             'highest_finish': 0,
+            # Statistik für Cricket/Tactics
+            'total_marks_scored': 0,
         }
 
         # Initialisierung basierend auf dem Spielmodus

@@ -11,8 +11,24 @@ from . import scoreboard
 from .scoreboard import ScoreBoard 
 
 class X01:
+    """
+    Behandelt die spezifische Spiellogik für alle X01-Varianten (z.B. 301, 501, 701).
+
+    Diese Klasse ist verantwortlich für die Verarbeitung von Würfen, die Anwendung von
+    Regeln für das Eröffnen (Opt-In) und Schließen (Opt-Out) des Spiels, die
+    Erkennung von "Bust"-Bedingungen und die Ermittlung eines Gewinners. Sie
+    interagiert mit dem Haupt-`Game`-Objekt, um auf den gemeinsamen Zustand und
+    Spielerinformationen zuzugreifen.
+    """
 
     def __init__(self, game):
+        """
+        Initialisiert den X01-Spiellogik-Handler.
+
+        Args:
+            game (Game): Die Haupt-Spielinstanz, die Zugriff auf Spieloptionen
+                         und den allgemeinen Zustand bietet.
+        """
         self.game = game
         self.opt_in = game.opt_in
         self.opt_out = game.opt_out
@@ -20,9 +36,31 @@ class X01:
 
 
     def get_targets(self):
+        """
+        Gibt die Ziele für das Spiel zurück.
+
+        Für X01 gibt es keine spezifischen Ziele wie bei Cricket, daher wird
+        `None` zurückgegeben.
+
+        Returns:
+            None
+        """
         return self.targets
     
     def _handle_throw_undo(self, player, ring, segment, players):
+        """
+        Macht den letzten Wurf für einen Spieler rückgängig.
+
+        Stellt den Zustand des Spielers vor dem letzten Wurf wieder her. Dies
+        umfasst die Neuberechnung des Punktestands und die Korrektur von
+        Statistiken wie Checkout-Möglichkeiten und dem 3-Dart-Average.
+
+        Args:
+            player (Player): Der Spieler, dessen Wurf rückgängig gemacht wird.
+            ring (str): Der Ring des rückgängig zu machenden Wurfs.
+            segment (int): Das Segment des rückgängig zu machenden Wurfs.
+            players (list[Player]): Die Liste aller Spieler (in dieser Methode ungenutzt).
+        """
         throw_score = self.game.get_score(ring, segment)
         score_after_throw = player.score - throw_score
 
@@ -50,6 +88,30 @@ class X01:
                 player.stats['total_score_thrown'] -= throw_score
 
     def _handle_throw(self, player, ring, segment, players):
+        """
+        Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
+
+        Dies ist die Kernmethode, die alle Spielregeln auf einen Wurf anwendet.
+        Sie folgt einer Sequenz von Überprüfungen:
+        1. Berechnet den Punktwert des Wurfs.
+        2. Prüft, ob der Wurf eine Checkout-Möglichkeit darstellt.
+        3. Validiert die 'Opt-In'-Regel, falls der Spieler noch nicht eröffnet hat.
+        4. Validiert 'Bust'-Bedingungen basierend auf dem Restpunktestand und den
+           'Opt-Out'-Regeln.
+        5. Wenn der Wurf gültig ist, werden Punktestand und Statistiken des Spielers aktualisiert.
+        6. Prüft auf eine Gewinnbedingung (Punktestand ist genau null).
+        7. Bei einem Gewinn wird auf ein spezielles 'Shanghai'-Finish geprüft und
+           der Punktestand an den Highscore-Manager übermittelt.
+
+        Args:
+            player (Player): Der Spieler, der den Wurf gemacht hat.
+            ring (str): Der getroffene Ring (z.B. 'Single', 'Double').
+            segment (int): Die getroffene Segmentnummer.
+            players (list[Player]): Die Liste aller Spieler im Spiel.
+
+        Returns:
+            str or None: Eine Gewinnnachricht, wenn das Spiel gewonnen wurde, ansonsten None.
+        """
         # --- x01 Logik ---
         score = self.game.get_score(ring, segment)
         score_before_throw = player.score

@@ -58,6 +58,9 @@ def new_game():
         spiel_instanz = Game(root, game_options, gm.players, sound_manager, highscore_manager)
         db_instanz = DartBoard(spiel_instanz)
         spiel_instanz.db = db_instanz
+
+        # Scoreboards erstellen und positionieren, nachdem das Dartboard existiert
+        spiel_instanz.setup_scoreboards()
         
         # Die neue Instanz als globale Instanz setzen
         game_instance = spiel_instanz
@@ -93,6 +96,9 @@ def load_game():
     loaded_game = Game(root, game_options, player_names, sound_manager, highscore_manager)
     db = DartBoard(loaded_game)
     loaded_game.db = db
+
+    # Scoreboards erstellen, bevor der Zustand wiederhergestellt wird
+    loaded_game.setup_scoreboards()
     SaveLoadManager.restore_game_state(loaded_game, data)
     
     game_instance = loaded_game

@@ -233,27 +233,33 @@ class DartBoard:
         resized = image.resize(new_size, Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(resized)
         # Canvas erstellen
-        canvas = tk.Canvas(self.root, width=new_size[0], height=new_size[1])
-        self.canvas = canvas # Canvas der Instanzvariable zuweisen
-        canvas.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(self.root, width=new_size[0], height=new_size[1])
+        self.canvas.pack(side="top", fill="both", expand=True)
         # Bild einfügen
-        canvas.create_image(0, 0, image=photo, anchor=tk.NW)
-        canvas.image = photo
+        self.canvas.create_image(0, 0, image=photo, anchor=tk.NW)
+        self.canvas.image = photo
+        self.canvas.bind("<Button-1>", self.on_click)
 
-        canvas.bind("<Button-1>", self.on_click)
         # Buttons erstellen
         btn_frame = tk.Frame(self.root)
-        btn_frame.pack() 
+        btn_frame.pack(side="bottom", fill="x", pady=5)
         undo_button = tk.Button(btn_frame, text=" Zurück  ", fg="red", command=self.spiel.undo)
         undo_button.pack(pady=5)
         done_button = tk.Button(btn_frame, text=" Weiter  ", fg="green", command=self.spiel.next_player)
         done_button.pack(pady=5)
         quit_button = tk.Button(btn_frame, text="Beenden", command=self.quit_game)
         quit_button.pack(pady=5)
-
-        canvas.create_window(
+        self.canvas.create_window(
             new_size[0], new_size[1],
             window=btn_frame,
             anchor="se"
         )
+
+        # Fenster zentrieren, nachdem alle Widgets hinzugefügt wurden
+        self.root.update_idletasks()
+        window_width = self.root.winfo_reqwidth()
+        window_height = self.root.winfo_reqheight()
+        pos_x = (screen_width // 2) - (window_width // 2)
+        pos_y = (screen_height // 2) - (window_height // 2)
+        self.root.geometry(f"{window_width}x{window_height}+{pos_x}+{pos_y}")
         

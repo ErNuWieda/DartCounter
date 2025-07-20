@@ -1,4 +1,4 @@
 Pillow
 pygame
-sv-ttk
+sv_ttk
 psycopg2-binary

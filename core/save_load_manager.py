@@ -4,11 +4,32 @@ import os
 
 class SaveLoadManager:
     """
-    Verwaltet das Speichern und Laden von Spielständen in/aus JSON-Dateien.
+    Verwaltet das Speichern und Laden von Spielständen als statische Utility-Klasse.
+
+    Diese Klasse enthält ausschließlich statische Methoden und wird nicht instanziiert.
+    Sie ist verantwortlich für:
+    - Das Sammeln aller relevanten Daten aus einer laufenden `Game`-Instanz.
+    - Das Öffnen von Systemdialogen zum Auswählen von Speicher- oder Ladeorten.
+    - Das Serialisieren des Spielzustands in eine JSON-Datei.
+    - Das Deserialisieren einer JSON-Datei zurück in ein Python-Dictionary.
+    - Das Wiederherstellen des Zustands einer `Game`-Instanz aus den geladenen Daten.
     """
     @staticmethod
     def _collect_game_data(game):
-        """Sammelt den kompletten Spielzustand und packt ihn in ein Dictionary."""
+        """
+        Sammelt den kompletten Spielzustand und packt ihn in ein Dictionary.
+
+        Diese private Hilfsmethode durchläuft das `game`-Objekt und alle
+        zugehörigen `player`-Objekte, um einen serialisierbaren "Schnappschuss"
+        des Spiels zu erstellen.
+
+        Args:
+            game (Game): Die aktive Spielinstanz, die gespeichert werden soll.
+
+        Returns:
+            dict or None: Ein Dictionary, das den gesamten Spielzustand repräsentiert,
+                          oder None, wenn kein Spiel übergeben wurde.
+        """
         if not game:
             return None
 
@@ -46,7 +67,16 @@ class SaveLoadManager:
 
     @staticmethod
     def save_game_state(game):
-        """Öffnet einen Speichern-Dialog und schreibt den Spielzustand in eine JSON-Datei."""
+        """
+        Orchestriert den Speichervorgang.
+
+        Ruft `_collect_game_data` auf, öffnet einen "Speichern unter"-Dialog
+        für den Benutzer und schreibt die resultierenden Daten in die
+        ausgewählte JSON-Datei.
+
+        Args:
+            game (Game): Die zu speichernde Spielinstanz.
+        """
         game_data = SaveLoadManager._collect_game_data(game)
         if not game_data:
             messagebox.showerror("Fehler", "Keine Spieldaten zum Speichern.")
@@ -71,7 +101,17 @@ class SaveLoadManager:
 
     @staticmethod
     def load_game_data():
-        """Öffnet einen Laden-Dialog und liest Spieldaten aus einer JSON-Datei."""
+        """
+        Orchestriert den Ladevorgang von der Datei bis zum Dictionary.
+
+        Öffnet einen "Öffnen"-Dialog, damit der Benutzer eine Speicherdatei
+        auswählen kann. Liest die JSON-Datei und gibt ihren Inhalt als
+        Python-Dictionary zurück.
+
+        Returns:
+            dict or None: Die geladenen Spieldaten als Dictionary oder None,
+                          wenn der Vorgang abgebrochen wurde oder ein Fehler auftrat.
+        """
         filepath = filedialog.askopenfilename(
             initialdir=os.path.join(os.path.expanduser('~'), 'Documents'),
             title="Spiel laden...",
@@ -90,7 +130,18 @@ class SaveLoadManager:
 
     @staticmethod
     def restore_game_state(game, data):
-        """Stellt den Zustand eines Game-Objekts aus geladenen Daten wieder her."""
+        """
+        Stellt den Zustand eines Game-Objekts aus geladenen Daten wieder her.
+
+        Diese Methode nimmt eine neu erstellte `Game`-Instanz und das geladene
+        `data`-Dictionary und überschreibt die Attribute des Spiels und seiner
+        Spieler mit den geladenen Werten. Anschließend wird die Benutzeroberfläche
+        (Scoreboards) aktualisiert, um den wiederhergestellten Zustand anzuzeigen.
+
+        Args:
+            game (Game): Die neue Spielinstanz, deren Zustand wiederhergestellt wird.
+            data (dict): Das Dictionary mit den geladenen Spieldaten.
+        """
         game.round = data['round']
         game.current = data['current_player_index']
         for i, p_data in enumerate(data['players']):

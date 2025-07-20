@@ -72,7 +72,7 @@ class Killer:
 			if victim and not is_killer_making_throw:
 				if victim.lifes < 3:
 					victim.lifes += 1
-					victim.sb.lifes_label.config(text=f"Leben: {victim.lifes}")
+					victim.sb.update_score(victim.lifes)
 					messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.")
 		# --- Scoreboard des aktuellen Spielers aktualisieren ---
 		player.sb.update_score(player.lifes)
@@ -143,7 +143,7 @@ class Killer:
 
 			if victim:
 				victim.lifes -= 1
-				victim.sb.lifes_label.config(text=f"Leben: {victim.lifes}")
+				victim.sb.update_score(victim.lifes)
 				if victim == player:
 					title = "Eigentor"
 					opp_name = "sich selbst"

@@ -20,6 +20,20 @@ TACTICS_TARGET_VALUES = {"20": 20, "19": 19, "18": 18, "17": 17, "16": 16, "15":
 TACTICS_SEGMENTS_AS_STR = [str(s) for s in range(10, 21)] # "10" bis "20"
 
 class Cricket:
+    """
+    Behandelt die spezifische Spiellogik für Cricket und seine Varianten.
+
+    Diese Klasse ist verantwortlich für die Logik der Spiele "Cricket",
+    "Cut Throat Cricket" und "Tactics". Sie verwaltet:
+    - Die Definition der relevanten Ziele für den jeweiligen Modus.
+    - Die Verarbeitung von Würfen, um "Marks" auf den Zielen zu zählen.
+    - Die unterschiedliche Punktevergabe:
+        - "Cricket" / "Tactics": Punkte werden dem eigenen Score gutgeschrieben.
+        - "Cut Throat": Punkte werden den Gegnern als "Straf-"Punkte zugewiesen.
+    - Die Überprüfung der Gewinnbedingungen, die sowohl das Schließen aller
+      Ziele als auch den Punktestand berücksichtigen.
+    - Die Berechnung der "Marks Per Round" (MPR) für die Highscore-Liste.
+    """
     def __init__(self, game):
         self.game = game
         self.name = game.name
@@ -34,9 +48,26 @@ class Cricket:
 
 
     def get_targets(self):
+        """Gibt die Liste der Ziele für den aktuellen Spielmodus zurück."""
         return self.targets
 
     def _handle_throw_undo(self, player, ring, segment, players):
+        """
+        Macht den letzten Wurf für einen Spieler rückgängig.
+
+        Diese Methode stellt den Zustand vor dem letzten Wurf wieder her. Sie
+        ermittelt, wie viele "Marks" der Wurf wert war, reduziert die Treffer
+        des Spielers auf dem entsprechenden Ziel und macht eventuell erzielte
+        Punkte rückgängig.
+
+        Args:
+            player (Player): Der Spieler, dessen Wurf rückgängig gemacht wird.
+            ring (str): Der Ring des rückgängig zu machenden Wurfs.
+            segment (int): Das Segment des rückgängig zu machenden Wurfs.
+            players (list[Player]): Die Liste aller Spieler, benötigt für die
+                                   komplexe Logik der Punktevergabe bei
+                                   Cut Throat.
+        """
         target_hit, marks_scored = self._get_target_and_marks(ring, segment)
         # --- Treffer auf Cricket-Ziel verarbeiten ---
         current_marks_on_target = player.hits.get(target_hit, 0)
@@ -109,8 +140,22 @@ class Cricket:
 
     def _handle_throw(self, player, ring, segment, players):
         """
-        Verarbeitet einen Wurf im Cricket-, Cut Throat, oder Tactics-Modus.
-        Aktualisiert die Treffer des Spielers, berechnet Punkte und prüft auf Gewinnbedingungen.
+        Verarbeitet einen einzelnen Wurf für einen Spieler.
+
+        Dies ist die Kernmethode für die Cricket-Logik. Sie führt folgende Schritte aus:
+        1.  Ermittelt, ob der Wurf ein gültiges Ziel getroffen hat und wie viele
+            "Marks" er wert ist.
+        2.  Aktualisiert die Statistik für die "Marks Per Round" (MPR).
+        3.  Wenn der Wurf gültig ist, werden die Treffer (`player.hits`) aktualisiert.
+        4.  Prüft, ob der Spieler bereits 3 Treffer auf dem Ziel hat. Wenn ja,
+            werden Punkte vergeben, falls das Ziel bei den Gegnern noch offen ist.
+        5.  Die Punktevergabe unterscheidet sich:
+            -   "Cricket"/"Tactics": Punkte werden dem Spieler gutgeschrieben.
+            -   "Cut Throat": Punkte werden den Gegnern als "Straf-"Punkte addiert.
+        6.  Aktualisiert die Anzeige auf dem Scoreboard.
+        7.  Prüft, ob der Spieler alle seine Ziele geschlossen hat UND die
+            Punktebedingung für einen Sieg erfüllt ist.
+        8.  Bei einem Sieg wird die MPR berechnet und an den HighscoreManager übergeben.
 
         Args:
             player (Player): Der Spieler, der den Wurf ausgeführt hat.
@@ -118,11 +163,15 @@ class Cricket:
             segment (int/str): Das getroffene Segment.
 
         Returns:
-            str or None: Eine Nachricht über den Spielausgang oder den Wurf,
-                         oder None, wenn das Spiel weitergeht.
+            str or None: Eine Gewinnnachricht, wenn das Spiel gewonnen wurde, ansonsten None.
         """
         target_hit, marks_scored = self._get_target_and_marks (ring, segment)
         player.throws.append((ring, segment))
+
+        # Statistik für Marks-per-Round (MPR) aktualisieren
+        if target_hit and marks_scored > 0:
+            player.stats['total_marks_scored'] += marks_scored
+
         if not target_hit or marks_scored == 0:
             player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurfanzeige)
             if len(player.throws) == 3:
@@ -180,6 +229,16 @@ class Cricket:
             if player_has_best_score:
                 self.game.end = True
                 total_darts = (self.game.round - 1) * 3 + len(player.throws)
+
+                # Highscore für Cricket-Modi hinzufügen (MPR)
+                if self.game.highscore_manager:
+                    total_darts_for_mpr = (self.game.round - 1) * 3 + len(player.throws)
+                    if total_darts_for_mpr > 0:
+                        mpr = (player.stats['total_marks_scored'] / total_darts_for_mpr) * 3
+                    else:
+                        mpr = 0.0
+                    self.game.highscore_manager.add_score(self.name, player.name, mpr)
+
                 return f"🏆 {player.name} gewinnt {self.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
         # --- Weiter / Nächster Spieler ---

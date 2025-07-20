@@ -10,14 +10,43 @@ except ImportError:
     PYGAME_AVAILABLE = False
 
 class SoundManager:
+    """
+    Verwaltet das Laden und Abspielen aller Soundeffekte in der Anwendung.
+
+    Diese Klasse ist als Singleton implementiert, um sicherzustellen, dass nur eine
+    Instanz des Pygame-Mixers existiert. Sie ist verantwortlich für:
+    - Die Initialisierung des `pygame.mixer`.
+    - Das Laden von Sounddateien (z.B. für Treffer, Spielgewinn).
+    - Das Abspielen von Sounds auf Anforderung.
+    - Die Interaktion mit dem `SettingsManager`, um die Sound-Einstellungen
+      des Benutzers zu laden und zu speichern.
+    - Eine robuste Fehlerbehandlung, falls `pygame` nicht installiert ist oder
+      Sounddateien fehlen, um einen Absturz der Anwendung zu verhindern.
+    """
     _instance = None
 
     def __new__(cls, *args, **kwargs):
+        """
+        Implementiert das Singleton-Muster.
+        Stellt sicher, dass nur eine Instanz dieser Klasse erstellt wird.
+        """
         if not cls._instance:
             cls._instance = super(SoundManager, cls).__new__(cls)
         return cls._instance
 
     def __init__(self, settings_manager):
+        """
+        Initialisiert den SoundManager.
+
+        Dieser Konstruktor wird nur beim ersten Aufruf ausgeführt. Er prüft die
+        Verfügbarkeit von `pygame`, lädt die Sound-Einstellungen, initialisiert
+        den Mixer und lädt alle definierten Sound-Dateien. Fehler beim Laden
+        werden gesammelt und am Ende in einer einzigen `MessageBox` angezeigt.
+
+        Args:
+            settings_manager (SettingsManager): Die Instanz des SettingsManagers,
+                                                um Einstellungen zu laden/speichern.
+        """
         if hasattr(self, '_initialized'):
             return
         self._initialized = True
@@ -56,6 +85,19 @@ class SoundManager:
             )
 
     def _load_sound(self, path):
+        """
+        Lädt eine einzelne Sounddatei sicher.
+
+        Prüft, ob die Datei existiert und fängt mögliche Fehler beim Laden durch
+        `pygame.mixer.Sound` ab. Alle Fehler werden zur späteren Anzeige in
+        `self.loading_errors` gespeichert.
+
+        Args:
+            path (pathlib.Path): Der vollständige Pfad zur Sounddatei.
+
+        Returns:
+            pygame.mixer.Sound or None: Das geladene Sound-Objekt oder None bei einem Fehler.
+        """
         if not os.path.exists(path):
             msg = f"Datei nicht gefunden: {os.path.basename(path)}"
             print(f"WARNUNG: {msg}")
@@ -70,7 +112,12 @@ class SoundManager:
             return None
 
     def toggle_sounds(self, enabled):
-        """Aktiviert oder deaktiviert alle Sounds global."""
+        """
+        Aktiviert oder deaktiviert alle Sounds global und speichert die Einstellung.
+
+        Args:
+            enabled (bool): True, um Sounds zu aktivieren, False, um sie zu deaktivieren.
+        """
         if not PYGAME_AVAILABLE:
             self.sounds_enabled = False
             return
@@ -81,7 +128,9 @@ class SoundManager:
             print("Soundeffekte deaktiviert.")
 
     def play_hit(self):
+        """Spielt den Sound für einen Treffer ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.hit_sound: self.hit_sound.play()
 
     def play_win(self):
+        """Spielt den Sound für einen Spielgewinn ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.win_sound: self.win_sound.play()

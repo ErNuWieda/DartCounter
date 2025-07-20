@@ -25,38 +25,110 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 ![Spiel-Einstellungen](./assets/screenshot_dc2.png)
 ![Board, Hits & Scoreboard](./assets/screenshot_dc1.png) 
 
-## Installation & Ausführung
+## Systemvoraussetzungen
 
-1.  **Voraussetzungen:**
-    *   Python 3.x
-    *   Tkinter (ist normalerweise bei Standard-Python-Installationen dabei)
-    *   `python3-venv` (auf Debian/Ubuntu: `sudo apt install python3-venv`)
+*   **Python:** Version 3.8 oder neuer.
+*   **Git:** Zum Herunterladen (Klonen) des Projekts.
+*   **Tkinter:** Ist in den meisten Standard-Python-Installationen für Windows und macOS enthalten. Unter Linux muss es eventuell manuell installiert werden (z.B. `sudo apt install python3-tk` auf Debian/Ubuntu).
+*   **PostgreSQL-Server:** (Optional) Wird nur benötigt, wenn Sie die Highscore-Funktion nutzen möchten.
 
-2.  **Klonen des Repositories:**
+## Installation & Einrichtung (Schritt-für-Schritt)
+
+### Schritt 1: Projekt herunterladen
+Öffnen Sie ein Terminal (oder die Kommandozeile/PowerShell unter Windows) und klonen Sie das Repository mit Git an einen Ort Ihrer Wahl.
+
+```bash
+git clone https://github.com/ErNuWieda/DartCounter.git
+cd DartCounter
+```
+
+### Schritt 2: Virtuelle Umgebung einrichten
+Eine virtuelle Umgebung isoliert die für dieses Projekt benötigten Python-Pakete von anderen Projekten auf Ihrem System. Dies ist eine bewährte Vorgehensweise.
+
+```bash
+# 1. Virtuelle Umgebung im Projektordner erstellen
+python3 -m venv .venv
+
+# 2. Umgebung aktivieren
+#    - Unter Windows (PowerShell):
+#      .\.venv\Scripts\Activate.ps1
+#    - Unter Linux/macOS:
+source .venv/bin/activate
+```
+Nach der Aktivierung sollte der Name der Umgebung (z.B. `(.venv)`) am Anfang Ihrer Kommandozeile erscheinen.
+
+### Schritt 3: Notwendige Pakete installieren
+Installieren Sie alle Python-Abhängigkeiten, die in der `requirements.txt`-Datei aufgelistet sind.
+
+```bash
+# Stellen Sie sicher, dass Ihre virtuelle Umgebung aktiv ist
+pip install -r requirements.txt
+```
+
+### Schritt 4: PostgreSQL-Datenbank einrichten (Optional)
+Dieser Schritt ist nur notwendig, wenn Sie die Highscore-Funktion nutzen möchten. Wenn Sie dies nicht möchten, können Sie direkt zu **Schritt 5** springen.
+
+#### 4.1. PostgreSQL installieren
+
+*   **Windows:**
+    1.  Laden Sie den PostgreSQL-Installer von EDB herunter.
+    2.  Führen Sie den Installer aus. Während der Installation werden Sie aufgefordert, ein Passwort für den Superuser (`postgres`) festzulegen. **Merken Sie sich dieses Passwort gut!**
+    3.  Die übrigen Einstellungen können auf den Standardwerten belassen werden.
+
+*   **macOS (mit Homebrew):**
     ```bash
-    git clone https://github.com/ErNuWieda/DartCounter.git
-    cd dartcounter
+    # PostgreSQL installieren
+    brew install postgresql
+    # PostgreSQL-Dienst starten
+    brew services start postgresql
     ```
 
-3.  **Virtuelle Umgebung einrichten und Abhängigkeiten installieren:**
+*   **Linux (Debian/Ubuntu):**
     ```bash
-    # Virtuelle Umgebung erstellen
-    python3 -m venv .venv
-    # Umgebung aktivieren (unter Linux/macOS)
-    source .venv/bin/activate
-    # Alle benötigten Pakete installieren
-    pip install -r requirements.txt
+    sudo apt update
+    sudo apt install postgresql postgresql-contrib
     ```
 
-4.  **Datenbank einrichten (optional, für Highscores):**
-    *   Stelle sicher, dass ein PostgreSQL-Server läuft.
-    *   Erstelle eine Datenbank (z.B. `dartcounter`).
-    *   Erstelle eine Kopie der `config.ini.example`, nenne sie `config.ini` und trage deine Datenbank-Zugangsdaten ein.
+#### 4.2. Datenbank und Benutzer erstellen
+Nach der Installation müssen eine Datenbank und ein Benutzer für die Anwendung erstellt werden. Öffnen Sie dazu das `psql`-Terminal:
+*   **Windows:** Suchen Sie im Startmenü nach "SQL Shell (psql)" und öffnen Sie es. Bestätigen Sie die Standardwerte für Server, Datenbank, Port und Benutzername mit Enter und geben Sie das bei der Installation festgelegte Passwort ein.
+*   **macOS/Linux:** Führen Sie im Terminal `sudo -u postgres psql` aus.
 
-5.  **Starten der Anwendung (mit aktivierter virtueller Umgebung):**
-    ```bash
-    python main.py
-    ```
+Geben Sie nun die folgenden SQL-Befehle nacheinander ein und bestätigen Sie jeden mit Enter:
+
+```sql
+-- Erstellt die Datenbank (der Name ist frei wählbar, muss aber zur config.ini passen)
+CREATE DATABASE dartcounter;
+
+-- Erstellt einen neuen Benutzer mit einem Passwort (Namen und Passwort frei wählen)
+CREATE USER darter WITH PASSWORD 'TopSecret';
+
+-- Gibt dem neuen Benutzer alle Rechte für die neue Datenbank
+GRANT ALL PRIVILEGES ON DATABASE dartcounter TO darter;
+
+-- Verlassen der psql-Shell
+\q
+```
+
+#### 4.3. Konfigurationsdatei anpassen
+1.  Erstellen Sie eine Kopie der Datei `config.ini.example` und nennen Sie diese `config.ini`.
+2.  Öffnen Sie die neue `config.ini` und tragen Sie die Zugangsdaten ein, die Sie in Schritt 4.2 festgelegt haben.
+
+**Beispiel für `config.ini`:**
+```ini
+[postgresql]
+host = localhost
+database = dartcounter
+user = darter
+password = TopSecret
+```
+
+### Schritt 5: Anwendung starten
+Stellen Sie sicher, dass Ihre virtuelle Umgebung noch aktiv ist, und starten Sie die Anwendung.
+
+```bash
+python3 main.py
+```
 
 ## TODO - Zukünftige Features & Verbesserungen
 
