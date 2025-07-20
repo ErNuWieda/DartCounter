@@ -1,214 +1,79 @@
-import tkinter as tk 
-from tkinter import ttk, messagebox
+import tkinter as tk
+from tkinter import ttk
 
 class ScoreBoard:
+    """
+    Stellt ein separates Fenster für den Spielstand eines Spielers dar,
+    inklusive aktueller Punktzahl, Würfe und Statistiken.
+    """
     def __init__(self, root, player, game):
-        self.root = root
         self.player = player
         self.game = game
-        self.round = game.round
-        if len(game.name) == 3:
-            self.score = int (game.name)
-            self.score_window_x01()
-        elif game.name == "Elimination":
-            self.score = 0
-            self.score_window_x01()
-        else:
-            self.score = 0
-            self.target_vars = {} # Speichert IntVars für Checkbuttons
-            self.score_window_other()
+        self.score_window = tk.Toplevel(root)
+        self.score_window.title(player.name)
+        # Höhe für neue Statistiken und Button angepasst und Fenster positioniert
+        self.score_window.geometry(f"200x380+{10 + (player.id - 1) * 210}+{10}")
+        self.score_window.resizable(False, False)
 
+        main_frame = ttk.Frame(self.score_window, padding="10")
+        main_frame.pack(expand=True, fill="both")
+
+        # Anzeige für den Punktestand
+        score_frame = ttk.Frame(main_frame)
+        score_frame.pack(pady=5)
+        ttk.Label(score_frame, text="Score:", font=("Arial", 12)).pack()
+        self.score_var = tk.StringVar(value=str(player.score))
+        ttk.Label(score_frame, textvariable=self.score_var, font=("Arial", 24, "bold")).pack()
+
+        # Anzeige für den 3-Dart-Average (nur für X01-Spiele)
+        if self.game.name in ('301', '501', '701'):
+            avg_frame = ttk.Frame(main_frame)
+            avg_frame.pack(pady=5)
+            ttk.Label(avg_frame, text="3-Dart-Avg:", font=("Arial", 10)).pack()
+            self.avg_var = tk.StringVar(value="0.00")
+            ttk.Label(avg_frame, textvariable=self.avg_var, font=("Arial", 14)).pack()
+
+            # Frame für weitere Statistiken (High Finish, Checkout %)
+            extra_stats_frame = ttk.Frame(main_frame)
+            extra_stats_frame.pack(pady=5, fill='x')
+
+            # High Finish (links)
+            hf_frame = ttk.Frame(extra_stats_frame)
+            hf_frame.pack(side='left', expand=True)
+            ttk.Label(hf_frame, text="High Finish:", font=("Arial", 10)).pack()
+            self.hf_var = tk.StringVar(value="0")
+            ttk.Label(hf_frame, textvariable=self.hf_var, font=("Arial", 14)).pack()
+
+            # Checkout % (rechts)
+            co_frame = ttk.Frame(extra_stats_frame)
+            co_frame.pack(side='right', expand=True)
+            ttk.Label(co_frame, text="Checkout %:", font=("Arial", 10)).pack()
+            self.co_var = tk.StringVar(value="0.0%")
+            ttk.Label(co_frame, textvariable=self.co_var, font=("Arial", 14)).pack()
+
+        # Anzeige für die aktuellen Würfe
+        ttk.Label(main_frame, text="Current Throws:", font=("Arial", 10)).pack(pady=(10, 0))
+        self.throws_list = tk.Listbox(main_frame, height=3, font=("Arial", 12), justify="center")
+        self.throws_list.pack(fill="x")
+
+        # Button zum Verlassen des Spiels
+        leave_button = ttk.Button(main_frame, text="Spiel verlassen", command=self.player.leave)
+        leave_button.pack(pady=10)
+
+        self.update_score(player.score) # Initiales Update
+
+    def update_score(self, score):
+        """Aktualisiert alle Anzeigen auf dem Scoreboard."""
+        self.score_var.set(str(score))
+        self.throws_list.delete(0, tk.END)
+        for throw in self.player.throws:
+            self.throws_list.insert(tk.END, f"{throw[0]} {throw[1]}" if throw[0] != "Miss" else "Miss")
+        if self.game.name in ('301', '501', '701'):
+            self.avg_var.set(f"{self.player.get_average():.2f}")
+            self.hf_var.set(str(self.player.stats['highest_finish']))
+            self.co_var.set(f"{self.player.get_checkout_percentage():.1f}%")
 
     def __del__(self):
-        self.score_window.destroy()
-
-    def leave(self):
-        confirm = messagebox.askyesno("Spiel verlassen", "Willst du wirklich das Spiel verlassen?")
-        if confirm:
-            self.player.leave()
-            self.__del__()
-        else:
-            return
-    
-    def add_text_line(self, text):
-        # tk.END sorgt dafür, dass der neue Text am Ende eingefügt wird
-        # "\n" fügt einen Zeilenumbruch hinzu, damit jede Zeile neu beginnt
-        self.text_widget.insert(tk.END, text+"\n")
-        # Optional: Automatisch zum Ende scrollen, um die neueste Zeile zu sehen
-        self.text_widget.see(tk.END)
-
-    # Scorefenster erstellen
-    def create_score_window(self):
-        x = int(self.root.winfo_screenheight() * 0.9)+60
-        x += ((self.player.id-1) % 2) * 350
-        y = (self.player.id // 3) * 450
-        self.score_window = tk.Toplevel(self.root)
-        self.score_window.title(f"{self.player.name} - {self.game.name}")
-        self.score_window.geometry("%dx%d+%d+%d" % (350, 400, x, y))
-        self.score_window.resizable(False, False)
-        self.score_window.protocol("WM_DELETE_WINDOW", self.leave)
-
-    def create_throw_history(self):
-        self.throws_label = tk.Label(self.score_window, text="Wurf-Historie:", font=("Arial", 10), fg="blue")
-        self.throws_label.pack(padx=5, pady=5)
-        # Frame für das Textfeld und die Scrollbar erstellen
-        # Dies hilft, die Scrollbar und das Textfeld zusammen zu layouten
-        self.text_frame = ttk.Frame(self.score_window)
-        self.text_frame.pack()
-
-        # Scrollbar erstellen
-        self.scrollbar = ttk.Scrollbar(self.text_frame)
-        self.scrollbar.pack(side="right", fill="y")
-        # Textfeld erstellen
-        # yscrollcommand=scrollbar.set weist das Textfeld an, die Scrollbar zu aktualisieren, wenn gescrollt wird
-        self.text_widget = tk.Text(self.text_frame, wrap="word", yscrollcommand=self.scrollbar.set)
-        self.text_widget.pack(fill="both", expand=True)
-
-        # Scrollbar konfigurieren
-        # command=text_widget.yview weist die Scrollbar an, das Textfeld zu scrollen
-        self.scrollbar.config(command=self.text_widget.yview)
-
-    def score_window_x01(self):
-        self.create_score_window()
-        self.score_label = tk.Label(self.score_window, text=f"Punkte: {self.score}", font=("Arial", 14), fg="blue")
-        self.score_label.pack()
-        self.create_throw_history()
-
-
-    def _create_target_checkbuttons(self, num_checks_per_target, layout='list'):
-        """Hilfsmethode zur Erstellung der Ziel-Checkbuttons."""
-        self.cb_frame = tk.Frame(self.score_window)
-        self.cb_frame.pack(pady=5)
-
-        if layout == 'list':
-            row = 0
-            col = 0
-            lwidth = 4
-            shanghai_list = False
-            if self.game.name == "Shanghai":
-                shanghai_list = True
-                lwidth = 2
-            for i, target_label_str in enumerate(self.player.targets):
-                if shanghai_list:
-                    if i > 0 and i % 10 == 0:  # Neue Spalte nach 10 Zielen
-                        col += num_checks_per_target + 2
-                        row = 0
-                tk.Label(self.cb_frame, text=target_label_str, width=lwidth, anchor="w").grid(row=row, column=col, sticky="w", padx=(10, 5))
-                vars_for_target = []
-                for j in range(num_checks_per_target):
-                    var = tk.IntVar(value=0)
-                    vars_for_target.append(var)
-                    cb = tk.Checkbutton(self.cb_frame, variable=var, state="disabled")
-                    cb.grid(row=row, column=col +j + 1, padx=1)
-                self.target_vars[target_label_str] = vars_for_target
-                row += 1
-
-        elif layout == 'grid':
-            col = 0
-            row = 0
-            for i, target_label_str in enumerate(self.player.targets):
-                if i > 0 and i % 7 == 0:  # Neue Spalte nach 7 Zielen
-                    col += 2
-                    row = 0
-                tk.Label(self.cb_frame, text=target_label_str, width=4, anchor="w").grid(row=row, column=col, sticky="w", padx=(10, 5))
-                vars_for_target = [tk.IntVar(value=0)]
-                cb = tk.Checkbutton(self.cb_frame, variable=vars_for_target[0], state="disabled")
-                cb.grid(row=row, column=col + 1, padx=1)
-                self.target_vars[target_label_str] = vars_for_target
-                row += 1
-
-    def score_window_other(self):
-        self.create_score_window()
-        game_name = self.game.name
-
-        match game_name:
-            case "Cricket" | "Cut Throat" | "Tactics":
-                self.score_label = tk.Label(self.score_window, text=f"Punkte: {self.score}", font=("Arial", 14), fg="blue")
-                self.score_label.pack()
-                self._create_target_checkbuttons(num_checks_per_target=3, layout='list')
-            case "Micky Mouse":
-                self.score_label = tk.Label(self.score_window, text=f"Nächstes Ziel: {self.player.next_target}", font=("Arial", 14), fg="blue")
-                self.score_label.pack()
-                self._create_target_checkbuttons(num_checks_per_target=3, layout='list')
-            case "Around the Clock":
-                opt_atc = "" if self.game.opt_atc == "Single" else self.game.opt_atc + " "
-                self.score_label = tk.Label(self.score_window, text=f"Nächstes Ziel: {opt_atc}{self.player.next_target}", font=("Arial", 14), fg="blue")
-                self.score_label.pack()
-                self._create_target_checkbuttons(num_checks_per_target=1, layout='grid')
-            case "Shanghai":
-                self.score_label= tk.Label(self.score_window, text=f"Punkte: {self.score}", font=("Arial", 14), fg="blue")
-                self.score_label.pack()
-                self.target_label = tk.Label(self.score_window, text=f"Ziel: {self.player.next_target}", font=("Arial", 14), fg="blue")
-                self.target_label.pack()
-                self._create_target_checkbuttons(num_checks_per_target=3, layout='list')
-            case "Killer":
-                self.lifes_label = tk.Label(self.score_window, text=f"Leben: {self.player.lifes}", font=("Arial", 14), fg="blue")
-                self.lifes_label.pack()
-                self.life_segment_label = tk.Label(self.score_window, text=f"Lebensfeld: {self.player.life_segment}", font=("Arial", 14), fg="blue")
-                self.life_segment_label.pack()
-
-        self.create_throw_history()
-        
-        
-    def update_score(self, score):
-        if self.game.name == "Killer":
-            self.lifes_label.config(text=f"Leben: {self.player.lifes}")
-            life_segment = ""
-            if self.player.life_segment:
-                life_segment =  self.player.life_segment if self.player.life_segment == "Bull" else f"Double {self.player.life_segment}"
-            self.life_segment_label.config(text=f"Lebensfeld: {life_segment}")
-        elif self.game.name == "Around the Clock":
-            if self.game.opt_atc == "Single" or self.player.next_target in ("Bull", "Bullseye"):
-                opt_atc = ""
-            else:
-                opt_atc = self.game.opt_atc + " "
-            self.score_label.config(text=f"Nächstes Ziel: {opt_atc}{self.player.next_target}")
-        elif self.game.name == "Micky Mouse":
-            self.score_label.config(text=f"Nächstes Ziel: {self.player.next_target}")
-        elif self.game.name == "Shanghai":
-            self.score_label.config(text=f"Punkte: {score}")
-            self.target_label.config(text=f"Ziel: {self.player.next_target}")
-        else:
-            self.score_label.config(text=f"Punkte: {score}")
-
-        throws = ""
-        i = 0
-        for p_throw in self.player.throws:
-            ring, segment = p_throw
-            match ring:
-                case "Miss":
-                    throw = "X"
-                case "Bull" | "Bullseye":
-                    throw = ring
-                case "Single":
-                    throw = str(segment)
-                case "Double" | "Triple":
-                    throw = ring[0] + str(segment) 
-
-            if i < 2:
-                throw += ", "
-            throws += throw
-            i += 1
-        
-        text = f"Runde {self.game.round}: {throws}"
-        if self.game.round > 1:
-            text=f"\n{text}"
-        if len(self.player.throws) <= 3:
-            self.text_widget.delete(float(self.game.round), tk.END)
-        if self.round != self.game.round:
-            self.round = self.game.round
-        self.add_text_line(text)
-    
-    def update_display(self, target_hits, current_score):
-        if hasattr(self, 'target_vars'):
-            for target_str_from_player_definition in self.player.targets:
-                hits = target_hits.get(target_str_from_player_definition, 0)
-                if target_str_from_player_definition in self.target_vars:
-                    vars_list = self.target_vars[target_str_from_player_definition]
-                    # Setze den Zustand der IntVars basierend auf der Anzahl der Treffer
-                    vars_list[0].set(1 if hits >= 1 else 0)
-                    if len(vars_list) > 1:
-                        vars_list[1].set(1 if hits >= 2 else 0)
-                        vars_list[2].set(1 if hits >= 3 else 0)
-                    
-        self.update_score(current_score) # Provisorisch, um zumindest die Wurf-Historie anzuzeigen, Score-Label wird hier nochmal gesetzt
+        """Zerstört das Scoreboard-Fenster, falls es existiert."""
+        if self.score_window and self.score_window.winfo_exists():
+            self.score_window.destroy()

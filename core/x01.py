@@ -23,13 +23,40 @@ class X01:
         return self.targets
     
     def _handle_throw_undo(self, player, ring, segment, players):
-        score = self.game.get_score(ring, segment)
-        player.update_score_value(score, subtract=False)
-        
+        throw_score = self.game.get_score(ring, segment)
+        score_after_throw = player.score - throw_score
+
+        # --- Checkout-Statistik rückgängig machen ---
+        # Prüfen, ob der rückgängig gemachte Wurf eine Checkout-Möglichkeit war.
+        if player.score == throw_score:
+            if player.stats['checkout_opportunities'] > 0:
+                player.stats['checkout_opportunities'] -= 1
+            # Prüfen, ob es ein erfolgreicher Checkout war.
+            if score_after_throw == 0:
+                if player.stats['checkouts_successful'] > 0:
+                    player.stats['checkouts_successful'] -= 1
+                # Das Zurücksetzen des 'highest_finish' ist komplex und wird hier ausgelassen,
+                # da es das Speichern einer Liste aller Finishes erfordern würde.
+
+        player.update_score_value(throw_score, subtract=False)
+
+        # Macht das Update der Statistik für gültige, punktende Würfe rückgängig.
+        # Die Logik geht davon aus, dass nur Würfe, die nicht "Bust" waren, zur Statistik hinzugefügt wurden.
+        # Wir prüfen auf score > 0, um "Miss"-Würfe auszuschließen.
+        if throw_score > 0 and player.game_name in ('301', '501', '701'):
+            if player.stats['total_darts_thrown'] > 0:
+                player.stats['total_darts_thrown'] -= 1
+            if player.stats['total_score_thrown'] >= throw_score:
+                player.stats['total_score_thrown'] -= throw_score
 
     def _handle_throw(self, player, ring, segment, players):
         # --- x01 Logik ---
         score = self.game.get_score(ring, segment)
+        score_before_throw = player.score
+
+        # Ein Wurf ist eine Checkout-Möglichkeit, wenn der Wurfscore dem Restscore entspricht.
+        if score_before_throw == score:
+            player.stats['checkout_opportunities'] += 1
 
         if ring == "Miss":
             player.throws.append((ring, 0))
@@ -89,10 +116,22 @@ class X01:
             messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
             return None # Turn ends due to bust. Player clicks "Weiter".
 
+        # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
+        # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.
+        if player.game_name in ('301', '501', '701'):
+            player.stats['total_darts_thrown'] += 1
+            player.stats['total_score_thrown'] += score
+
         player.throws.append((ring, segment))
         player.update_score_value(score, subtract=True)
 
         if player.score == 0: # Gilt nur für x01
+            # --- Checkout-Statistik bei Gewinn aktualisieren ---
+            player.stats['checkouts_successful'] += 1
+            # Höchsten Finish aktualisieren
+            if score_before_throw > player.stats['highest_finish']:
+                player.stats['highest_finish'] = score_before_throw
+
             self.game.shanghai_finish = False # Standardmäßig kein Shanghai-Finish
 
             if len(player.throws) == 3:
@@ -123,6 +162,11 @@ class X01:
             
             self.game.end = True
             total_darts = (self.game.round - 1) * 3 + len(player.throws)
+            
+            # Zum Highscore hinzufügen, falls Manager vorhanden
+            if self.game.highscore_manager:
+                self.game.highscore_manager.add_score(self.game.name, player.name, total_darts)
+
             # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
             # wenn self.game.shanghai_finish True ist.
             return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"

@@ -1,0 +1,4 @@
+Pillow
+pygame
+sv-ttk
+psycopg2-binary

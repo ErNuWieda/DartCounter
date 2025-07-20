@@ -29,8 +29,8 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 
 1.  **Voraussetzungen:**
     *   Python 3.x
-    *   Pillow (PIL Fork): `pip install Pillow`
     *   Tkinter (ist normalerweise bei Standard-Python-Installationen dabei)
+    *   `python3-venv` (auf Debian/Ubuntu: `sudo apt install python3-venv`)
 
 2.  **Klonen des Repositories:**
     ```bash
@@ -38,7 +38,22 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     cd dartcounter
     ```
 
-3.  **Starten der Anwendung:**
+3.  **Virtuelle Umgebung einrichten und Abhängigkeiten installieren:**
+    ```bash
+    # Virtuelle Umgebung erstellen
+    python3 -m venv .venv
+    # Umgebung aktivieren (unter Linux/macOS)
+    source .venv/bin/activate
+    # Alle benötigten Pakete installieren
+    pip install -r requirements.txt
+    ```
+
+4.  **Datenbank einrichten (optional, für Highscores):**
+    *   Stelle sicher, dass ein PostgreSQL-Server läuft.
+    *   Erstelle eine Datenbank (z.B. `dartcounter`).
+    *   Erstelle eine Kopie der `config.ini.example`, nenne sie `config.ini` und trage deine Datenbank-Zugangsdaten ein.
+
+5.  **Starten der Anwendung (mit aktivierter virtueller Umgebung):**
     ```bash
     python main.py
     ```
@@ -46,21 +61,27 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 ## TODO - Zukünftige Features & Verbesserungen
 
 Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Features und Bereiche für Verbesserungen:
-
 *   **[X] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts 
-*   **[ ] Spielerstatistiken:** Erfassung und Anzeige von Statistiken (z.B. Averages, Checkout-Quoten, höchste Würfe).
-*   **[ ] Highscore-Listen:**
-    *   **[ ] Implementierung einer Highscore-Liste pro Spielmodus.**
-    *   **[ ] Anbindung an eine PostgreSQL-Datenbank zur persistenten Speicherung der Highscores.**
-*   **[ ] Soundeffekte:** Optionale Soundeffekte für Treffer, Busts, Spielgewinn etc.
-*   **[ ] UI/UX Verbesserungen:**
-    *   Modernisierung des Designs.
-    *   Verbesserte Fehlerbehandlung und Nutzerfeedback.
-*   **[ ] Speichern/Laden von Spielständen:** Vollständige Implementierung der Möglichkeit, laufende Spiele zu speichern und später fortzusetzen.
-*   **[ ] Konfigurierbare Regeln:** Mehr Flexibilität bei der Einstellung von Spielregeln (z.B. benutzerdefinierte x01 Startpunkte).
-*   **[ ] Code-Refactoring & Optimierungen:**
+*   **[X] Spielerstatistiken:**
+    *   **[X] Erfassung und Anzeige des 3-Dart-Average für X01-Spiele.**
+    *   **[X] Erweiterung um Checkout-Quoten und höchste Würfe.**
+*   **[X] Highscore-Listen:**
+    *   **[X] Implementierung einer Highscore-Liste für X01-Spiele (lokale Datei).**
+    *   **[X] Anbindung an eine PostgreSQL-Datenbank zur persistenten Speicherung der Highscores.**
+*   **[X] Soundeffekte:** Soundeffekte für Treffer und Spielgewinn (aktivier-/deaktivierbar).
+*   **[X] Highscore-Export:** Export der Highscores in eine CSV-Datei.
+*   **[X] Highscore-Reset:** Zurücksetzen der Highscores pro Modus oder insgesamt.
+*   **[X] Spieler entfernen:** Spieler können ein laufendes Spiel verlassen.
+*   **[X] Anwendungseinstellungen:**
+    *   **[X] Einstellungen (z.B. Sound an/aus) werden gespeichert.**
+    *   **[X] Zuletzt verwendete Spielernamen werden gespeichert.**
+*   **[X] UI/UX Verbesserungen:**
+    *   **[X] Modernisierung des Designs mit hellem und dunklem Theme.**
+    *   **[X] Verbesserte Fehlerbehandlung und Nutzerfeedback.**
+*   **[X] Speichern/Laden von Spielständen:** Laufende Spiele können gespeichert und später fortgesetzt werden.
+*   **[X] Code-Refactoring & Optimierungen:**
     *   Weitere Modularisierung und Vereinfachung von Code-Abschnitten.
-*   **[ ] Ausführliche Testabdeckung:** Erstellung von Unit-Tests und Integrationstests.
+*   **[X] Ausführliche Testabdeckung:** Erstellung von Unit-Tests und Integrationstests.
 
 ## Danksagung
 

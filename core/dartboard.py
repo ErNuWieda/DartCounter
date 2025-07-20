@@ -7,7 +7,29 @@ import os
 
 
 class DartBoard:
-    # KLASSEN-KONSTANTEN
+    """
+    Verwaltet das interaktive Dartboard-Fenster.
+
+    Diese Klasse ist verantwortlich für die Darstellung des Dartboards, die
+    Erkennung von Würfen durch Mausklicks und die Kommunikation dieser Würfe
+    an die zentrale `Game`-Instanz. Sie berechnet anhand von polaren Koordinaten,
+    welcher Ring und welches Segment getroffen wurde.
+
+    Class Constants:
+        ASSETS_BASE_DIR (pathlib.Path): Der Basispfad zum 'assets'-Verzeichnis.
+        DARTBOARD_PATH (pathlib.Path): Pfad zum Dartboard-Bild.
+        DART_PATH (pathlib.Path): Pfad zum Dart-Symbolbild.
+        ORIGINAL_SIZE (int): Die Kantenlänge des quadratischen Originalbildes in Pixel.
+        RADIEN (dict): Ein Dictionary mit den Radien der verschiedenen Ringe
+                       im Originalbild.
+        SEGMENTS (list[int]): Eine Liste der Zahlenwerte der Segmente, geordnet
+                              nach ihrem Winkel auf dem Board.
+
+    Attributes:
+        spiel (Game): Eine Referenz auf die übergeordnete Spielinstanz.
+        root (tk.Toplevel): Das Fenster, in dem das Dartboard angezeigt wird.
+        canvas (tk.Canvas): Das Canvas-Widget, das das Dartboard-Bild enthält.
+    """
     ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets"    
     DARTBOARD_PATH = ASSETS_BASE_DIR / "dartboard.png"
     DART_PATH = ASSETS_BASE_DIR / "dart.png"
@@ -27,6 +49,15 @@ class DartBoard:
                 3, 17, 2, 15, 10][::1]
 
     def __init__(self, spiel):
+        """
+        Initialisiert das Dartboard-Fenster.
+
+        Erstellt ein neues Toplevel-Fenster, lädt und skaliert die Bilder,
+        erstellt das Canvas und die Buttons.
+
+        Args:
+            spiel (Game): Die Instanz des laufenden Spiels.
+        """
         self.radien = DartBoard.RADIEN
         self.segments = DartBoard.SEGMENTS
         self.original_size = DartBoard.ORIGINAL_SIZE
@@ -66,20 +97,28 @@ class DartBoard:
             print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
 
     def clear_dart_images_from_canvas(self):
-        """Entfernt alle aktuell angezeigten Dart-Bilder vom Canvas."""
+        """
+        Entfernt alle für den aktuellen Zug angezeigten Dart-Bilder vom Canvas.
+        """
         if self.canvas:
             for dart_id in self.dart_image_ids_on_canvas:
                 self.canvas.delete(dart_id)
         self.dart_image_ids_on_canvas = []
 
     def clear_last_dart_image_from_canvas(self):
-        """Entfernt das zuletzt angezeigte Dart-Bild vom Canvas."""
+        """
+        Entfernt das zuletzt hinzugefügte Dart-Bild vom Canvas.
+        Wird von der Undo-Funktion verwendet.
+        """
         if self.canvas and self.dart_image_ids_on_canvas:
             dart_id = self.dart_image_ids_on_canvas.pop()
             self.canvas.delete(dart_id)
 
-    # Spiel verlassen
     def quit_game(self):
+        """
+        Zeigt einen Bestätigungsdialog an und beendet das Spiel, wenn bestätigt.
+        Delegiert die Bereinigung an die `Game`-Instanz.
+        """
         confirm = messagebox.askyesno("Spiel beenden", "Soll das Spiel wirklich beendet werden?")
         if confirm:
             self.spiel.__del__()
@@ -87,16 +126,46 @@ class DartBoard:
 
     # POLARER WINKEL + DISTANZ
     def polar_angle(self, x, y):
+        """
+        Berechnet den polaren Winkel eines Punktes relativ zum Zentrum des Boards.
+
+        Args:
+            x (int): Die x-Koordinate des Klicks.
+            y (int): Die y-Koordinate des Klicks.
+
+        Returns:
+            float: Der Winkel in Grad (0-360).
+        """
         dx = x - self.center_x
         dy = self.center_y - y
         angle = math.atan2(dy, dx)
         return (math.degrees(angle) + 360) % 360
 
     def distance(self, x, y):
+        """
+        Berechnet die euklidische Distanz eines Punktes vom Zentrum des Boards.
+
+        Args:
+            x (int): Die x-Koordinate des Klicks.
+            y (int): Die y-Koordinate des Klicks.
+
+        Returns:
+            float: Die Distanz in Pixeln.
+        """
         return math.sqrt((x - self.center_x) ** 2 + (y - self.center_y) ** 2)
 
     # RING + SEGMENT ERMITTELN
     def get_ring_segment(self,x, y):
+        """
+        Ermittelt den getroffenen Ring und das Segment basierend auf Klickkoordinaten.
+
+        Args:
+            x (int): Die x-Koordinate des Klicks.
+            y (int): Die y-Koordinate des Klicks.
+
+        Returns:
+            tuple[str, int]: Ein Tupel bestehend aus dem Namen des Rings und dem Zahlenwert des Segments.
+        """
         dist = self.distance(x, y)
         angle = self.polar_angle(x, y)
         idx = int((angle+9) // 18) % 20
@@ -116,6 +185,15 @@ class DartBoard:
             return "Miss", 0
 
     def on_click(self, event):
+        """
+        Event-Handler, der bei einem Mausklick auf das Canvas ausgelöst wird.
+
+        Platziert ein Dart-Symbol an der Klickposition, ermittelt den Wurf
+        und leitet ihn an die `Game`-Instanz zur Verarbeitung weiter.
+
+        Args:
+            event (tk.Event): Das von Tkinter generierte Event-Objekt.
+        """
         # Neues Dart-Bild auf dem Canvas platzieren, falls das Bild geladen ist
         # event.x, event.y werden direkt für die visuelle Position des Dart-Bild-Zentrums verwendet.
         if self.dart_photo_image and self.canvas:
@@ -132,6 +210,12 @@ class DartBoard:
             tk.messagebox.showinfo("Dartcounter", msg)
 
     def _create_board(self):
+        """
+        Erstellt und konfiguriert das Dartboard-Canvas und die zugehörigen Widgets.
+
+        Diese private Methode skaliert das Dartboard-Bild auf die Bildschirmhöhe,
+        erstellt das Canvas, platziert das Bild und bindet den Klick-Handler.
+        """
         # Bildschirmgröße
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()

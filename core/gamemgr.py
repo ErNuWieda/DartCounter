@@ -6,9 +6,11 @@ from core.player import Player
 
 # Klasse für Spielauswahl und Eingabe Playernamen hin
 class GameManager:
-    def __init__(self, tk_instance):
+    def __init__(self, tk_instance, sound_manager=None, settings_manager=None):
         self.root = tk_instance
         self.game = "301"
+        self.sound_manager = sound_manager
+        self.settings_manager = settings_manager
         self.count_to = "301"
         self.opt_in = "Single"
         self.opt_out = "Single"
@@ -17,6 +19,7 @@ class GameManager:
         self.lifes = "3"
         self.shanghai_rounds = "7"
         self.max_players = 4
+        self.was_started = False # Wichtig für die Kommunikation mit main.py
         self.players = []
 
         # Widgets, die wir global benötigen, werden erst in game_settings_dlg erstellt
@@ -29,6 +32,8 @@ class GameManager:
         self.rounds_select = None
         self.player_select = None
         self.player_name_entries = []
+        self.sound_enabled_var = None
+        self.theme_select = None
         self.settings_dlg = None
 
         # Dictionary zum Speichern der Frames für spielspezifische Optionen
@@ -39,19 +44,18 @@ class GameManager:
 
     def run(self):
         self.anzahl_spieler = int(self.player_select.get())
+        self.players = [] # Vorherige Liste leeren
         for i in range(self.max_players):
             if i < self.anzahl_spieler:
                 self.players.append(self.player_name_entries[i].get())
 
-        self.start_game()
+        # Speichere die zuletzt verwendeten Namen
+        if self.settings_manager:
+            current_names = [entry.get() for entry in self.player_name_entries]
+            self.settings_manager.set('last_player_names', current_names)
 
-    def start_game(self):
+        self.was_started = True
         self.settings_dlg.destroy()
-        game_options = (self.game, self.opt_in, self.opt_out, self.opt_atc, self.count_to, self.lifes, self.shanghai_rounds)
-        spiel_instanz = Game(self.root, game_options, self.players)
-        db_instanz = DartBoard(spiel_instanz)
-        spiel_instanz.db = db_instanz
-        spiel_instanz.announce_current_player_turn()
 
     def set_game(self):
         self.game = self.game_select.get()
@@ -137,10 +141,31 @@ class GameManager:
         self.root.deiconify()
         self.settings_dlg.destroy()
 
+    def toggle_sound_setting(self):
+        """Wird vom Checkbutton aufgerufen, um Sounds umzuschalten."""
+        if self.sound_manager and self.sound_enabled_var:
+            is_enabled = self.sound_enabled_var.get()
+            self.sound_manager.toggle_sounds(is_enabled)
+
+    def set_theme(self):
+        """Wird vom Combobox aufgerufen, um das Theme zu ändern."""
+        if self.settings_manager and self.theme_select:
+            selected_theme = self.theme_select.get().lower()  # "Light" -> "light"
+            try:
+                import sv_ttk
+                sv_ttk.set_theme(selected_theme)
+                self.settings_manager.set('theme', selected_theme)
+            except ImportError:
+                print("sv-ttk nicht gefunden. Theme kann nicht geändert werden.")
+            except Exception as e:
+                print(f"Fehler beim Setzen des Themes: {e}")
+
+
     def game_settings_dlg(self):
         self.settings_dlg = tk.Toplevel()
         self.settings_dlg.title("Spieleinstellungen")
-        self.settings_dlg.geometry("320x560")
+        # Höhe für neue Optionen angepasst
+        self.settings_dlg.geometry("320x750")
         self.settings_dlg.resizable(False, True)
         self.settings_dlg.protocol("WM_DELETE_WINDOW", self.goback)
         self.settings_dlg.bind("<Escape>", lambda e: self.goback())
@@ -161,16 +186,46 @@ class GameManager:
 
         tk.Label(players_frame, text="Namen", font=("Arial", 12), fg="purple").pack(pady=5)
         self.player_name_entries = [None] * self.max_players
+        last_names = self.settings_manager.get('last_player_names', [f"Sp{i+1}" for i in range(self.max_players)]) if self.settings_manager else [f"Sp{i+1}" for i in range(self.max_players)]
+
         for i in range(self.max_players):
             tk.Label(players_frame, text=f"Spieler {i+1}", font=("Arial", 11), fg="green").pack()
             self.player_name_entries[i] = ttk.Entry(players_frame, font=("Arial", 10))
             self.player_name_entries[i].pack(pady=10 if i==3 else 0)
-            self.player_name_entries[i].insert(0, f"Sp{i+1}")
+            self.player_name_entries[i].insert(0, last_names[i])
             if i >= int(self.player_select.get()):
                 self.player_name_entries[i].config(state="disabled")
 
         # --- Spielauswahl (Als Nächstes) ---
-        tk.Label(self.settings_dlg, text="Einstellungen", font=("Arial", 12), fg="blue").pack(padx=10, anchor="nw")
+        tk.Label(self.settings_dlg, text="Einstellungen", font=("Arial", 12), fg="blue").pack(padx=10, pady=(10,0), anchor="nw")
+
+        # Frame für allgemeine Einstellungen (z.B. Sound)
+        general_settings_frame = tk.Frame(self.settings_dlg, bd=2, relief="groove")
+        general_settings_frame.pack(fill="x", padx=10, pady=5)
+
+        self.sound_enabled_var = tk.BooleanVar()
+        if self.sound_manager:
+            self.sound_enabled_var.set(self.sound_manager.sounds_enabled)
+
+        sound_check = ttk.Checkbutton(
+            general_settings_frame,
+            text="Soundeffekte aktivieren",
+            variable=self.sound_enabled_var,
+            command=self.toggle_sound_setting
+        )
+        sound_check.pack(pady=5, padx=10, anchor="w")
+
+        # Theme-Auswahl
+        tk.Label(general_settings_frame, text="Design-Theme:", font=("Arial", 11)).pack(pady=(10, 0), padx=10, anchor="w")
+        self.theme_select = ttk.Combobox(general_settings_frame, values=["Light", "Dark"], state="readonly")
+        self.theme_select.pack(pady=5, padx=10, anchor="w")
+        self.theme_select.bind("<<ComboboxSelected>>", lambda event: self.set_theme())
+
+        if self.settings_manager:
+            current_theme = self.settings_manager.get('theme', 'light')
+            self.theme_select.set(current_theme.capitalize())  # "light" -> "Light"
+
+
         game_selection_frame = tk.Frame(self.settings_dlg, bd=2, relief="groove") # Separater Frame für die Spielauswahl
         game_selection_frame.pack(fill="x", padx=10, pady=5)
         tk.Label(game_selection_frame, text="Spiel", font=("Arial", 12), fg="purple").pack()
