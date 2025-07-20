@@ -47,7 +47,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 
 Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Features und Bereiche für Verbesserungen:
 
-*   **[X] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts
+*   **[X] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts 
 *   **[ ] Spielerstatistiken:** Erfassung und Anzeige von Statistiken (z.B. Averages, Checkout-Quoten, höchste Würfe).
 *   **[ ] Highscore-Listen:**
     *   **[ ] Implementierung einer Highscore-Liste pro Spielmodus.**
