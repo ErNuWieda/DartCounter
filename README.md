@@ -14,7 +14,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     *   **Around the Clock (ATC):** Mit Varianten für Single, Double, Triple als Ziel
     *   **Micky Maus:** Treffen der Zahlen 20 bis 12 und Bullseye.
     *   **Killer:** Jeder Spieler erhält ein Lebensfeld; Ziel ist es, "Killer" zu werden und andere Spieler zu eliminieren.
-    *   **Elimination:** Jeder Spieler spielt von einem Startscore (z. B. 301) auf 0 – trifft man exakt den Punktestand eines Gegners, wird dieser zurückgesetzt.
+    *   **Elimination:** Jeder Spieler spielt von 0 zu einem Zielscore (301, 501), trifft man exakt den Punktestand eines Gegners, wird dieser zurückgesetzt.
 
     *   **Shanghai:** Jeder Spieler versucht mit genau drei Darts die Zahlen 1 bis 7 (oder bis 20 bzw. Anzahl vereinbarter Runden) der Reihe nach zu treffen – idealerweise mit einem Single, Double und Triple derselben Zahl in einer Runde, was sofort zum Sieg führt (ein sogenannter "Shanghai")    
 *   **Spielerverwaltung:** Unterstützung für bis zu 4 Spieler mit individuellen Namen.
