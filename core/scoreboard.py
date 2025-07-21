@@ -29,12 +29,19 @@ class ScoreBoard:
         ttk.Label(score_frame, text=score_label_text, font=("Arial", 12)).pack()
         initial_value = player.lifes if self.game.name == "Killer" else player.score
         self.score_var = tk.StringVar(value=str(initial_value))
-        ttk.Label(score_frame, textvariable=self.score_var, font=("Arial", 24, "bold")).pack()
+        ttk.Label(score_frame, textvariable=self.score_var, font=("Arial", 20, "bold")).pack()
 
         # Anzeigen für X01-Statistiken
         if self.game.name in ('301', '501', '701'):
+            # Rahmen für Checkout-Vorschläge
+            checkout_frame = ttk.LabelFrame(main_frame, text="Finish-Vorschlag")
+            checkout_frame.pack(pady=10, fill="x", padx=5)
+            self.checkout_suggestion_var = tk.StringVar(value="-")
+            ttk.Label(checkout_frame, textvariable=self.checkout_suggestion_var, font=("Arial", 14), justify="center").pack(pady=5)
+
+            # Rahmen für 3-Dart-Average
             avg_frame = ttk.Frame(main_frame)
-            avg_frame.pack(pady=5)
+            avg_frame.pack(pady=(0, 5)) # Weniger Abstand nach oben
             ttk.Label(avg_frame, text="3-Dart-Avg:", font=("Arial", 10)).pack()
             self.avg_var = tk.StringVar(value="0.00")
             ttk.Label(avg_frame, textvariable=self.avg_var, font=("Arial", 14)).pack()
@@ -105,9 +112,17 @@ class ScoreBoard:
         if self.game.targets:
             self.update_display(self.player.hits, initial_value) # Initiales Update für Checkboxen
 
+    def set_score_value(self, score):
+        """Aktualisiert nur den angezeigten Punktwert (oder Leben)."""
+        self.score_var.set(str(score))
+
+    def update_checkout_suggestion(self, suggestion):
+        """Aktualisiert nur den Text für den Finish-Vorschlag."""
+        self.checkout_suggestion_var.set(suggestion)
+
     def update_score(self, score):
         """Aktualisiert alle Anzeigen auf dem Scoreboard."""
-        self.score_var.set(str(score)) # 'score' kann auch Leben sein
+        self.set_score_value(score) # 'score' kann auch Leben sein
         self.throws_list.delete(0, tk.END)
         for throw in self.player.throws:
             self.throws_list.insert(tk.END, f"{throw[0]} {throw[1]}" if throw[0] != "Miss" else "Miss")

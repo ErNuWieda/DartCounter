@@ -32,18 +32,21 @@ class Player:
         """
         self.name = name
         self.game_name = game.name
-        self.hits = {}
-        
-        # Spielspezifische Attribute
-        self.life_segment = ""
-        self.lifes = game.lifes
-        self.can_kill = False
-        self.killer_throws = 0
-        self.next_target = None
         self.score = 0
         self.game = game
         self.targets = self.game.targets
-        
+
+        # State-Dictionary für spielspezifische Attribute
+        self.state = {
+            'hits': {},
+            'life_segment': "",
+            'lifes': game.lifes,
+            'can_kill': False,
+            'killer_throws': 0,
+            'next_target': None,
+            'has_opened': False,
+        }
+
         # Statistik-Dictionary
         self.stats = {
             'total_darts_thrown': 0,
@@ -56,26 +59,81 @@ class Player:
             'total_marks_scored': 0,
         }
 
-        # Initialisierung basierend auf dem Spielmodus
-        if self.game.name in ('301', '501', '701'):
-            self.score = int(self.game.name)
-        elif self.targets:
-            self.next_target = self.targets[0]
-            for target in self.targets:
-                self.hits[target] = 0 # Initial 0 Treffer    
-
         # Eindeutige ID zuweisen und den Zähler erhöhen
         self.id = Player.id
-        Player.id = self.id+1        
-        self.has_opened = False
+        Player.id = self.id+1
         self.throws = []
         self.sb = None # ScoreBoard wird extern von der Game-Klasse erstellt und zugewiesen
+
+    # --- Properties für den sicheren Zugriff auf das State-Dictionary ---
+    # Dies ermöglicht den Zugriff auf spielspezifische Attribute (z.B. player.lifes)
+    # und leitet ihn intern an das state-Dictionary weiter (player.state['lifes']).
+    # Das macht den Code lesbarer und verhindert Fehler durch inkonsistente
+    # Zugriffe nach dem Refactoring.
+
+    @property
+    def hits(self):
+        return self.state.get('hits', {})
+
+    @hits.setter
+    def hits(self, value):
+        self.state['hits'] = value
+
+    @property
+    def life_segment(self):
+        return self.state.get('life_segment')
+
+    @life_segment.setter
+    def life_segment(self, value):
+        self.state['life_segment'] = value
+
+    @property
+    def lifes(self):
+        return self.state.get('lifes', 0)
+
+    @lifes.setter
+    def lifes(self, value):
+        self.state['lifes'] = value
+
+    @property
+    def can_kill(self):
+        return self.state.get('can_kill', False)
+
+    @can_kill.setter
+    def can_kill(self, value):
+        self.state['can_kill'] = value
+
+    @property
+    def killer_throws(self):
+        return self.state.get('killer_throws', 0)
+
+    @killer_throws.setter
+    def killer_throws(self, value):
+        self.state['killer_throws'] = value
+
+    @property
+    def next_target(self):
+        return self.state.get('next_target')
+
+    @next_target.setter
+    def next_target(self, value):
+        self.state['next_target'] = value
+
+    @property
+    def has_opened(self):
+        return self.state.get('has_opened', False)
+
+    @has_opened.setter
+    def has_opened(self, value):
+        self.state['has_opened'] = value
 
     def __del__(self):
         """
         Bereinigt die Ressourcen des Spielers, insbesondere das Scoreboard-Fenster.
         """
-        self.sb.__del__()
+        # Sicherstellen, dass das Scoreboard existiert, bevor __del__ aufgerufen wird
+        if self.sb:
+            self.sb.__del__()
         self.clear()
 
     def leave(self):

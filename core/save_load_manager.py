@@ -3,6 +3,8 @@ from tkinter import filedialog, messagebox
 import os
 
 class SaveLoadManager:
+    SAVE_FORMAT_VERSION = 2
+
     """
     Verwaltet das Speichern und Laden von Spielständen als statische Utility-Klasse.
 
@@ -40,18 +42,13 @@ class SaveLoadManager:
                 'id': p.id,
                 'score': p.score,
                 'throws': p.throws,
-                'hits': p.hits,
                 'stats': p.stats,
-                'life_segment': p.life_segment,
-                'lifes': p.lifes,
-                'can_kill': p.can_kill,
-                'killer_throws': p.killer_throws,
-                'next_target': p.next_target,
-                'has_opened': p.has_opened,
+                'state': p.state, # Kapselt alle spielspezifischen Daten
             }
             players_data.append(player_dict)
 
         game_data = {
+            'save_format_version': SaveLoadManager.SAVE_FORMAT_VERSION,
             'game_name': game.name,
             'opt_in': game.opt_in,
             'opt_out': game.opt_out,
@@ -66,7 +63,7 @@ class SaveLoadManager:
         return game_data
 
     @staticmethod
-    def save_game_state(game):
+    def save_game_state(game, parent):
         """
         Orchestriert den Speichervorgang.
 
@@ -76,10 +73,11 @@ class SaveLoadManager:
 
         Args:
             game (Game): Die zu speichernde Spielinstanz.
+            parent (tk.Widget): Das übergeordnete Fenster für Dialoge.
         """
         game_data = SaveLoadManager._collect_game_data(game)
         if not game_data:
-            messagebox.showerror("Fehler", "Keine Spieldaten zum Speichern.")
+            messagebox.showerror("Fehler", "Keine Spieldaten zum Speichern.", parent=parent)
             return
 
         filepath = filedialog.asksaveasfilename(
@@ -95,12 +93,12 @@ class SaveLoadManager:
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(game_data, f, indent=4)
-            messagebox.showinfo("Erfolg", f"Spiel erfolgreich gespeichert unter:\n{filepath}")
+            messagebox.showinfo("Erfolg", f"Spiel erfolgreich gespeichert unter:\n{filepath}", parent=parent)
         except Exception as e:
-            messagebox.showerror("Fehler beim Speichern", f"Das Spiel konnte nicht gespeichert werden.\nFehler: {e}")
+            messagebox.showerror("Fehler beim Speichern", f"Das Spiel konnte nicht gespeichert werden.\nFehler: {e}", parent=parent)
 
     @staticmethod
-    def load_game_data():
+    def load_game_data(parent):
         """
         Orchestriert den Ladevorgang von der Datei bis zum Dictionary.
 
@@ -111,6 +109,8 @@ class SaveLoadManager:
         Returns:
             dict or None: Die geladenen Spieldaten als Dictionary oder None,
                           wenn der Vorgang abgebrochen wurde oder ein Fehler auftrat.
+        Args:
+            parent (tk.Widget): Das übergeordnete Fenster für Dialoge.
         """
         filepath = filedialog.askopenfilename(
             initialdir=os.path.join(os.path.expanduser('~'), 'Documents'),
@@ -123,9 +123,20 @@ class SaveLoadManager:
 
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+
+            # --- Versionsprüfung ---
+            file_version = data.get('save_format_version')
+            if file_version is None:
+                messagebox.showerror("Inkompatibler Spielstand", "Diese Speicherdatei ist veraltet und kann nicht geladen werden.", parent=parent)
+                return None
+            if file_version != SaveLoadManager.SAVE_FORMAT_VERSION:
+                messagebox.showerror("Inkompatibler Spielstand", f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.", parent=parent)
+                return None
+
+            return data
         except Exception as e:
-            messagebox.showerror("Fehler beim Laden", f"Das Spiel konnte nicht geladen werden.\nFehler: {e}")
+            messagebox.showerror("Fehler beim Laden", f"Das Spiel konnte nicht geladen werden.\nFehler: {e}", parent=parent)
             return None
 
     @staticmethod
@@ -147,14 +158,20 @@ class SaveLoadManager:
         for i, p_data in enumerate(data['players']):
             if i < len(game.players):
                 player = game.players[i]
-                for key, value in p_data.items():
-                    setattr(player, key, value)
+                # Kerndaten wiederherstellen
+                player.name = p_data.get('name', player.name)
+                player.id = p_data.get('id', player.id)
+                player.score = p_data.get('score', player.score)
+                player.throws = p_data.get('throws', [])
+                player.stats = p_data.get('stats', {})
+                # Spielspezifischen Zustand wiederherstellen
+                player.state.update(p_data.get('state', {}))
 
         # --- UI-Zustand nach dem Laden wiederherstellen ---
         for player in game.players:
             if player.sb:  # Sicherstellen, dass das Scoreboard existiert
                 # Aktualisiert die Hauptanzeige (Punkte, Leben, nächstes Ziel etc.)
                 player.sb.update_score(player.score)
-                # Aktualisiert spezifische Anzeigen wie Cricket-Treffer, falls vorhanden
+                # Aktualisiert spezifische Anzeigen wie Cricket-Treffer
                 if hasattr(player.sb, 'update_display'):
-                    player.sb.update_display(player.hits, player.score)
+                    player.sb.update_display(player.state['hits'], player.score)

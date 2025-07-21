@@ -34,7 +34,7 @@ class SoundManager:
             cls._instance = super(SoundManager, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, settings_manager):
+    def __init__(self, settings_manager, root=None):
         """
         Initialisiert den SoundManager.
 
@@ -46,11 +46,13 @@ class SoundManager:
         Args:
             settings_manager (SettingsManager): Die Instanz des SettingsManagers,
                                                 um Einstellungen zu laden/speichern.
+            root (tk.Tk, optional): Das Hauptfenster für Dialoge.
         """
         if hasattr(self, '_initialized'):
             return
         self._initialized = True
         self.settings_manager = settings_manager
+        self.root = root
         self.loading_errors = [] # To collect errors for a single messagebox
 
         if not PYGAME_AVAILABLE:
@@ -80,8 +82,9 @@ class SoundManager:
         if self.loading_errors:
             error_string = "\n- ".join(self.loading_errors)
             messagebox.showwarning(
-                "Sound-Fehler",
-                f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\nDie Soundeffekte sind für diese Sitzung teilweise oder ganz deaktiviert."
+                title="Sound-Fehler",
+                message=f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\nDie Soundeffekte sind für diese Sitzung teilweise oder ganz deaktiviert.",
+                parent=self.root
             )
 
     def _load_sound(self, path):

@@ -134,6 +134,7 @@ python3 main.py
 ## TODO - Zukünftige Features & Verbesserungen
 
 Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Features und Bereiche für Verbesserungen:
+*   **[X] Ergänzung Scoreboard:** Anzeige möglicher Finishs bei x01-Spielen ab Punktestand 180 
 *   **[X] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts 
 *   **[X] Spielerstatistiken:**
     *   **[X] Erfassung und Anzeige des 3-Dart-Average für X01-Spiele.**

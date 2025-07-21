@@ -6,14 +6,37 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from .player import Player
 from .scoreboard import ScoreBoard
+from .x01 import X01
+from .cricket import Cricket
+from .atc import AtC
+from .elimination import Elimination
+from .micky import Micky
+from .killer import Killer
+from .shanghai import Shanghai
+
+# Zentrale Zuordnung von Spielnamen zu den entsprechenden Logik-Klassen.
+# Dies ersetzt die dynamischen Imports in der get_game_logic-Methode.
+GAME_LOGIC_MAP = {
+    "301": X01,
+    "501": X01,
+    "701": X01,
+    "Cricket": Cricket,
+    "Cut Throat": Cricket,
+    "Tactics": Cricket,
+    "Around the Clock": AtC,
+    "Elimination": Elimination,
+    "Micky Mouse": Micky,
+    "Killer": Killer,
+    "Shanghai": Shanghai,
+}
 
 def _calculate_scoreboard_height(game):
     """
     Berechnet die benötigte Höhe für ein Scoreboard basierend auf dem Spielmodus.
     """
     if game.name in ('301', '501', '701'):
-        # Feste Höhe für X01-Spiele, die Statistiken enthalten.
-        return 380
+        # Feste Höhe für X01-Spiele, die Statistiken und Finish-Vorschläge enthalten.
+        return 430
 
     if game.name in ("Killer", "Elimination"):
         # Kleinere Höhe, da nur Score und Wurfhistorie angezeigt werden.
@@ -50,13 +73,13 @@ class Game:
       Delegation an die zuständigen Methoden oder Logik-Handler.
     - Bereinigung aller Ressourcen nach Spielende.
     """
-    def __init__(self, root, game, player_names, sound_manager=None, highscore_manager=None):
+    def __init__(self, root, game_options, player_names, sound_manager=None, highscore_manager=None):
         """
         Initialisiert eine neue Spielinstanz.
 
         Args:
             root (tk.Tk): Das Hauptfenster der Anwendung, das als Parent dient.
-            game (tuple): Ein Tupel mit allen Spieloptionen aus dem GameManager.
+            game_options (dict): Ein Dictionary mit allen Spieloptionen.
             player_names (list): Eine Liste der Namen der teilnehmenden Spieler.
             sound_manager (SoundManager, optional): Instanz zur Soundwiedergabe.
             highscore_manager (HighscoreManager, optional): Instanz zur Verwaltung von Highscores.
@@ -64,13 +87,13 @@ class Game:
         self.root = root
         self.sound_manager = sound_manager
         self.highscore_manager = highscore_manager
-        self.name = game[0]
-        self.opt_in = game[1]
-        self.opt_out = game[2]
-        self.opt_atc = game[3]
-        self.count_to = int(game[4])
-        self.lifes = int(game[5])
-        self.rounds = int(game[6])
+        self.name = game_options['name']
+        self.opt_in = game_options['opt_in']
+        self.opt_out = game_options['opt_out']
+        self.opt_atc = game_options['opt_atc']
+        self.count_to = int(game_options['count_to'])
+        self.lifes = int(game_options['lifes'])
+        self.rounds = int(game_options['rounds'])
         self.current = 0
         self.round = 1
         self.shanghai_finish = False
@@ -81,6 +104,11 @@ class Game:
         # Spieler-Instanzen erstellen (ohne UI-Abhängigkeit)
         self.players = [Player(name, self) for name in player_names]
         
+        # Spielspezifischen Zustand für jeden Spieler initialisieren,
+        # indem die Logik an die jeweilige Spielklasse delegiert wird.
+        for player in self.players:
+            self.game.initialize_player_state(player)
+
         # Spezifische Initialisierung für Killer nach Erstellung der Spieler
         if self.name == "Killer" and hasattr(self.game, 'set_players'):
             self.game.set_players(self.players)
@@ -181,7 +209,7 @@ class Game:
 
         # Fall 1: Keine Spieler mehr übrig
         if not self.players:
-            messagebox.showinfo("Spielende", "Alle Spieler haben das Spiel verlassen.")
+            messagebox.showinfo("Spielende", "Alle Spieler haben das Spiel verlassen.", parent=self.root)
             self.end = True
             self.__del__()  # Beendet das Spiel und schließt alle Fenster
             return
@@ -247,25 +275,27 @@ class Game:
         
         # Spezielle Nachricht für den allerersten Wurf des Spiels
         if self.current == 0 and self.round == 1 and not player.throws: # Check for no throws as well
-            messagebox.showinfo("Spielstart", f"{player.name} beginnt!")
+            messagebox.showinfo("Spielstart", f"{player.name} beginnt!", parent=self.db.root)
         else:
-            messagebox.showinfo("Spielerwechsel", f"{round_info}\n{player_info}")
+            messagebox.showinfo("Spielerwechsel", f"{round_info}\n{player_info}", parent=self.db.root)
         
         # Spezifische Nachricht für Killer-Modus, wenn Lebensfeld bestimmt werden muss
         if self.name == "Killer":
-            if not player.life_segment:
+            if not player.state['life_segment']:
                 messagebox.showinfo("Lebensfeld ermitteln",
                                     f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
                                     f"Wirf mit deiner NICHT-dominanten Hand.\n"
-                                    f"Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                                    f"Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.")
-            elif player.life_segment and not player.can_kill: # Only show if life_segment is set but not yet a killer
-                segment_str = "Bull" if player.life_segment == "Bull" else f"Double {player.life_segment}"
+                                    "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
+                                    "Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.",
+                                    parent=self.db.root)
+            elif player.state['life_segment'] and not player.state['can_kill']: # Only show if life_segment is set but not yet a killer
+                segment_str = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
                 messagebox.showinfo("Zum Killer werden",
                                     f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.\n"
-                                    f"Erst dann kannst du andere Spieler eliminieren.\n"
-                                    f"VORSICHT!\n"
-                                    f"Triffst du als Killer dein eigenes Lebensfeld, verlierst du selbst ein Leben!")
+                                    "Erst dann kannst du andere Spieler eliminieren.\n"
+                                    "VORSICHT!\n"
+                                    "Triffst du als Killer dein eigenes Lebensfeld, verlierst du selbst ein Leben!",
+                                    parent=self.db.root)
         
         if self.db:
             self.db.clear_dart_images_from_canvas()
@@ -303,42 +333,19 @@ class Game:
 
     def get_game_logic(self):
         """
-        Factory-Methode zur dynamischen Auswahl der Spiellogik.
+        Factory-Methode zur Auswahl der Spiellogik.
 
-        Basierend auf dem Namen des Spiels (`self.name`) wird das passende
-        Logik-Modul (z.B. `x01`, `cricket`) dynamisch importiert und eine
-        Instanz der entsprechenden Klasse zurückgegeben. Dieses Muster
-        ermöglicht eine hohe Modularität und einfache Erweiterbarkeit.
+        Basierend auf dem Namen des Spiels (`self.name`) wird die passende
+        Logik-Klasse aus einer vordefinierten Zuordnung (GAME_LOGIC_MAP)
+        ausgewählt und instanziiert. Dies vermeidet dynamische Imports und
+        macht die Abhängigkeiten der Klasse explizit.
         """
-        match self.name:
-            case "301" | "501" | "701":
-                from . import x01
-                from .x01 import X01
-                return X01(self)
-            case "Cricket" | "Cut Throat" | "Tactics":
-                from . import cricket
-                from .cricket import Cricket
-                return Cricket(self)
-            case "Around the Clock":
-                from . import atc
-                from .atc import AtC
-                return AtC(self)
-            case "Elimination":
-                from . import elimination
-                from .elimination import Elimination
-                return Elimination(self)
-            case "Micky Mouse":
-                from . import micky
-                from .micky import Micky
-                return Micky(self)
-            case "Killer":
-                from . import killer
-                from .killer import Killer
-                return Killer(self) # Spieler werden später via set_players gesetzt
-            case "Shanghai":
-                from . import shanghai
-                from .shanghai import Shanghai
-                return Shanghai(self)
+        logic_class = GAME_LOGIC_MAP.get(self.name)
+        if logic_class:
+            return logic_class(self)
+        else:
+            # Fallback oder Fehlerbehandlung, falls ein unbekannter Spielname übergeben wird
+            raise ValueError(f"Unbekannter oder nicht implementierter Spielmodus: {self.name}")
 
 
     def get_score(self, ring, segment):
@@ -393,5 +400,5 @@ class Game:
             
             return msg
         else:
-            messagebox.showinfo("Zuviel Würfe", "Bitte 'Weiter' klicken!")
+            messagebox.showinfo("Zuviel Würfe", "Bitte 'Weiter' klicken!", parent=self.db.root)
             return self.db.clear_last_dart_image_from_canvas()

@@ -8,9 +8,11 @@ from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
 from . import scoreboard
-from .scoreboard import ScoreBoard 
+from .scoreboard import ScoreBoard
+from .game_logic_base import GameLogicBase
+from .checkout_calculator import CheckoutCalculator
 
-class X01:
+class X01(GameLogicBase):
     """
     Behandelt die spezifische Spiellogik für alle X01-Varianten (z.B. 301, 501, 701).
 
@@ -29,24 +31,20 @@ class X01:
             game (Game): Die Haupt-Spielinstanz, die Zugriff auf Spieloptionen
                          und den allgemeinen Zustand bietet.
         """
-        self.game = game
+        super().__init__(game)
         self.opt_in = game.opt_in
         self.opt_out = game.opt_out
-        self.targets = None
-
-
-    def get_targets(self):
-        """
-        Gibt die Ziele für das Spiel zurück.
-
-        Für X01 gibt es keine spezifischen Ziele wie bei Cricket, daher wird
-        `None` zurückgegeben.
-
-        Returns:
-            None
-        """
-        return self.targets
+        # self.targets bleibt None aus der Basisklasse
     
+    def initialize_player_state(self, player):
+        """
+        Setzt den Anfangs-Score für X01-Spiele und initialisiert den 'opened'-Status.
+        """
+        player.score = int(self.game.name)
+        # 'has_opened' wird im state-Dictionary des Spielers gespeichert,
+        # das bereits in der Player-Klasse initialisiert wird.
+        player.has_opened = False
+
     def _handle_throw_undo(self, player, ring, segment, players):
         """
         Macht den letzten Wurf für einen Spieler rückgängig.
@@ -86,6 +84,11 @@ class X01:
                 player.stats['total_darts_thrown'] -= 1
             if player.stats['total_score_thrown'] >= throw_score:
                 player.stats['total_score_thrown'] -= throw_score
+        
+        # Finish-Vorschlag für den wiederhergestellten Punktestand mit der korrekten Anzahl verbleibender Darts aktualisieren
+        darts_remaining = 3 - len(player.throws)
+        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+        player.sb.update_checkout_suggestion(suggestion)
 
     def _handle_throw(self, player, ring, segment, players):
         """
@@ -124,14 +127,20 @@ class X01:
             player.throws.append((ring, 0))
             # No messagebox for simple miss, score is 0.
             # player.update_score_value(score, subtract=True) # score is 0, so no change.
-            player.sb.update_score(player.score) # Update display for throw history
+            player.sb.update_score(player.score) # Nur Wurfhistorie und Stats aktualisieren
+            
+            # Finish-Vorschlag für die verbleibenden Darts aktualisieren
+            darts_remaining = 3 - len(player.throws)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+            player.sb.update_checkout_suggestion(suggestion)
+
             if len(player.throws) == 3:
                 # Turn ends, user clicks "Weiter"
                 return None
             return None # Throw processed
 
 
-        if not player.has_opened:
+        if not player.state['has_opened']:
             opened_successfully = False
             if self.opt_in == "Single":
                 opened_successfully = True
@@ -143,7 +152,7 @@ class X01:
                     opened_successfully = True
 
             if opened_successfully:
-                player.has_opened = True
+                player.state['has_opened'] = True
             else:
                 player.throws.append((ring, segment)) # Record the failed attempt
                 player.sb.update_score(player.score) # Update display for throw history
@@ -152,12 +161,12 @@ class X01:
                 
                 remaining_darts = 3 - len(player.throws)
                 if len(player.throws) == 3:
-                    messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.")
+                    messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.", parent=self.game.db.root)
                 else: # Show for every failed "in" throw
-                    messagebox.showerror("Ungültiger Wurf", msg_base+f"\nNoch {remaining_darts} Darts.")
+                    messagebox.showerror("Ungültiger Wurf", msg_base+f"\nNoch {remaining_darts} Darts.", parent=self.game.db.root)
                 return None # End processing for this throw, turn might end or continue with next dart
 
-        # If player.has_opened is true, or became true above, proceed to score
+        # If player.state['has_opened'] is true, or became true above, proceed to score
 
         new_score = player.score - score
         bust = False
@@ -175,7 +184,7 @@ class X01:
             player.throws.append((ring, segment)) # Mark the bust throw in history
             player.sb.update_score(player.score) # Update display
 
-            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.", parent=self.game.db.root)
             return None # Turn ends due to bust. Player clicks "Weiter".
 
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
@@ -186,6 +195,11 @@ class X01:
 
         player.throws.append((ring, segment))
         player.update_score_value(score, subtract=True)
+
+        # Finish-Vorschlag für den neuen Punktestand mit den verbleibenden Darts berechnen und anzeigen
+        darts_remaining = 3 - len(player.throws)
+        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+        player.sb.update_checkout_suggestion(suggestion)
 
         if player.score == 0: # Gilt nur für x01
             # --- Checkout-Statistik bei Gewinn aktualisieren ---

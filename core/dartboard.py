@@ -119,7 +119,7 @@ class DartBoard:
         Zeigt einen Bestätigungsdialog an und beendet das Spiel, wenn bestätigt.
         Delegiert die Bereinigung an die `Game`-Instanz.
         """
-        confirm = messagebox.askyesno("Spiel beenden", "Soll das Spiel wirklich beendet werden?")
+        confirm = messagebox.askyesno("Spiel beenden", "Soll das Spiel wirklich beendet werden?", parent=self.root)
         if confirm:
             self.spiel.__del__()
             self.root.destroy()
@@ -207,7 +207,7 @@ class DartBoard:
         if msg:
             if self.spiel.shanghai_finish:
                 msg = "SHANGHAI-FINISH!\n"+msg
-            tk.messagebox.showinfo("Dartcounter", msg)
+            tk.messagebox.showinfo("Dartcounter", msg, parent=self.root)
 
     def _create_board(self):
         """

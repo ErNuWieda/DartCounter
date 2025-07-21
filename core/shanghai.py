@@ -8,17 +8,28 @@ from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
 from . import scoreboard
-from .scoreboard import ScoreBoard 
+from .scoreboard import ScoreBoard
+from .game_logic_base import GameLogicBase
 
 TARGET_VALUES = {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12, "13": 13, "14": 14, "15": 15, "16": 16, "17": 17, "18": 18, "19": 19, "20": 20}
 
 SEGMENTS_AS_STR = [str(s) for s in range(1, 20)] # "1" bis "20"
 
-class Shanghai:
+class Shanghai(GameLogicBase):
 	def __init__(self, game):
-		self.game = game
+		super().__init__(game)
 		self.rounds = self.game.rounds
 		self.targets = []
+
+	def initialize_player_state(self, player):
+		"""
+		Setzt den Anfangs-Score auf 0, initialisiert die Treffer-Map und das erste Ziel.
+		"""
+		player.score = 0
+		if self.get_targets(): # Sicherstellen, dass self.targets initialisiert ist
+			player.next_target = self.targets[0]
+			for target in self.targets:
+				player.hits[target] = 0
 
 	def get_targets(self):
 		for i in range(self.rounds):

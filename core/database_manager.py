@@ -57,9 +57,38 @@ class DatabaseManager:
             )
             self.is_connected = True
             self._create_table()
+            self._migrate_schema()
         except (configparser.NoSectionError, KeyError, psycopg2.Error) as error:
             print(f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}")
             self.is_connected = False
+
+    def _migrate_schema(self):
+        """
+        Prüft auf veraltete Datenbankschemata und migriert sie zur aktuellen Version.
+        Dies wird benötigt, wenn sich Spaltennamen oder -typen ändern.
+        """
+        if not self.is_connected: return
+        try:
+            with self.conn.cursor() as cur:
+                # Migration von 'darts_used' (alt) zu 'score_metric' (neu)
+                cur.execute("SELECT 1 FROM information_schema.columns WHERE table_name='highscores' AND column_name='darts_used';")
+                old_column_exists = cur.fetchone()
+
+                cur.execute("SELECT 1 FROM information_schema.columns WHERE table_name='highscores' AND column_name='score_metric';")
+                new_column_exists = cur.fetchone()
+
+                if old_column_exists and not new_column_exists:
+                    print("INFO: Veraltetes Datenbankschema gefunden. Migriere 'darts_used' zu 'score_metric'.")
+                    # Spalte umbenennen
+                    cur.execute("ALTER TABLE highscores RENAME COLUMN darts_used TO score_metric;")
+                    # Datentyp anpassen (von INT zu FLOAT für MPR)
+                    cur.execute("ALTER TABLE highscores ALTER COLUMN score_metric TYPE FLOAT;")
+                    self.conn.commit()
+                    print("INFO: Migration erfolgreich.")
+
+        except (Exception, psycopg2.Error) as error:
+            print(f"Fehler bei der Schema-Migration: {error}")
+            self.conn.rollback()
 
     def _create_table(self):
         """
@@ -119,7 +148,7 @@ class DatabaseManager:
         Args:
             game_mode (str): Der Spielmodus des Eintrags.
             player_name (str): Der Name des Spielers.
-            darts_used (int): Die Anzahl der benötigten Darts.
+            score_metric (float): Die relevante Punktzahl (Darts für X01, MPR für Cricket).
         """
         if not self.is_connected: return
         try:

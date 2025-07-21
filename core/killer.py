@@ -8,16 +8,21 @@ from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
 from . import scoreboard
-from .scoreboard import ScoreBoard 
+from .scoreboard import ScoreBoard
+from .game_logic_base import GameLogicBase
 
-class Killer:
+class Killer(GameLogicBase):
 	def __init__(self, game):
-		self.game = game
+		super().__init__(game)
 		self.players = [] # Wird später über set_players gesetzt
-		self.targets = None
-	
-	def get_targets(self):
-		return self.targets
+
+	def initialize_player_state(self, player):
+		"""
+		Setzt die Anzahl der Leben für das Killer-Spiel.
+		Der 'lifes' Wert wird bereits im Player-Konstruktor über game.lifes gesetzt,
+		diese Methode dient der Konsistenz des Designs.
+		"""
+		player.lifes = self.game.lifes
 
 	def set_players(self, players):
 		"""Setzt die Spielerliste für das Killer-Spiel."""
@@ -65,7 +70,7 @@ class Killer:
 						else:
 							is_killer_making_throw = True
 							player.can_kill = False
-							messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.")
+							messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.", parent=self.game.db.root)
 					victim = p
 					break
 
@@ -73,7 +78,7 @@ class Killer:
 				if victim.lifes < 3:
 					victim.lifes += 1
 					victim.sb.update_score(victim.lifes)
-					messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.")
+					messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.", parent=self.game.db.root)
 		# --- Scoreboard des aktuellen Spielers aktualisieren ---
 		player.sb.update_score(player.lifes)
 
@@ -91,7 +96,7 @@ class Killer:
 				determined_segment_for_life = str(segment)
 			else:
 				msg = "Kein Segment für Lebensfeld"
-				messagebox.showwarning("Fehler", msg + f"\nNoch {3 - len(player.throws)} Darts.")
+				messagebox.showwarning("Fehler", msg + f"\nNoch {3 - len(player.throws)} Darts.", parent=self.game.db.root)
 				player.sb.update_score(player.lifes)
 				return None
 
@@ -105,13 +110,13 @@ class Killer:
 			
 			if is_taken:
 				msg = f"Das Segment '{determined_segment_for_life}' ist bereits an {occupier} vergeben."
-				messagebox.showwarning("Segment vergeben", msg + f"\nNoch {3 - len(player.throws)} Darts.")
+				messagebox.showwarning("Segment vergeben", msg + f"\nNoch {3 - len(player.throws)} Darts.", parent=self.game.db.root)
 				player.sb.update_score(player.lifes)
 				return None
 			
 			player.life_segment = determined_segment_for_life
 			determined = "Bullseye" if ring in ("Bull", "Bullseye") else f"Double {player.life_segment}"
-			messagebox.showinfo("Lebensfeld festgelegt!", f"{player.name} hat Lebensfeld: {determined}")
+			messagebox.showinfo("Lebensfeld festgelegt!", f"{player.name} hat Lebensfeld: {determined}", parent=self.game.db.root)
 			player.sb.update_score(player.lifes) # Scoreboard mit neuem Lebensfeld aktualisieren
 			player.reset_turn() # Zug endet, nachdem das Lebensfeld erfolgreich gesetzt wurde
 			self.game.next_player()
@@ -126,9 +131,9 @@ class Killer:
 
 			if hit_own_life_segment:
 				player.can_kill = True
-				messagebox.showinfo("Killer Status!", f"{player.name} ist jetzt ein KILLER!")
+				messagebox.showinfo("Killer Status!", f"{player.name} ist jetzt ein KILLER!", parent=self.game.db.root)
 			else:
-				messagebox.showinfo("Daneben", f"{player.name} muss das eigene Lebensfeld treffen um Killer zu werden.")
+				messagebox.showinfo("Daneben", f"{player.name} muss das eigene Lebensfeld treffen um Killer zu werden.", parent=self.game.db.root)
 			player.sb.update_score(player.lifes)
 
 		# --- Phase 3: Spieler ist ein Killer ---
@@ -152,9 +157,9 @@ class Killer:
 					opp_name = victim.name
 
 				if victim.lifes > 0:
-					messagebox.showinfo(title, f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.lifes} Leben.")
+					messagebox.showinfo(title, f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.lifes} Leben.", parent=self.game.db.root)
 				else:
-					messagebox.showinfo("Eliminiert!", f"{player.name} hat {opp_name} eliminiert!")
+					messagebox.showinfo("Eliminiert!", f"{player.name} hat {opp_name} eliminiert!", parent=self.game.db.root)
 					win_msg = self._check_and_handle_win_condition()
 
 			player.sb.update_score(player.lifes)

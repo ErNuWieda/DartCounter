@@ -1,9 +1,10 @@
-#!/usr/bin/python3 
+#!python3 
 # -*- coding: utf-8 -*-
 
 import tkinter as tk 
 from tkinter import ttk, messagebox, Menu
 from PIL import Image, ImageTk
+import sys
 import sv_ttk
 import pathlib
 from core.gamemgr import GameManager
@@ -14,172 +15,178 @@ from core.sound_manager import SoundManager
 from core.highscore_manager import HighscoreManager
 from core.settings_manager import SettingsManager
 
-# Globale Variable, um die Instanz des laufenden Spiels zu halten
-game_instance = None
-sound_manager = None # Globale Instanz für den SoundManager
-highscore_manager = None # Globale Instanz für den HighscoreManager
-settings_manager = None # Globale Instanz für den SettingsManager
+def get_asset_path(relative_path):
+    """
+    Gibt den korrekten Pfad zu einer Asset-Datei zurück, egal ob das Skript
+    als normale .py-Datei oder als gepackte Anwendung (PyInstaller) läuft.
+    """
+    try:
+        # PyInstaller erstellt einen temporären Ordner und speichert den Pfad in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        # Wenn wir nicht im gepackten Modus sind, verwenden wir den normalen Pfad
+        base_path = pathlib.Path(__file__).resolve().parent
 
-def setup_menu(root):
-    menu_bar = Menu(root)
-    file_menu = Menu(menu_bar, tearoff=0)
-    menu_bar.add_cascade(label="Datei", menu=file_menu)
-    file_menu.add_command(label="Neues Spiel", command=new_game)
-    file_menu.add_command(label="Spiel laden", command=load_game)
-    file_menu.add_separator()
-    file_menu.add_command(label="Spiel speichern", command=save_game)
-    file_menu.add_separator()
-    file_menu.add_command(label="Highscores", command=show_highscores)
-    file_menu.add_separator()
-    file_menu.add_command(label="Spiel beenden", command=quit_game)
-    about_menu = Menu(menu_bar, tearoff=0)
-    menu_bar.add_cascade(label="Über", menu=about_menu)
-    about_menu.add_command(label="Über Dartcounter", command=about)
-    root.config(menu=menu_bar)
+    return base_path / pathlib.Path(relative_path)
 
-
-def new_game():
-    global game_instance
-    if game_instance and not game_instance.end:
-        if not messagebox.askyesno("Neues Spiel", "Ein Spiel läuft bereits. Möchtest du es beenden und ein neues starten?"):
-            return
-        game_instance.__del__()
-        game_instance = None
-
-    root.withdraw()
-    gm = GameManager(root, sound_manager, settings_manager)
-    # Warten, bis das Einstellungsfenster geschlossen wird
-    root.wait_window(gm.settings_dlg)
-
-    if gm.was_started:
-        game_options = (gm.game, gm.opt_in, gm.opt_out, gm.opt_atc, gm.count_to, gm.lifes, gm.shanghai_rounds)
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.version = "v1.1"
         
-        # Spiel- und Dartboard-Instanzen erstellen
-        spiel_instanz = Game(root, game_options, gm.players, sound_manager, highscore_manager)
+        # Manager-Instanzen als Instanzvariablen
+        self.settings_manager = SettingsManager()
+        self.sound_manager = SoundManager(self.settings_manager, self.root)
+        self.highscore_manager = HighscoreManager()
+        self.game_instance = None
+
+        # UI-Setup
+        self._setup_window()
+        self._setup_menu()
+        self._setup_main_canvas()
+
+    def _setup_window(self):
+        # Theme anwenden (NACH dem Erstellen des root-Fensters, aber VOR dem Rest)
+        sv_ttk.set_theme(self.settings_manager.get('theme', 'light'))
+
+        self.root.geometry("300x300")
+        self.root.title(f"Dartcounter {self.version}")
+        self.root.resizable(False, False)
+        self.root.protocol("WM_DELETE_WINDOW", self.quit_game)
+
+    def _setup_menu(self):
+        menu_bar = Menu(self.root)
+        file_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Datei", menu=file_menu)
+        file_menu.add_command(label="Neues Spiel", command=self.new_game)
+        file_menu.add_command(label="Spiel laden", command=self.load_game)
+        file_menu.add_separator()
+        file_menu.add_command(label="Spiel speichern", command=self.save_game)
+        file_menu.add_separator()
+        file_menu.add_command(label="Highscores", command=self.show_highscores)
+        file_menu.add_separator()
+        file_menu.add_command(label="Spiel beenden", command=self.quit_game)
+        about_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Über", menu=about_menu)
+        about_menu.add_command(label="Über Dartcounter", command=self.about)
+        self.root.config(menu=menu_bar)
+
+    def _setup_main_canvas(self):
+        assets_base_dir = get_asset_path("assets")
+        image_path = assets_base_dir / "darthead.png"
+        try:
+            image = Image.open(image_path)
+        except FileNotFoundError:
+            messagebox.showerror("Fehler", f"Image nicht gefunden: {image_path}", parent=self.root)
+            self.root.quit()
+            return
+        except Exception as e:
+            messagebox.showerror("Fehler", f"Fehler beim Laden des Images: {e}", parent=self.root)
+            self.root.quit()
+            return
+
+        new_size = (275, 275)
+        resized = image.resize(new_size, Image.Resampling.LANCZOS)
+        photo = ImageTk.PhotoImage(resized)
+        canvas = tk.Canvas(self.root, width=new_size[0], height=new_size[1])
+        canvas.pack(fill="both", expand=True)
+        x_pos = (300 - new_size[0]) // 2
+        y_pos = (300 - new_size[1]) // 2
+        canvas.create_image(x_pos, y_pos, image=photo, anchor=tk.NW)
+        canvas.image = photo
+        canvas.bind("<Button-1>", lambda e: self.new_game())
+
+    def _check_and_close_existing_game(self, title, message):
+        """Prüft, ob ein Spiel läuft, fragt den Benutzer und beendet es ggf."""
+        if self.game_instance and not self.game_instance.end:
+            if not messagebox.askyesno(title, message, parent=self.root):
+                return False  # User cancelled
+            self.game_instance.__del__()
+            self.game_instance = None
+        return True  # OK to proceed
+
+    def _initialize_game_session(self, game_options, player_names):
+        """Erstellt die Game- und Dartboard-Instanzen und richtet sie ein."""
+        spiel_instanz = Game(self.root, game_options, player_names, self.sound_manager, self.highscore_manager)
         db_instanz = DartBoard(spiel_instanz)
         spiel_instanz.db = db_instanz
-
-        # Scoreboards erstellen und positionieren, nachdem das Dartboard existiert
         spiel_instanz.setup_scoreboards()
-        
-        # Die neue Instanz als globale Instanz setzen
-        game_instance = spiel_instanz
-        
-        # Das Spiel mit dem ersten Spieler starten
-        game_instance.announce_current_player_turn()
-    else:
-        # Benutzer hat den Dialog geschlossen, ohne zu starten
-        root.deiconify()
+        return spiel_instanz
 
-def load_game():
-    global game_instance
-    if game_instance and not game_instance.end:
-        if not messagebox.askyesno("Spiel laden", "Ein Spiel läuft bereits. Möchtest du es beenden und ein anderes laden?"):
+    def new_game(self):
+        if not self._check_and_close_existing_game("Neues Spiel", "Ein Spiel läuft bereits. Möchtest du es beenden und ein neues starten?"):
             return
-        game_instance.__del__()
-        game_instance = None
 
-    data = SaveLoadManager.load_game_data()
-    if not data:
-        return  # Benutzer hat abgebrochen oder es gab einen Fehler
+        self.root.withdraw()
+        gm = GameManager(self.root, self.sound_manager, self.settings_manager)
+        self.root.wait_window(gm.settings_dlg)
 
-    root.withdraw()
-    
-    # Spieldaten aus den geladenen Daten extrahieren
-    game_options = (
-        data['game_name'], data['opt_in'], data['opt_out'], data['opt_atc'],
-        str(data['count_to']), str(data['lifes']), str(data['rounds'])
-    )
-    player_names = [p['name'] for p in data['players']]
+        if gm.was_started:
+            game_options = {
+                "name": gm.game,
+                "opt_in": gm.opt_in,
+                "opt_out": gm.opt_out,
+                "opt_atc": gm.opt_atc,
+                "count_to": gm.count_to,
+                "lifes": gm.lifes,
+                "rounds": gm.shanghai_rounds
+            }
+            self.game_instance = self._initialize_game_session(game_options, gm.players)
+            self.game_instance.announce_current_player_turn()
+        else:
+            self.root.deiconify()
 
-    # Spiel- und Dartboard-Instanzen erstellen und Zustand wiederherstellen
-    loaded_game = Game(root, game_options, player_names, sound_manager, highscore_manager)
-    db = DartBoard(loaded_game)
-    loaded_game.db = db
+    def load_game(self):
+        if not self._check_and_close_existing_game("Spiel laden", "Ein Spiel läuft bereits. Möchtest du es beenden und ein anderes laden?"):
+            return
 
-    # Scoreboards erstellen, bevor der Zustand wiederhergestellt wird
-    loaded_game.setup_scoreboards()
-    SaveLoadManager.restore_game_state(loaded_game, data)
-    
-    game_instance = loaded_game
-    game_instance.announce_current_player_turn()
+        data = SaveLoadManager.load_game_data(self.root)
+        if not data:
+            return
 
-def save_game():
-    if game_instance and not game_instance.end:
-        SaveLoadManager.save_game_state(game_instance)
-    else:
-        messagebox.showinfo("Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.")
+        self.root.withdraw()
+        game_options = {
+            "name": data['game_name'],
+            "opt_in": data['opt_in'],
+            "opt_out": data['opt_out'],
+            "opt_atc": data['opt_atc'],
+            "count_to": str(data['count_to']),
+            "lifes": str(data['lifes']),
+            "rounds": str(data['rounds'])
+        }
+        player_names = [p['name'] for p in data['players']]
 
-def show_highscores():
-    if highscore_manager:
-        highscore_manager.show_highscores_window(root)
+        loaded_game = self._initialize_game_session(game_options, player_names)
+        SaveLoadManager.restore_game_state(loaded_game, data)
+        self.game_instance = loaded_game
+        self.game_instance.announce_current_player_turn()
 
-def quit_game():
-    confirm = messagebox.askyesno("Programm beenden", "Dartcounter wirklich beenden?")
-    if confirm:
-        if settings_manager:
-            settings_manager.save_settings()
-        if game_instance:
-            game_instance.__del__() # Spiel-Ressourcen sauber beenden
-        root.quit()
+    def save_game(self):
+        if self.game_instance and not self.game_instance.end:
+            SaveLoadManager.save_game_state(self.game_instance, self.game_instance.db.root)
+        else:
+            messagebox.showinfo("Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=self.root)
 
-def about():
-    messagebox.showinfo(f"Dartcounter {version}", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda")
+    def show_highscores(self):
+        if self.highscore_manager:
+            self.highscore_manager.show_highscores_window(self.root)
+
+    def quit_game(self):
+        confirm = messagebox.askyesno("Programm beenden", "Dartcounter wirklich beenden?", parent=self.root)
+        if confirm:
+            if self.settings_manager:
+                self.settings_manager.save_settings()
+            if self.game_instance:
+                self.game_instance.__del__()
+            self.root.quit()
+
+    def about(self):
+        messagebox.showinfo(f"Dartcounter {self.version}", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda", parent=self.root)
+
 
 
 if __name__ == "__main__":
-    ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent / "assets"
-    # Settings-Manager initialisieren (als ERSTES)
-    settings_manager = SettingsManager()
-    # Sound-Manager initialisieren (erfordert pygame)
-    sound_manager = SoundManager(settings_manager) # SoundManager braucht SettingsManager
-    # Highscore-Manager initialisieren
-    highscore_manager = HighscoreManager()
-
-    image_path = ASSETS_BASE_DIR / "darthead.png"
-    version = "v1.1"
-
-    # Fenster erstellen
     root = tk.Tk()
-
-    # Theme anwenden (NACH dem Erstellen des root-Fensters, aber VOR dem Rest)
-    sv_ttk.set_theme(settings_manager.get('theme', 'light'))
-
-
-    root.geometry("300x300")
-    root.title(f"Dartcounter {version}")
-    root.resizable(False, False)
-    root.protocol("WM_DELETE_WINDOW", quit_game)
-
-
-    # Menü erstellen
-    setup_menu(root)
-
-    # Bild vorbereiten mit Fehlerbehandlung
-    try:
-        image = Image.open(image_path)
-    except FileNotFoundError:
-        messagebox.showerror("Fehler", f"Image nicht gefunden: {image_path}")
-        root.quit()
-        exit() # Beendet das Skript, da das Hauptbild fehlt
-    except Exception as e:
-        messagebox.showerror("Fehler", f"Fehler beim Laden des Images: {e}")
-        root.quit()
-        exit() # Beendet das Skript
-
-    # Bild skalieren
-    new_size = (275, 275)
-    resized = image.resize(new_size, Image.Resampling.LANCZOS)
-    photo = ImageTk.PhotoImage(resized)
-    # Canvas erstellen
-    canvas = tk.Canvas(root, width=new_size[0], height=new_size[1])
-    canvas.pack(fill="both", expand=True)
-    # Bild einfügen
-    x_pos = (300 - new_size[0]) // 2
-    y_pos = (300 - new_size[1]) // 2
-    canvas.create_image(x_pos, y_pos, image=photo, anchor=tk.NW)
-    canvas.image = photo
-    canvas.bind("<Button-1>", lambda e: new_game())
-
+    app = App(root)
     root.mainloop()
     

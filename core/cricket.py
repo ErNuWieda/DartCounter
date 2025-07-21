@@ -46,6 +46,14 @@ class Cricket:
             self.CRICKET_SEGMENTS_AS_STR = TACTICS_SEGMENTS_AS_STR  		
         self.targets = [k for k in self.CRICKET_TARGET_VALUES.keys()]
 
+    def initialize_player_state(self, player):
+        """
+        Setzt den Anfangs-Score auf 0 und initialisiert die Treffer-Map für Cricket.
+        """
+        player.score = 0
+        if self.targets:
+            for target in self.targets:
+                player.hits[target] = 0
 
     def get_targets(self):
         """Gibt die Liste der Ziele für den aktuellen Spielmodus zurück."""
@@ -97,7 +105,7 @@ class Cricket:
                     if opp != player and opp.hits.get(target_hit, 0) < 3:
                         if opp.score > 0:
                             opp.score -= points_for_this_throw
-                            opp.sb.score_label.config(text=f"Punkte: {opp.score}")
+                            opp.sb.set_score_value(opp.score)
                         break
  
         player.sb.update_display(player.hits, player.score) # Scoreboard aktualisieren (für Wurfanzeige)
@@ -203,7 +211,7 @@ class Cricket:
                 for opp in players:
                     if opp != player and opp.hits.get(target_hit, 0) < 3:
                         opp.score += points_for_this_throw
-                        opp.sb.score_label.config(text=f"Punkte: {opp.score}")
+                        opp.sb.set_score_value(opp.score)
                         
         # Marks und Score aktualisieren
         player.sb.update_display(player.hits, player.score) 

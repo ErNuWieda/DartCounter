@@ -8,19 +8,22 @@ from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
 from . import scoreboard
-from .scoreboard import ScoreBoard 
+from .scoreboard import ScoreBoard
+from .game_logic_base import GameLogicBase
 
-class Elimination:
+class Elimination(GameLogicBase):
 
     def __init__(self, game):
-        self.game = game
+        super().__init__(game)
         self.count_to = game.count_to
         self.opt_out = game.opt_out
-        self.targets = None
+        # self.targets bleibt None aus der Basisklasse
 
-
-    def get_targets(self):
-        return self.targets
+    def initialize_player_state(self, player):
+        """
+        Setzt den Anfangs-Score für Elimination auf 0.
+        """
+        player.score = 0
     
     def _handle_throw_undo(self, player, ring, segment, players):
         score = self.game.get_score(ring, segment)
@@ -28,7 +31,7 @@ class Elimination:
             for opp in players:
                 if opp != player and opp.score == 0:
                     opp.score = player.score
-                    opp.sb.score_label.config(text=f"Score: {opp.score}")
+                    opp.sb.set_score_value(opp.score)
                     break
             player.update_score_value(score, subtract=True)
         
@@ -61,7 +64,7 @@ class Elimination:
             player.throws.append((ring, segment)) # Mark the bust throw in history
             player.sb.update_score(player.score) # Update display
 
-            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.", parent=self.game.db.root)
             return None # Turn ends due to bust. Player clicks "Weiter".
 
         player.throws.append((ring, segment))
@@ -70,8 +73,8 @@ class Elimination:
         for opp in players:
             if opp != player and player.score == opp.score:
                 opp.score = 0
-                opp.sb.score_label.config(text=f"Score: {opp.score}")
-                messagebox.showinfo("Rauswurf", f"{player.name} schickt {opp.name} zurück an den Start!")
+                opp.sb.set_score_value(opp.score)
+                messagebox.showinfo("Rauswurf", f"{player.name} schickt {opp.name} zurück an den Start!", parent=self.game.db.root)
                 break
 
         if player.score == self.count_to:            

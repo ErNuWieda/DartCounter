@@ -50,16 +50,19 @@ class HighscoreManager:
         
         self.db_manager.add_score(str(game_mode), player_name, score_metric)
 
-    def export_highscores_to_csv(self):
+    def export_highscores_to_csv(self, parent):
         """
         Exportiert alle Highscores aus der Datenbank in eine CSV-Datei.
 
         Öffnet einen "Speichern unter"-Dialog, damit der Benutzer einen Speicherort
         auswählen kann. Ruft alle Highscores für die definierten Spielmodi ab,
         formatiert sie und schreibt sie in die ausgewählte CSV-Datei.
+        
+        Args:
+            parent (tk.Widget): Das übergeordnete Fenster für Dialoge.
         """
         if not self.db_manager.is_connected:
-            messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Datenbank möglich.")
+            messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Datenbank möglich.", parent=parent)
             return
 
         filepath = filedialog.asksaveasfilename(
@@ -85,7 +88,7 @@ class HighscoreManager:
                 })
 
         if not all_scores:
-            messagebox.showinfo("Export", "Keine Highscores zum Exportieren vorhanden.", parent=root)
+            messagebox.showinfo("Export", "Keine Highscores zum Exportieren vorhanden.", parent=parent)
             return
 
         try:
@@ -94,9 +97,9 @@ class HighscoreManager:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(all_scores)
-            messagebox.showinfo("Erfolg", f"Highscores erfolgreich exportiert nach:\n{filepath}")
+            messagebox.showinfo("Erfolg", f"Highscores erfolgreich exportiert nach:\n{filepath}", parent=parent)
         except IOError as e:
-            messagebox.showerror("Exportfehler", f"Fehler beim Schreiben der CSV-Datei: {e}")
+            messagebox.showerror("Exportfehler", f"Fehler beim Schreiben der CSV-Datei: {e}", parent=parent)
 
     def _prompt_and_reset(self, highscore_win, notebook):
         """
@@ -158,7 +161,7 @@ class HighscoreManager:
             root (tk.Tk): Das Hauptfenster der Anwendung, das als Parent dient.
         """
         if not self.db_manager.is_connected:
-            messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.")
+            messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.", parent=root)
             return
 
         win = tk.Toplevel(root)
@@ -199,7 +202,7 @@ class HighscoreManager:
         bottom_frame = ttk.Frame(win)
         bottom_frame.pack(pady=(5, 10), fill='x', side='bottom')
 
-        export_button = ttk.Button(bottom_frame, text="Als CSV exportieren", command=self.export_highscores_to_csv)
+        export_button = ttk.Button(bottom_frame, text="Als CSV exportieren", command=lambda: self.export_highscores_to_csv(win))
         export_button.pack(side='left', padx=20)
         
         reset_button = ttk.Button(bottom_frame, text="Highscores zurücksetzen", command=lambda: self._prompt_and_reset(win, notebook))
