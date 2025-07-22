@@ -6,12 +6,14 @@ from tkinter import ttk, messagebox, Menu
 from PIL import Image, ImageTk
 import sys
 import sv_ttk
+from core.settings_manager import SettingsManager
 import pathlib
 from core.gamemgr import GameManager
 from core.game import Game
 from core.dartboard import DartBoard
 from core.save_load_manager import SaveLoadManager
 from core.sound_manager import SoundManager
+from core.player_stats_manager import PlayerStatsManager
 from core.highscore_manager import HighscoreManager
 from core.settings_manager import SettingsManager
 
@@ -20,10 +22,10 @@ def get_asset_path(relative_path):
     Gibt den korrekten Pfad zu einer Asset-Datei zurück, egal ob das Skript
     als normale .py-Datei oder als gepackte Anwendung (PyInstaller) läuft.
     """
-    try:
+    if hasattr(sys, '_MEIPASS'):
         # PyInstaller erstellt einen temporären Ordner und speichert den Pfad in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
+        base_path = pathlib.Path(sys._MEIPASS)
+    else:
         # Wenn wir nicht im gepackten Modus sind, verwenden wir den normalen Pfad
         base_path = pathlib.Path(__file__).resolve().parent
 
@@ -38,6 +40,7 @@ class App:
         self.settings_manager = SettingsManager()
         self.sound_manager = SoundManager(self.settings_manager, self.root)
         self.highscore_manager = HighscoreManager()
+        self.player_stats_manager = PlayerStatsManager()
         self.game_instance = None
 
         # UI-Setup
@@ -47,7 +50,13 @@ class App:
 
     def _setup_window(self):
         # Theme anwenden (NACH dem Erstellen des root-Fensters, aber VOR dem Rest)
-        sv_ttk.set_theme(self.settings_manager.get('theme', 'light'))
+        theme = self.settings_manager.get('theme', 'light')
+        # Sicherstellen, dass nur gültige Themes verwendet werden, um Abstürze zu vermeiden
+        if theme not in ('light', 'dark'):
+            print(f"Warnung: Ungültiges Theme '{theme}' in den Einstellungen gefunden. Fallback auf 'light'.")
+            theme = 'light'
+            self.settings_manager.set('theme', 'light') # Korrigiert die Einstellung für zukünftige Starts
+        sv_ttk.set_theme(theme)
 
         self.root.geometry("300x300")
         self.root.title(f"Dartcounter {self.version}")
@@ -63,6 +72,9 @@ class App:
         file_menu.add_separator()
         file_menu.add_command(label="Spiel speichern", command=self.save_game)
         file_menu.add_separator()
+        file_menu.add_command(label="Einstellungen", command=self.open_settings_dialog)
+        file_menu.add_separator()
+        file_menu.add_command(label="Spielerstatistiken", command=self.show_player_stats)
         file_menu.add_command(label="Highscores", command=self.show_highscores)
         file_menu.add_separator()
         file_menu.add_command(label="Spiel beenden", command=self.quit_game)
@@ -107,7 +119,7 @@ class App:
 
     def _initialize_game_session(self, game_options, player_names):
         """Erstellt die Game- und Dartboard-Instanzen und richtet sie ein."""
-        spiel_instanz = Game(self.root, game_options, player_names, self.sound_manager, self.highscore_manager)
+        spiel_instanz = Game(self.root, game_options, player_names, self.sound_manager, self.highscore_manager, self.player_stats_manager)
         db_instanz = DartBoard(spiel_instanz)
         spiel_instanz.db = db_instanz
         spiel_instanz.setup_scoreboards()
@@ -161,15 +173,59 @@ class App:
         self.game_instance = loaded_game
         self.game_instance.announce_current_player_turn()
 
+    def open_settings_dialog(self):
+        """Öffnet einen Dialog für globale Anwendungseinstellungen."""
+        settings_dlg = tk.Toplevel(self.root)
+        settings_dlg.title("Globale Einstellungen")
+        settings_dlg.geometry("320x180")
+        settings_dlg.resizable(False, False)
+        settings_dlg.transient(self.root)
+        settings_dlg.grab_set()
+
+        # --- Sound-Einstellungen ---
+        sound_enabled_var = tk.BooleanVar(value=self.sound_manager.sounds_enabled)
+        sound_check = ttk.Checkbutton(
+            settings_dlg,
+            text="Soundeffekte aktivieren",
+            variable=sound_enabled_var,
+            command=lambda: self.sound_manager.toggle_sounds(sound_enabled_var.get())
+        )
+        sound_check.pack(pady=10, padx=20, anchor="w")
+
+        # --- Theme-Einstellungen ---
+        theme_frame = ttk.LabelFrame(settings_dlg, text="Design")
+        theme_frame.pack(fill="x", padx=15, pady=10)
+
+        ttk.Label(theme_frame, text="Basis-Theme:").pack(pady=5, padx=10, anchor="w")
+        
+        theme_select = ttk.Combobox(theme_frame, values=["Light", "Dark"], state="readonly")
+        theme_select.pack(pady=5, padx=10, anchor="w", fill='x')
+        current_theme = self.settings_manager.get('theme', 'light')
+        theme_select.set(current_theme.capitalize())
+
+        def _set_theme_and_save(event):
+            selected_theme = theme_select.get().lower()
+            self.settings_manager.set('theme', selected_theme)
+            sv_ttk.set_theme(selected_theme)
+
+        theme_select.bind("<<ComboboxSelected>>", _set_theme_and_save)
+
+        ttk.Button(settings_dlg, text="Schließen", command=settings_dlg.destroy).pack(pady=15)
+
     def save_game(self):
-        if self.game_instance and not self.game_instance.end:
-            SaveLoadManager.save_game_state(self.game_instance, self.game_instance.db.root)
+        # Spiel kann nur gespeichert werden, wenn eine Instanz existiert, das Spiel nicht beendet ist UND das Dartboard-Fenster (db) noch existiert.
+        if self.game_instance and not self.game_instance.end and self.game_instance.db:
+            SaveLoadManager.save_game_state(self.game_instance, self.root)
         else:
             messagebox.showinfo("Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=self.root)
 
     def show_highscores(self):
         if self.highscore_manager:
             self.highscore_manager.show_highscores_window(self.root)
+
+    def show_player_stats(self):
+        """Öffnet das Fenster zur Anzeige der Spielerstatistiken."""
+        self.player_stats_manager.show_stats_window(self.root)
 
     def quit_game(self):
         confirm = messagebox.askyesno("Programm beenden", "Dartcounter wirklich beenden?", parent=self.root)
@@ -182,8 +238,6 @@ class App:
 
     def about(self):
         messagebox.showinfo(f"Dartcounter {self.version}", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda", parent=self.root)
-
-
 
 if __name__ == "__main__":
     root = tk.Tk()
