@@ -22,9 +22,12 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 *   **Individuelle Scoreboards:** Jeder Spieler erhält ein eigenes Fenster zur Anzeige des Spielstands und der Wurfhistorie.
 *   **Visuelle Dart-Anzeige:** Getroffene Felder werden mit einem Dart-Symbol auf dem Board markiert.
 *   **Persistente Spielerstatistiken:** Erfasst die Leistung jedes Spielers über die Zeit und visualisiert den Formverlauf in einem Diagramm.
+
 ![Startfenster](./assets/screenshot_dc3.png)
-![Hiscores](./assets/screenshot_dc4.png)
 ![Spiel-Einstellungen](./assets/screenshot_dc2.png)
+![Hiscores](./assets/screenshot_dc4.png)
+![Statistiken](./assets/screenshot_dc6.png)
+![Scoreboard](./assets/screenshot_dc5.png)
 ![Board, Hits & Scoreboard](./assets/screenshot_dc1.png) 
 
 ## Systemvoraussetzungen
