@@ -49,9 +49,6 @@ class GameManager:
         self.lifes_select = None
         self.rounds_select = None
         self.player_select = None
-        self.player_name_entries = []
-        self.sound_enabled_var = None
-        self.theme_select = None
         self.settings_dlg = None
 
         # Dictionary zum Speichern der Frames für spielspezifische Optionen
@@ -155,25 +152,6 @@ class GameManager:
         self.root.deiconify()
         self.settings_dlg.destroy()
 
-    def toggle_sound_setting(self):
-        """Wird vom Checkbutton aufgerufen, um Sounds umzuschalten."""
-        if self.sound_manager and self.sound_enabled_var:
-            is_enabled = self.sound_enabled_var.get()
-            self.sound_manager.toggle_sounds(is_enabled)
-
-    def set_theme(self):
-        """Wird vom Combobox aufgerufen, um das Theme zu ändern."""
-        if self.settings_manager and self.theme_select:
-            selected_theme = self.theme_select.get().lower()  # "Light" -> "light"
-            try:
-                import sv_ttk
-                sv_ttk.set_theme(selected_theme)
-                self.settings_manager.set('theme', selected_theme)
-            except ImportError:
-                print("sv-ttk nicht gefunden. Theme kann nicht geändert werden.")
-            except Exception as e:
-                print(f"Fehler beim Setzen des Themes: {e}")
-
     def _create_players_frame(self, parent):
         """Erstellt den Frame für Spieleranzahl und -namen."""
         tk.Label(parent, text="Spieler", font=("Arial", 12), fg="blue").pack(padx=10, anchor="nw")
@@ -198,33 +176,6 @@ class GameManager:
             self.player_name_entries[i].insert(0, last_names[i])
             if i >= int(self.player_select.get()):
                 self.player_name_entries[i].config(state="disabled")
-
-    def _create_general_settings_frame(self, parent):
-        """Erstellt den Frame für allgemeine Einstellungen wie Sound und Theme."""
-        tk.Label(parent, text="Einstellungen", font=("Arial", 12), fg="blue").pack(padx=10, pady=(10, 0), anchor="nw")
-        general_settings_frame = tk.Frame(parent, bd=2, relief="groove")
-        general_settings_frame.pack(fill="x", padx=10, pady=5)
-
-        self.sound_enabled_var = tk.BooleanVar()
-        if self.sound_manager:
-            self.sound_enabled_var.set(self.sound_manager.sounds_enabled)
-
-        sound_check = ttk.Checkbutton(
-            general_settings_frame,
-            text="Soundeffekte aktivieren",
-            variable=self.sound_enabled_var,
-            command=self.toggle_sound_setting
-        )
-        sound_check.pack(pady=5, padx=10, anchor="w")
-
-        tk.Label(general_settings_frame, text="Design-Theme:", font=("Arial", 11)).pack(pady=(10, 0), padx=10, anchor="w")
-        self.theme_select = ttk.Combobox(general_settings_frame, values=["Light", "Dark"], state="readonly")
-        self.theme_select.pack(pady=5, padx=10, anchor="w")
-        self.theme_select.bind("<<ComboboxSelected>>", lambda event: self.set_theme())
-
-        if self.settings_manager:
-            current_theme = self.settings_manager.get('theme', 'light')
-            self.theme_select.set(current_theme.capitalize())
 
     def _create_x01_options_frame(self, parent):
         """Erstellt den Frame für x01-spezifische Optionen (Opt In/Out)."""
@@ -302,7 +253,7 @@ class GameManager:
 
     def _create_game_selection_frame(self, parent):
         """Erstellt den Frame für die Spielauswahl und die dynamischen Options-Frames."""
-        tk.Label(parent, text="Varianten", font=("Arial", 12), fg="blue").pack(padx=10, pady=(10, 0), anchor="nw")
+        tk.Label(parent, text="Varianten", font=("Arial", 12), fg = "blue").pack(padx=10, pady=(10, 0), anchor="nw")
         game_selection_frame = tk.Frame(parent, bd=2, relief="groove")
         game_selection_frame.pack(fill="x", padx=10, pady=5)
         tk.Label(game_selection_frame, text="Spiel", font=("Arial", 12), fg="purple").pack()
@@ -319,7 +270,7 @@ class GameManager:
         start_button_frame = tk.Frame(parent)
         start_button_frame.pack(side="bottom", fill="x", pady=10)
 
-        btn = tk.Button(start_button_frame, text="Spiel starten", font=("Arial", 13), fg="red", command=self.run)
+        btn = ttk.Button(start_button_frame, text="Spiel starten", style="Accent.TButton", command=self.run)
         btn.pack()
         btn.bind("<Return>", lambda event: self.run())
         btn.focus_set()
@@ -327,8 +278,7 @@ class GameManager:
     def game_settings_dlg(self):
         self.settings_dlg = tk.Toplevel()
         self.settings_dlg.title("Spieleinstellungen")
-        # Höhe für neue Optionen angepasst
-        self.settings_dlg.geometry("320x800")
+        self.settings_dlg.geometry("320x650")
         self.settings_dlg.resizable(False, True)
         self.settings_dlg.protocol("WM_DELETE_WINDOW", self.goback)
         self.settings_dlg.bind("<Escape>", lambda e: self.goback())
@@ -338,7 +288,6 @@ class GameManager:
         # UI-Elemente erstellen
         self._create_players_frame(self.settings_dlg)
         self._create_game_selection_frame(self.settings_dlg)
-        self._create_general_settings_frame(self.settings_dlg)
         self._create_start_button_frame(self.settings_dlg)
 
         # Initialen Zustand der Optionen setzen (zeigt den Frame für "301" an)

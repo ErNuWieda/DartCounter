@@ -21,6 +21,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 *   **Grafisches Dartboard:** Klickbares Dartboard zur Eingabe der Würfe.
 *   **Individuelle Scoreboards:** Jeder Spieler erhält ein eigenes Fenster zur Anzeige des Spielstands und der Wurfhistorie.
 *   **Visuelle Dart-Anzeige:** Getroffene Felder werden mit einem Dart-Symbol auf dem Board markiert.
+*   **Persistente Spielerstatistiken:** Erfasst die Leistung jedes Spielers über die Zeit und visualisiert den Formverlauf in einem Diagramm.
 ![Startfenster](./assets/screenshot_dc3.png)
 ![Hiscores](./assets/screenshot_dc4.png)
 ![Spiel-Einstellungen](./assets/screenshot_dc2.png)
@@ -137,8 +138,10 @@ Das Projekt befindet sich in aktiver Entwicklung. Hier sind einige geplante Feat
 *   **[X] Ergänzung Scoreboard:** Anzeige möglicher Finishs bei x01-Spielen ab Punktestand 180 
 *   **[X] Verbesserung Undo:** Implementierung der Undo-Funktion für "Finish"-Darts 
 *   **[X] Spielerstatistiken:**
-    *   **[X] Erfassung und Anzeige des 3-Dart-Average für X01-Spiele.**
+    *   **[X] Erfassung und Anzeige des 3-Dart-Average für X01-Spiele und MPR für Cricket.**
     *   **[X] Erweiterung um Checkout-Quoten und höchste Würfe.**
+    *   **[X] Speicherung aller Spieldaten in der Datenbank für Langzeitanalysen.**
+    *   **[X] Visualisierung des Formverlaufs in einem Diagramm mit Filterfunktionen.**
 *   **[X] Highscore-Listen:**
     *   **[X] Implementierung einer Highscore-Liste für X01-Spiele (lokale Datei).**
     *   **[X] Anbindung an eine PostgreSQL-Datenbank zur persistenten Speicherung der Highscores.**

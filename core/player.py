@@ -40,7 +40,6 @@ class Player:
         self.state = {
             'hits': {},
             'life_segment': "",
-            'lifes': game.lifes,
             'can_kill': False,
             'killer_throws': 0,
             'next_target': None,
@@ -86,14 +85,6 @@ class Player:
     @life_segment.setter
     def life_segment(self, value):
         self.state['life_segment'] = value
-
-    @property
-    def lifes(self):
-        return self.state.get('lifes', 0)
-
-    @lifes.setter
-    def lifes(self, value):
-        self.state['lifes'] = value
 
     @property
     def can_kill(self):

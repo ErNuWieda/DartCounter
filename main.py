@@ -34,7 +34,7 @@ def get_asset_path(relative_path):
 class App:
     def __init__(self, root):
         self.root = root
-        self.version = "v1.1"
+        self.version = "v1.2"
         
         # Manager-Instanzen als Instanzvariablen
         self.settings_manager = SettingsManager()

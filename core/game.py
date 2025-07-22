@@ -30,30 +30,6 @@ GAME_LOGIC_MAP = {
     "Shanghai": Shanghai,
 }
 
-def _calculate_scoreboard_height(game):
-    """
-    Berechnet die benötigte Höhe für ein Scoreboard basierend auf dem Spielmodus.
-    """
-    if game.name in ('301', '501', '701'):
-        # Feste Höhe für X01-Spiele, die Statistiken und Finish-Vorschläge enthalten.
-        return 430
-
-    if game.name in ("Killer", "Elimination"):
-        # Kleinere Höhe, da nur Score und Wurfhistorie angezeigt werden.
-        return 240
-
-    if game.targets:
-        # Basishöhe für Score, Wurfhistorie, Button und allgemeine Abstände.
-        base_height = 220 # Leicht reduziert, da der Button-Bereich kleiner ist
-        # Berechnung für ein 2-Spalten-Layout
-        num_rows = (len(game.targets) + 1) // 2
-        # Zusätzliche Höhe für den "Targets"-Rahmen und die Checkbox-Zeilen.
-        targets_height = 25 + num_rows * 32  # 25px für den LabelFrame-Rand/Titel, 32px pro Zeile.
-        return base_height + targets_height
-
-    # Fallback-Höhe, falls kein spezifischer Typ passt.
-    return 380
-
 class Game:
     """
     Die zentrale Steuerungseinheit für eine Dartspiel-Sitzung (Controller).
@@ -73,7 +49,7 @@ class Game:
       Delegation an die zuständigen Methoden oder Logik-Handler.
     - Bereinigung aller Ressourcen nach Spielende.
     """
-    def __init__(self, root, game_options, player_names, sound_manager=None, highscore_manager=None):
+    def __init__(self, root, game_options, player_names, sound_manager=None, highscore_manager=None, player_stats_manager=None):
         """
         Initialisiert eine neue Spielinstanz.
 
@@ -83,10 +59,12 @@ class Game:
             player_names (list): Eine Liste der Namen der teilnehmenden Spieler.
             sound_manager (SoundManager, optional): Instanz zur Soundwiedergabe.
             highscore_manager (HighscoreManager, optional): Instanz zur Verwaltung von Highscores.
+            player_stats_manager (PlayerStatsManager, optional): Instanz zur Verwaltung von Spielerstatistiken.
         """
         self.root = root
         self.sound_manager = sound_manager
         self.highscore_manager = highscore_manager
+        self.player_stats_manager = player_stats_manager
         self.name = game_options['name']
         self.opt_in = game_options['opt_in']
         self.opt_out = game_options['opt_out']
@@ -150,7 +128,7 @@ class Game:
         
         scoreboard_width = 340
         # Die Höhe ist jetzt dynamisch und wird für die Positionierung benötigt.
-        scoreboard_height = _calculate_scoreboard_height(self)
+        scoreboard_height = self.game.get_scoreboard_height()
         gap = 10
 
         # Positionen berechnen (links vom Board, dann rechts vom Board)
@@ -373,6 +351,33 @@ class Game:
             case _:  # Default case for "Miss" or any other unexpected ring type
                 return 0
 
+    def _finalize_and_record_stats(self, winner):
+        """
+        Finalisiert und speichert die Statistiken für alle Spieler am Ende des Spiels.
+        """
+        if not self.player_stats_manager:
+            return
+
+        for p in self.players:
+            stats_data = {
+                'game_mode': self.name,
+                'win': (p == winner)
+            }
+            if self.name in ('301', '501', '701'):
+                stats_data['average'] = p.get_average()
+                stats_data['checkout_percentage'] = p.get_checkout_percentage()
+                stats_data['highest_finish'] = p.stats.get('highest_finish', 0)
+            
+            elif self.name in ('Cricket', 'Cut Throat', 'Tactics'):
+                total_darts_for_mpr = (self.round - 1) * 3 + len(p.throws)
+                if total_darts_for_mpr > 0:
+                    mpr = (p.stats.get('total_marks_scored', 0) / total_darts_for_mpr) * 3
+                else:
+                    mpr = 0.0
+                stats_data['mpr'] = mpr
+
+            self.player_stats_manager.add_game_record(p.name, stats_data)
+
     def throw(self, ring, segment):
         """
         Verarbeitet einen Wurf eines Spielers.
@@ -395,6 +400,8 @@ class Game:
             if self.sound_manager:
                 if msg and "🏆" in msg: # Gewinn-Sound
                     self.sound_manager.play_win()
+                    # Statistiken für alle Spieler am Ende des Spiels speichern
+                    self._finalize_and_record_stats(winner=player)
                 elif ring != "Miss": # Treffer-Sound für alles außer Miss
                     self.sound_manager.play_hit()
             

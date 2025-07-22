@@ -1,0 +1,45 @@
+{
+    "save_format_version": 2,
+    "game_name": "Cricket",
+    "opt_in": "Single",
+    "opt_out": "Single",
+    "opt_atc": "Single",
+    "count_to": 301,
+    "lifes": 3,
+    "rounds": 7,
+    "current_player_index": 0,
+    "round": 3,
+    "players": [
+        {
+            "name": "Sp1",
+            "id": 1,
+            "score": 0,
+            "throws": [],
+            "stats": {
+                "total_darts_thrown": 0,
+                "total_score_thrown": 0,
+                "checkout_opportunities": 0,
+                "checkouts_successful": 0,
+                "highest_finish": 0,
+                "total_marks_scored": 10
+            },
+            "state": {
+                "hits": {
+                    "20": 3,
+                    "19": 0,
+                    "18": 1,
+                    "17": 1,
+                    "16": 0,
+                    "15": 1,
+                    "Bull": 4
+                },
+                "life_segment": "",
+                "lifes": 3,
+                "can_kill": false,
+                "killer_throws": 0,
+                "next_target": null,
+                "has_opened": false
+            }
+        }
+    ]
+}

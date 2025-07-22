@@ -32,24 +32,27 @@ class AtC(GameLogicBase):
 				player.hits[target] = 0
 
 	def _handle_throw_undo(self, player, ring, segment, players):
-		# --- Treffer auf AtC-Ziel verarbeiten ---
-		if player.next_target not in ("Bull", "Bullseye"):
-		    player.hits[str(segment)] = 0
-		else:
-		    player.hits["Bull"] = 0
-		
-		# Nächstes Ziel zurücksetzen
-		all_targets_closed = True
-		for target in player.targets:
-		    hit = player.hits.get(target, 0)
-		    if hit == 0:
-		        all_targets_closed = False
-		        player.next_target = target
-		        break
-		
-		player.sb.update_display(player.hits, player.score) # Update display after successful hit
-		
-		return
+		"""Macht einen Wurf im ATC-Modus rückgängig."""
+		# Da _handle_throw nur gültige Treffer durchlässt, können wir annehmen,
+		# dass der rückgängig gemachte Wurf ein gültiger Treffer war.
+		target_hit = None
+		if ring in ("Bull", "Bullseye"):
+			target_hit = "Bull"
+		elif str(segment) in self.targets:
+			target_hit = str(segment)
+
+		if target_hit:
+			# Treffer zurücksetzen
+			player.hits[target_hit] = 0
+
+			# Nächstes Ziel neu bestimmen, indem wir das erste unvollständige Ziel suchen
+			for target in self.targets:
+				if player.hits.get(target, 0) == 0:
+					player.next_target = target
+					break
+
+		# Anzeige aktualisieren
+		player.sb.update_display(player.hits, player.score)
 
 		
 	def _handle_throw(self, player, ring, segment, players):

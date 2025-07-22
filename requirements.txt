@@ -2,3 +2,4 @@ Pillow
 pygame
 sv_ttk
 psycopg2-binary
+matplotlib

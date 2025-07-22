@@ -35,6 +35,21 @@ class GameLogicBase:
         """
         pass # Standard-Implementierung tut nichts.
 
+    def get_scoreboard_height(self):
+        """
+        Gibt die empfohlene Höhe für das Scoreboard dieses Spielmodus zurück.
+        Die Standardimplementierung berechnet die Höhe basierend auf der Anzahl der Ziele.
+        Kann von Unterklassen für spezielle Fälle (z.B. X01) überschrieben werden.
+        """
+        if self.targets:
+            base_height = 220
+            num_rows = (len(self.targets) + 1) // 2
+            targets_height = 25 + num_rows * 32
+            return base_height + targets_height
+
+        # Fallback-Höhe, falls keine Ziele definiert sind und nichts überschrieben wurde.
+        return 380
+
     def _handle_throw(self, player, ring, segment, players):
         """
         Verarbeitet einen einzelnen Wurf. Muss von Unterklassen implementiert werden.

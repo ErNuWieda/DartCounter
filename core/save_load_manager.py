@@ -74,11 +74,13 @@ class SaveLoadManager:
         Args:
             game (Game): Die zu speichernde Spielinstanz.
             parent (tk.Widget): Das übergeordnete Fenster für Dialoge.
+        Returns:
+            bool: True, wenn das Spiel erfolgreich gespeichert wurde, sonst False.
         """
         game_data = SaveLoadManager._collect_game_data(game)
         if not game_data:
             messagebox.showerror("Fehler", "Keine Spieldaten zum Speichern.", parent=parent)
-            return
+            return False
 
         filepath = filedialog.asksaveasfilename(
             initialdir=os.path.join(os.path.expanduser('~'), 'Documents'),
@@ -88,14 +90,16 @@ class SaveLoadManager:
         )
 
         if not filepath:
-            return  # User cancelled
+            return False  # User cancelled
 
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(game_data, f, indent=4)
             messagebox.showinfo("Erfolg", f"Spiel erfolgreich gespeichert unter:\n{filepath}", parent=parent)
+            return True
         except Exception as e:
             messagebox.showerror("Fehler beim Speichern", f"Das Spiel konnte nicht gespeichert werden.\nFehler: {e}", parent=parent)
+            return False
 
     @staticmethod
     def load_game_data(parent):

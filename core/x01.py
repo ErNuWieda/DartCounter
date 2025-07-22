@@ -45,6 +45,12 @@ class X01(GameLogicBase):
         # das bereits in der Player-Klasse initialisiert wird.
         player.has_opened = False
 
+    def get_scoreboard_height(self):
+        """
+        Gibt die spezifische Höhe für X01-Scoreboards zurück (für Stats und Finish-Vorschläge).
+        """
+        return 430
+
     def _handle_throw_undo(self, player, ring, segment, players):
         """
         Macht den letzten Wurf für einen Spieler rückgängig.
@@ -60,15 +66,15 @@ class X01(GameLogicBase):
             players (list[Player]): Die Liste aller Spieler (in dieser Methode ungenutzt).
         """
         throw_score = self.game.get_score(ring, segment)
-        score_after_throw = player.score - throw_score
+        score_before_throw = player.score + throw_score
 
         # --- Checkout-Statistik rückgängig machen ---
         # Prüfen, ob der rückgängig gemachte Wurf eine Checkout-Möglichkeit war.
-        if player.score == throw_score:
+        if score_before_throw == throw_score:
             if player.stats['checkout_opportunities'] > 0:
                 player.stats['checkout_opportunities'] -= 1
             # Prüfen, ob es ein erfolgreicher Checkout war.
-            if score_after_throw == 0:
+            if player.score == 0:
                 if player.stats['checkouts_successful'] > 0:
                     player.stats['checkouts_successful'] -= 1
                 # Das Zurücksetzen des 'highest_finish' ist komplex und wird hier ausgelassen,

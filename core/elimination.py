@@ -24,17 +24,20 @@ class Elimination(GameLogicBase):
         Setzt den Anfangs-Score für Elimination auf 0.
         """
         player.score = 0
+
+    def get_scoreboard_height(self):
+        """
+        Gibt die spezifische, kleinere Höhe für Elimination-Scoreboards zurück.
+        """
+        return 240
     
     def _handle_throw_undo(self, player, ring, segment, players):
-        score = self.game.get_score(ring, segment)
-        if score > 0:
-            for opp in players:
-                if opp != player and opp.score == 0:
-                    opp.score = player.score
-                    opp.sb.set_score_value(opp.score)
-                    break
-            player.update_score_value(score, subtract=True)
-        
+        """Macht einen Wurf im Elimination-Modus rückgängig."""
+        # Die einzige zuverlässige Aktion, die rückgängig gemacht werden kann,
+        # ist die Addition der Punkte zum eigenen Score. Das Eliminieren eines
+        # Gegners ist ein Nebeneffekt, der nicht einfach rückgängig gemacht werden kann.
+        score_to_undo = self.game.get_score(ring, segment)
+        player.update_score_value(score_to_undo, subtract=True)
 
     def _handle_throw(self, player, ring, segment, players):
         # --- x01 Logik ---

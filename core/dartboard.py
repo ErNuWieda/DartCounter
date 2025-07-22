@@ -1,9 +1,10 @@
 import tkinter as tk 
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import math
 import pathlib
 import os
+from .save_load_manager import SaveLoadManager
 
 
 class DartBoard:
@@ -116,13 +117,48 @@ class DartBoard:
 
     def quit_game(self):
         """
-        Zeigt einen Bestätigungsdialog an und beendet das Spiel, wenn bestätigt.
-        Delegiert die Bereinigung an die `Game`-Instanz.
+        Zeigt einen Dialog mit den Optionen Speichern, Beenden oder Abbrechen.
         """
-        confirm = messagebox.askyesno("Spiel beenden", "Soll das Spiel wirklich beendet werden?", parent=self.root)
-        if confirm:
+        # Erstellt einen benutzerdefinierten Toplevel-Dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Spiel beenden")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        # Dialog zentrieren
+        self.root.update_idletasks()
+        parent_x = self.root.winfo_x()
+        parent_y = self.root.winfo_y()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+        dialog_w, dialog_h = 400, 120
+        dialog.geometry(f"{dialog_w}x{dialog_h}+{parent_x + (parent_w - dialog_w)//2}+{parent_y + (parent_h - dialog_h)//2}")
+
+        def _cleanup_and_quit():
+            dialog.destroy()
             self.spiel.__del__()
-            self.root.destroy()
+            if self.root.winfo_exists():
+                self.root.destroy()
+
+        def save_and_quit():
+            # Die save_game_state Methode gibt jetzt True bei Erfolg zurück.
+            # Als Parent wird der Dialog selbst übergeben, damit Meldungen darüber erscheinen.
+            was_saved = SaveLoadManager.save_game_state(self.spiel, dialog)
+            if was_saved:
+                _cleanup_and_quit()
+
+        def quit_without_saving():
+            _cleanup_and_quit()
+
+        label = ttk.Label(dialog, text="Möchtest du den aktuellen Spielstand speichern, bevor du beendest?", wraplength=360, justify="center")
+        label.pack(pady=15)
+
+        button_frame = ttk.Frame(dialog)
+        ttk.Button(button_frame, text="Speichern & Beenden", command=save_and_quit).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Beenden", command=quit_without_saving).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Abbrechen", command=dialog.destroy).pack(side="left", padx=5)
+        button_frame.pack(pady=10)
 
     # POLARER WINKEL + DISTANZ
     def polar_angle(self, x, y):
@@ -243,11 +279,11 @@ class DartBoard:
         # Buttons erstellen
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(side="bottom", fill="x", pady=5)
-        undo_button = tk.Button(btn_frame, text=" Zurück  ", fg="red", command=self.spiel.undo)
+        undo_button = ttk.Button(btn_frame, text=" Zurück  ", command=self.spiel.undo)
         undo_button.pack(pady=5)
-        done_button = tk.Button(btn_frame, text=" Weiter  ", fg="green", command=self.spiel.next_player)
+        done_button = ttk.Button(btn_frame, text=" Weiter  ", style="Accent.TButton", command=self.spiel.next_player)
         done_button.pack(pady=5)
-        quit_button = tk.Button(btn_frame, text="Beenden", command=self.quit_game)
+        quit_button = ttk.Button(btn_frame, text="Beenden", command=self.quit_game)
         quit_button.pack(pady=5)
         self.canvas.create_window(
             new_size[0], new_size[1],

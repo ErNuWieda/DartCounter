@@ -2,9 +2,10 @@
     "sound_enabled": true,
     "theme": "light",
     "last_player_names": [
-        "Sp1",
-        "Sp2",
+        "airnooweeda",
+        "ErNuWieda",
         "Sp3",
         "Sp4"
-    ]
+    ],
+    "custom_palette_name": "forest_night"
 }

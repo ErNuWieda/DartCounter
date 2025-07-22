@@ -22,15 +22,21 @@ class Killer(GameLogicBase):
 		Der 'lifes' Wert wird bereits im Player-Konstruktor über game.lifes gesetzt,
 		diese Methode dient der Konsistenz des Designs.
 		"""
-		player.lifes = self.game.lifes
+		player.score = self.game.lifes
 
 	def set_players(self, players):
 		"""Setzt die Spielerliste für das Killer-Spiel."""
 		self.players = players
 		
+	def get_scoreboard_height(self):
+		"""
+		Gibt die spezifische, kleinere Höhe für Killer-Scoreboards zurück.
+		"""
+		return 240
+
 	def _get_active_players(self):
 		"""Gibt eine Liste aller Spieler zurück, die noch Leben haben."""
-		return [p for p in self.players if p.lifes > 0]
+		return [p for p in self.players if p.score > 0]
 
 	def _check_and_handle_win_condition(self):
 		"""Prüft auf Gewinnbedingung und gibt ggf. die Gewinnnachricht zurück."""
@@ -48,120 +54,141 @@ class Killer(GameLogicBase):
 		"""
 		Macht den letzten Wurf rückgängig, indem der Spielzustand wiederhergestellt wird.
 		Diese Methode wird aufgerufen, NACHDEM der Wurf bereits aus player.throws entfernt wurde.
+		Sie unterscheidet zwischen dem Rückgängigmachen des "Killer-Werdens" und einer
+		Aktion als Killer.
 		"""
+		# --- Fall 1: Der Wurf hat den Spieler zum KILLER gemacht ---
+		# Dies ist der Fall, wenn der Spieler aktuell ein Killer ist, aber noch keine
+		# Aktion als Killer ausgeführt hat (killer_throws == 0).
+		hit_own_life_segment = (player.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+							   (str(segment) == player.life_segment and ring == "Double")
 
-		# --- Schritt 1: Möglichen Lebensverlust rückgängig machen ---
-		# Wir müssen prüfen, ob der rückgängig gemachte Wurf einem Spieler ein Leben gekostet hat.
-		# Das ist der Fall, wenn der Spieler ein Killer war UND ein gültiges Lebensfeld getroffen hat.
-		
-		# Rekonstruieren, ob der Spieler zum Zeitpunkt des Wurfs ein Killer war.
+		if player.can_kill and player.killer_throws == 0 and hit_own_life_segment:
+			player.can_kill = False
+			messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.", parent=self.game.db.root)
+			player.sb.update_score(player.score)
+			return # Aufgabe für diesen Fall erledigt.
 
-		if player.can_kill:
-			# Finde das potenzielle Opfer
+		# --- Fall 2: Der Wurf war eine Aktion ALS KILLER ---
+		# Dies ist der Fall, wenn der Spieler ein Killer ist und bereits geworfen hat.
+		if player.can_kill and player.killer_throws > 0:
+			# Zuerst immer den Zähler für Killer-Würfe reduzieren.
+			player.killer_throws -= 1
+
+			# Prüfen, ob dieser Wurf ein Lebensfeld getroffen und ein Leben gekostet hat.
 			victim = None
-			is_killer_making_throw = False
 			for p in self.players:
-				life_segment_hit = (p.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+				is_victim_life_segment_hit = (p.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
 											 (str(segment) == p.life_segment and ring == "Double")
-				if life_segment_hit:
-					if p == player: 
-						if player.killer_throws > 0:
-							player.killer_throws -= 1
-						else:
-							is_killer_making_throw = True
-							player.can_kill = False
-							messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.", parent=self.game.db.root)
+				if is_victim_life_segment_hit:
 					victim = p
 					break
-
-			if victim and not is_killer_making_throw:
-				if victim.lifes < 3:
-					victim.lifes += 1
-					victim.sb.update_score(victim.lifes)
+			
+			if victim:
+				# Ein Leben wurde genommen, also wird es wiederhergestellt.
+				# self.game.lifes wird anstelle eines festen Werts verwendet.
+				if victim.score < self.game.lifes:
+					victim.score += 1
+					victim.sb.update_score(victim.score)
 					messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.", parent=self.game.db.root)
-		# --- Scoreboard des aktuellen Spielers aktualisieren ---
-		player.sb.update_score(player.lifes)
 
-	def _handle_throw(self, player, ring, segment, players):
-		player.throws.append((ring, segment))
+		# --- Letzter Schritt: Scoreboard des aktuellen Spielers aktualisieren ---
+		# Dies ist in allen Fällen notwendig, um Änderungen widerzuspiegeln (z.B. wenn er sich selbst ein Leben genommen hat).
+		player.sb.update_score(player.score)
+
+	def _handle_life_segment_phase(self, player, ring, segment):
+		"""Behandelt die Phase, in der ein Spieler sein Lebensfeld bestimmen muss."""
+		determined_segment_for_life = ""
+		if ring in ("Bull", "Bullseye"):
+			determined_segment_for_life = "Bull"
+		elif isinstance(segment, int) and 1 <= segment <= 20:
+			determined_segment_for_life = str(segment)
+		else:
+			msg = "Kein gültiges Segment für ein Lebensfeld getroffen."
+			messagebox.showwarning("Fehler", msg + f"\nNoch {3 - len(player.throws)} Darts.", parent=self.game.db.root)
+			player.sb.update_score(player.score)
+			return None
+
+		# Prüfen, ob dieses Segment bereits von einem anderen aktiven Spieler belegt ist
+		is_taken = False
+		for p_other in self.players:
+			if p_other != player and p_other.life_segment == determined_segment_for_life:
+				is_taken = True
+				occupier = p_other.name
+				break
+		
+		if is_taken:
+			msg = f"Das Segment '{determined_segment_for_life}' ist bereits an {occupier} vergeben."
+			messagebox.showwarning("Segment vergeben", msg + f"\nNoch {3 - len(player.throws)} Darts.", parent=self.game.db.root)
+			player.sb.update_score(player.score)
+			return None
+		
+		player.life_segment = determined_segment_for_life
+		determined_display = "Bull" if player.life_segment == "Bull" else f"Double {player.life_segment}"
+		messagebox.showinfo("Lebensfeld festgelegt!", f"{player.name} hat Lebensfeld: {determined_display}", parent=self.game.db.root)
+		player.sb.update_score(player.score)
+		player.reset_turn() # Zug endet, nachdem das Lebensfeld erfolgreich gesetzt wurde
+		self.game.next_player()
+		return None # Explizit None zurückgeben, da next_player schon aufgerufen wurde
+
+	def _handle_become_killer_phase(self, player, ring, segment):
+		"""Behandelt die Phase, in der ein Spieler versucht, Killer zu werden."""
+		hit_own_life_segment = (player.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+							   (str(segment) == player.life_segment and ring == "Double")
+
+		if hit_own_life_segment:
+			player.can_kill = True
+			messagebox.showinfo("Killer Status!", f"{player.name} ist jetzt ein KILLER!", parent=self.game.db.root)
+		else:
+			life_segment_display = "Bull" if player.life_segment == "Bull" else f"Double {player.life_segment}"
+			messagebox.showinfo("Daneben", f"{player.name} muss das eigene Lebensfeld ({life_segment_display}) treffen, um Killer zu werden.", parent=self.game.db.root)
+		
+		player.sb.update_score(player.lifes)
+		return None
+
+	def _handle_killer_phase(self, player, ring, segment, players):
+		"""Behandelt die Phase, in der ein Spieler als Killer agiert."""
+		player.killer_throws += 1
+		victim = None
 		win_msg = None
 
-		# --- Phase 1: Spieler braucht ein Lebensfeld ---
+		# Finde ein potenzielles Opfer
+		for opp in self._get_active_players():
+			# Ein Treffer zählt, wenn es das Lebensfeld des Gegners ist UND der richtige Ring getroffen wurde (Double oder Bull/Bullseye)
+			is_opp_life_segment_hit = (opp.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
+									  (str(segment) == opp.life_segment and ring == "Double")
+			if is_opp_life_segment_hit:
+				victim = opp
+				break
+
+		if victim:
+			victim.lifes -= 1
+			victim.sb.update_score(victim.lifes)
+			
+			title = "Leben genommen!"
+			opp_name = victim.name
+			if victim == player:
+				title = "Eigentor"
+				opp_name = "sich selbst"
+
+			if victim.lifes > 0:
+				messagebox.showinfo(title, f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.lifes} Leben.", parent=self.game.db.root)
+			else:
+				messagebox.showinfo("Eliminiert!", f"{player.name} hat {opp_name} eliminiert!", parent=self.game.db.root)
+				win_msg = self._check_and_handle_win_condition()
+
+		player.sb.update_score(player.lifes)
+		return win_msg
+
+	def _handle_throw(self, player, ring, segment, players):
+		"""
+		Verarbeitet einen Wurf, indem er an die Methode für die aktuelle Spielphase delegiert.
+		"""
+		player.throws.append((ring, segment))
+
 		if not player.life_segment:
-			determined_segment_for_life = ""
-			# segment ist der numerische Wert (1-20, 25 für Bull, 50 für Bullseye)
-			if ring in ("Bull", "Bullseye"):
-				determined_segment_for_life = "Bull"
-			elif isinstance(segment, int) and 1 <= segment <= 20:
-				determined_segment_for_life = str(segment)
-			else:
-				msg = "Kein Segment für Lebensfeld"
-				messagebox.showwarning("Fehler", msg + f"\nNoch {3 - len(player.throws)} Darts.", parent=self.game.db.root)
-				player.sb.update_score(player.lifes)
-				return None
-
-			# Prüfen, ob dieses Segment bereits von einem anderen aktiven Spieler belegt ist
-			is_taken = False
-			for p_other in self.players:
-				if p_other != player and p_other.life_segment == determined_segment_for_life:
-					is_taken = True
-					occupier = p_other.name
-					break
-			
-			if is_taken:
-				msg = f"Das Segment '{determined_segment_for_life}' ist bereits an {occupier} vergeben."
-				messagebox.showwarning("Segment vergeben", msg + f"\nNoch {3 - len(player.throws)} Darts.", parent=self.game.db.root)
-				player.sb.update_score(player.lifes)
-				return None
-			
-			player.life_segment = determined_segment_for_life
-			determined = "Bullseye" if ring in ("Bull", "Bullseye") else f"Double {player.life_segment}"
-			messagebox.showinfo("Lebensfeld festgelegt!", f"{player.name} hat Lebensfeld: {determined}", parent=self.game.db.root)
-			player.sb.update_score(player.lifes) # Scoreboard mit neuem Lebensfeld aktualisieren
-			player.reset_turn() # Zug endet, nachdem das Lebensfeld erfolgreich gesetzt wurde
-			self.game.next_player()
-			return
-
-		# --- Phase 2: Spieler ist noch kein Killer ---
+			return self._handle_life_segment_phase(player, ring, segment)
 		elif not player.can_kill:
-			# ... (Logik aus vorheriger Antwort kann hier eingefügt werden) ...
-			# Beispielhafte Kurzform:
-			hit_own_life_segment = (player.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or \
-			                       (str(segment) == player.life_segment and ring == "Double")
-
-			if hit_own_life_segment:
-				player.can_kill = True
-				messagebox.showinfo("Killer Status!", f"{player.name} ist jetzt ein KILLER!", parent=self.game.db.root)
-			else:
-				messagebox.showinfo("Daneben", f"{player.name} muss das eigene Lebensfeld treffen um Killer zu werden.", parent=self.game.db.root)
-			player.sb.update_score(player.lifes)
-
-		# --- Phase 3: Spieler ist ein Killer ---
+			return self._handle_become_killer_phase(player, ring, segment)
 		else:
-			player.killer_throws += 1
-			victim = None
-			for opp in self._get_active_players():
-				is_opp_life_segment_hit = (opp.life_segment == "Bull" and ring in ("Bull", "Bullseye")) or (str(segment) == opp.life_segment and opp.life_segment != "Bull")
-				if is_opp_life_segment_hit and ring in ("Bull", "Bullseye", "Double"):
-					victim = opp
-					break
-
-			if victim:
-				victim.lifes -= 1
-				victim.sb.update_score(victim.lifes)
-				if victim == player:
-					title = "Eigentor"
-					opp_name = "sich selbst"
-				else:
-					title = "Leben genommen!"
-					opp_name = victim.name
-
-				if victim.lifes > 0:
-					messagebox.showinfo(title, f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.lifes} Leben.", parent=self.game.db.root)
-				else:
-					messagebox.showinfo("Eliminiert!", f"{player.name} hat {opp_name} eliminiert!", parent=self.game.db.root)
-					win_msg = self._check_and_handle_win_condition()
-
-			player.sb.update_score(player.lifes)
-
-		return None
+			return self._handle_killer_phase(player, ring, segment, players)

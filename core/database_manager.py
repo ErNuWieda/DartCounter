@@ -57,6 +57,7 @@ class DatabaseManager:
             )
             self.is_connected = True
             self._create_table()
+            self._create_game_records_table()
             self._migrate_schema()
         except (configparser.NoSectionError, KeyError, psycopg2.Error) as error:
             print(f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}")
@@ -115,6 +116,28 @@ class DatabaseManager:
         except (Exception, psycopg2.Error) as error:
             print(f"Fehler beim Erstellen der Tabelle: {error}")
 
+    def _create_game_records_table(self):
+        """Erstellt die 'game_records'-Tabelle in der Datenbank, falls sie nicht existiert."""
+        if not self.is_connected: return
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS game_records (
+                        id SERIAL PRIMARY KEY,
+                        player_name VARCHAR(100) NOT NULL,
+                        game_mode VARCHAR(50) NOT NULL,
+                        game_date TIMESTAMP NOT NULL,
+                        is_win BOOLEAN NOT NULL,
+                        average FLOAT,
+                        mpr FLOAT,
+                        checkout_percentage FLOAT,
+                        highest_finish INT
+                    );
+                """)
+                self.conn.commit()
+        except (Exception, psycopg2.Error) as error:
+            print(f"Fehler beim Erstellen der game_records Tabelle: {error}")
+
     def get_scores(self, game_mode):
         """
         Ruft die Top 10 Highscores für einen bestimmten Spielmodus ab.
@@ -157,6 +180,55 @@ class DatabaseManager:
                 self.conn.commit()
         except (Exception, psycopg2.Error) as error:
             print(f"Fehler beim Hinzufügen des Highscores: {error}")
+
+    def add_game_record(self, player_name, game_stats):
+        """Fügt einen neuen Spiel-Datensatz in die Datenbank ein."""
+        if not self.is_connected: return
+        try:
+            with self.conn.cursor() as cur:
+                query = """
+                    INSERT INTO game_records (
+                        player_name, game_mode, game_date, is_win,
+                        average, mpr, checkout_percentage, highest_finish
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                """
+                values = (
+                    player_name,
+                    game_stats['game_mode'],
+                    game_stats['date'],
+                    game_stats['win'],
+                    game_stats.get('average'),
+                    game_stats.get('mpr'),
+                    game_stats.get('checkout_percentage'),
+                    game_stats.get('highest_finish')
+                )
+                cur.execute(query, values)
+                self.conn.commit()
+        except (Exception, psycopg2.Error) as error:
+            print(f"Fehler beim Hinzufügen des Spiel-Datensatzes: {error}")
+
+    def get_all_player_names_from_records(self):
+        """Gibt eine Liste einzigartiger Spielernamen aus der game_records Tabelle zurück."""
+        if not self.is_connected: return []
+        try:
+            with self.conn.cursor(cursor_factory=DictCursor) as cur:
+                cur.execute("SELECT DISTINCT player_name FROM game_records ORDER BY player_name;")
+                return [row['player_name'] for row in cur.fetchall()]
+        except (Exception, psycopg2.Error) as error:
+            print(f"Fehler beim Abrufen der Spielernamen: {error}")
+            return []
+
+    def get_records_for_player(self, player_name):
+        """Ruft alle Spiel-Datensätze für einen bestimmten Spieler ab."""
+        if not self.is_connected: return []
+        try:
+            with self.conn.cursor(cursor_factory=DictCursor) as cur:
+                query = "SELECT * FROM game_records WHERE player_name = %s ORDER BY game_date DESC;"
+                cur.execute(query, (player_name,))
+                return [dict(row) for row in cur.fetchall()]
+        except (Exception, psycopg2.Error) as error:
+            print(f"Fehler beim Abrufen der Spiel-Datensätze: {error}")
+            return []
 
     def reset_scores(self, game_mode=None):
         """

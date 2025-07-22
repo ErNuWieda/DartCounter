@@ -37,25 +37,24 @@ class Shanghai(GameLogicBase):
 		return self.targets
 
 	def _handle_throw_undo(self, player, ring, segment, players):
-		# 1. Punkte des Wurfs ermitteln.
-		score = self.game.get_score(ring, segment)
+		"""Macht einen Wurf im Shanghai-Modus rückgängig."""
+		points_for_this_throw = 0
+		valid_target = False
 
 		if str(segment) == str(self.game.round): # Hit the correct number segment
 			valid_target = True
-			player.hits[str(self.game.round)] -= 1
-			if ring == "Single":
-				points_for_this_throw = int(segment) # segment is str from dartboard sometimes
-			elif ring == "Double":
-				points_for_this_throw = int(segment) * 2
-			elif ring == "Triple":
-				points_for_this_throw = int(segment) * 3
-		
-        # Punkte und Anzeige aktualisieren
+			# Nur Treffer reduzieren, wenn vorher einer da war
+			if player.hits.get(str(self.game.round), 0) > 0:
+				player.hits[str(self.game.round)] -= 1
+
+			# Punkte des Wurfs ermitteln, um sie abzuziehen
+			points_for_this_throw = self.game.get_score(ring, segment)
+
 		if valid_target:
 			player.update_score_value(points_for_this_throw, subtract=True)
 
-		if len(player.throws) == 2:
-			player.next_target = self.game.round
+		# Das nächste Ziel ist immer die aktuelle Runde
+		player.next_target = self.game.round
 
 		# 3. Anzeige aktualisieren, um alle Änderungen zu reflektieren.
 		player.sb.update_display(player.hits, player.score)

@@ -7,7 +7,8 @@ from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
 from . import scoreboard
-from .scoreboard import ScoreBoard 
+from .scoreboard import ScoreBoard
+from .game_logic_base import GameLogicBase
 
 # Cricket, Cut Throat 
 CRICKET_TARGET_VALUES = {"20": 20, "19": 19, "18": 18, "17": 17, "16": 16, "15": 15, "Bull": 25}
@@ -19,7 +20,7 @@ TACTICS_TARGET_VALUES = {"20": 20, "19": 19, "18": 18, "17": 17, "16": 16, "15":
 
 TACTICS_SEGMENTS_AS_STR = [str(s) for s in range(10, 21)] # "10" bis "20"
 
-class Cricket:
+class Cricket(GameLogicBase):
     """
     Behandelt die spezifische Spiellogik für Cricket und seine Varianten.
 
@@ -35,7 +36,7 @@ class Cricket:
     - Die Berechnung der "Marks Per Round" (MPR) für die Highscore-Liste.
     """
     def __init__(self, game):
-        self.game = game
+        super().__init__(game)
         self.name = game.name
         self.CRICKET_TARGET_VALUES = CRICKET_TARGET_VALUES
         self.CRICKET_SEGMENTS_AS_STR = CRICKET_SEGMENTS_AS_STR
@@ -77,39 +78,41 @@ class Cricket:
                                    Cut Throat.
         """
         target_hit, marks_scored = self._get_target_and_marks(ring, segment)
-        # --- Treffer auf Cricket-Ziel verarbeiten ---
-        current_marks_on_target = player.hits.get(target_hit, 0)
-        points_for_this_throw = 0
-        for _ in range(marks_scored):
-            if player.hits[target_hit] > 0:
-                player.hits[target_hit] -= 1
-            can_score_points = False
-            if current_marks_on_target >= 3: # Ziel ist bereits vom Spieler geschlossen
-                # Prüfen, ob das Ziel für Punktgewinn offen ist (nicht alle Gegner haben es geschlossen)
-                can_score_points = False
-                for opp in players:
-                    if opp != player and opp.hits.get(target_hit, 0) < 3:
-                        can_score_points = True
-                        break
-                if can_score_points:
-                    points_for_this_throw += self.CRICKET_TARGET_VALUES[target_hit]
+        if not target_hit:
+            return # Wurf war kein relevantes Ziel
 
-        if points_for_this_throw > 0:
-            if self.name in ("Cricket", "Tactics"):
-                if can_score_points: # and player.score >= points_for_this_throw:
-                    if player.score < points_for_this_throw:
-                        points_for_this_throw = player.score
-                    player.update_score_value(points_for_this_throw, subtract=True)
-            else:
-                for opp in players:
-                    if opp != player and opp.hits.get(target_hit, 0) < 3:
-                        if opp.score > 0:
-                            opp.score -= points_for_this_throw
-                            opp.sb.set_score_value(opp.score)
-                        break
- 
-        player.sb.update_display(player.hits, player.score) # Scoreboard aktualisieren (für Wurfanzeige)
+        # 1. Statistik korrigieren
+        if player.stats['total_marks_scored'] >= marks_scored:
+            player.stats['total_marks_scored'] -= marks_scored
 
+        # 2. Zustand VOR dem Wurf ermitteln
+        marks_before_throw = player.hits.get(target_hit, 0)
+        
+        # 3. Treffer rückgängig machen
+        player.hits[target_hit] = max(0, marks_before_throw - marks_scored)
+        marks_after_undo = player.hits[target_hit]
+
+        # 4. Punkte rückgängig machen, falls welche erzielt wurden
+        # Punkte wurden nur erzielt, wenn das Ziel schon vorher geschlossen war (>=3 Treffer)
+        # und bei mindestens einem Gegner noch offen war.
+        points_to_undo = 0
+        # Wie viele der rückgängig gemachten Marks haben Punkte erzielt?
+        scoring_marks_to_undo = max(0, marks_before_throw - max(3, marks_after_undo))
+
+        if scoring_marks_to_undo > 0:
+            is_target_open_for_scoring = any(opp != player and opp.hits.get(target_hit, 0) < 3 for opp in players)
+            if is_target_open_for_scoring:
+                points_to_undo = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks_to_undo
+
+                if self.name in ("Cricket", "Tactics"):
+                    player.update_score_value(points_to_undo, subtract=True)
+                else: # Cut Throat
+                    for opp in players:
+                        if opp != player and opp.hits.get(target_hit, 0) < 3:
+                            opp.update_score_value(points_to_undo, subtract=True)
+
+        # 5. Anzeige aktualisieren
+        player.sb.update_display(player.hits, player.score)
 
     def _get_target_and_marks (self, ring, segment):
         """
