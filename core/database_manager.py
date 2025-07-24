@@ -230,6 +230,27 @@ class DatabaseManager:
             print(f"Fehler beim Abrufen der Spiel-Datensätze: {error}")
             return []
 
+    def reset_game_records(self, player_name=None):
+        """
+        Setzt Spiel-Datensätze zurück. Entweder für einen spezifischen Spieler oder alle.
+
+        Args:
+            player_name (str, optional): Der Spieler, dessen Datensätze
+                                         zurückgesetzt werden sollen. Wenn `None`,
+                                         werden alle Datensätze aus der Tabelle
+                                         gelöscht.
+        """
+        if not self.is_connected: return
+        try:
+            with self.conn.cursor() as cur:
+                if player_name:
+                    cur.execute("DELETE FROM game_records WHERE player_name = %s;", (player_name,))
+                else:
+                    cur.execute("DELETE FROM game_records;")
+                self.conn.commit()
+        except (Exception, psycopg2.Error) as error:
+            print(f"Fehler beim Zurücksetzen der Spiel-Datensätze: {error}")
+
     def reset_scores(self, game_mode=None):
         """
         Setzt Highscores zurück. Entweder für einen spezifischen Modus oder alle.

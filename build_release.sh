@@ -3,7 +3,7 @@
 # Stellt sicher, dass das Skript bei einem Fehler abbricht
 set -e
 
-VERSION="1.1"
+VERSION="1.2.0"
 APP_NAME="DartCounter"
 RELEASE_DIR="${APP_NAME}_Linux_v${VERSION}"
 

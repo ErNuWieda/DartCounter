@@ -71,28 +71,22 @@ class AtC(GameLogicBase):
 		"""
 		player.throws.append((ring, segment)) # Append throw at the beginning
 
-        # Determine if the throw is valid for the current target
+		# Determine if the throw is valid for the current target
 		is_valid_hit = False
-		current_target_is_bull_type = player.next_target in ("Bull", "Bullseye")
+		current_target_is_bull_type = player.next_target == "Bull"
 
 		if current_target_is_bull_type:
-			if player.next_target == "Bull" and ring == "Bull": # Single Bull for "Bull" target
-				is_valid_hit = True
-			elif player.next_target == "Bullseye" and ring == "Bullseye": # Bullseye for "Bullseye" target
-				is_valid_hit = True
-            # If opt_atc is "Single", Bullseye counts as Bull if target is Bull
-			elif self.opt_atc == "Single" and player.next_target == "Bull" and ring == "Bullseye":
-				ring = "Bull" # Treat as Bull hit for logic below, actual ring was Bullseye
+			if ring in ("Bull", "Bullseye"):
 				is_valid_hit = True
 		else: # Target is a number segment
 			if str(segment) == player.next_target: # Correct number segment
-				if self.opt_atc == "Single" and ring == "Single":
+				if self.opt_atc == "Single": # Any hit on the correct number is valid
 					is_valid_hit = True
 				elif self.opt_atc == "Double" and ring == "Double":
 					is_valid_hit = True
 				elif self.opt_atc == "Triple" and ring == "Triple":
 					is_valid_hit = True
-        
+
 		if not is_valid_hit:
 			player.sb.update_score(player.score) # Update display for throw history
             
@@ -110,31 +104,23 @@ class AtC(GameLogicBase):
 			return None # End processing for this throw
 
 		# --- Treffer auf AtC-Ziel verarbeiten ---
-		if player.next_target not in ("Bull", "Bullseye"):
-		    player.hits[str(segment)] = 1
-		else:
-		    player.hits["Bull"] = 1
+		player.hits[player.next_target] = 1
 		
 		# Nächstes Ziel bestimmen oder Gewinnbedingung prüfen
 		all_targets_closed = True
-		for target in player.targets:
+		for target in self.targets:
 		    hit = player.hits.get(target, 0)
 		    if hit == 0:
 		        all_targets_closed = False
 		        player.next_target = target
 		        break
-		
-		# Logic for advancing from Bull to Bullseye if not single
-		if player.next_target == "Bull" and self.opt_atc != "Single" and player.hits.get("Bull", 0) == 1 and not all_targets_closed :
-			if "Bullseye" in player.targets: # Ensure Bullseye is a target
-				player.next_target = "Bullseye"
 
 		player.sb.update_display(player.hits, player.score) # Update display after successful hit
 
 		# --- Gewinnbedingung prüfen ---
 		if all_targets_closed:
 		    self.game.end = True
-		    total_darts = (self.game.round - 1) * 3 + len(player.throws)
+		    total_darts = player.get_total_darts_in_game()
 		    return f"🏆 {player.name} gewinnt {self.game.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
 		# --- Weiter / Nächster Spieler ---

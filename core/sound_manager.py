@@ -77,6 +77,7 @@ class SoundManager:
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
         self.hit_sound = self._load_sound(assets_dir / "hit.wav")
         self.win_sound = self._load_sound(assets_dir / "win.wav")
+        self.draw_sound = self._load_sound(assets_dir / "draw.wav")
 
         # After trying to load all sounds, show a single warning if any failed.
         if self.loading_errors:
@@ -137,3 +138,7 @@ class SoundManager:
     def play_win(self):
         """Spielt den Sound für einen Spielgewinn ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.win_sound: self.win_sound.play()
+
+    def play_draw(self):
+        """Spielt den Sound für ein Unentschieden ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.draw_sound: self.draw_sound.play()

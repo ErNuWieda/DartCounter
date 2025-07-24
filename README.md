@@ -15,6 +15,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     *   **Micky Maus:** Treffen der Zahlen 20 bis 12 und Bullseye.
     *   **Killer:** Jeder Spieler erhält ein Lebensfeld; Ziel ist es, "Killer" zu werden und andere Spieler zu eliminieren.
     *   **Elimination:** Jeder Spieler spielt von 0 zu einem Zielscore (301, 501), trifft man exakt den Punktestand eines Gegners, wird dieser zurückgesetzt.
+    *   **Speichern & Laden:** Laufende Spiele können gespeichert und später fortgesetzt werden.
 
     *   **Shanghai:** Jeder Spieler versucht mit genau drei Darts die Zahlen 1 bis 7 (oder bis 20 bzw. Anzahl vereinbarter Runden) der Reihe nach zu treffen – idealerweise mit einem Single, Double und Triple derselben Zahl in einer Runde, was sofort zum Sieg führt (ein sogenannter "Shanghai")    
 *   **Spielerverwaltung:** Unterstützung für bis zu 4 Spieler mit individuellen Namen.
@@ -37,9 +38,13 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 *   **Tkinter:** Ist in den meisten Standard-Python-Installationen für Windows und macOS enthalten. Unter Linux muss es eventuell manuell installiert werden (z.B. `sudo apt install python3-tk` auf Debian/Ubuntu).
 *   **PostgreSQL-Server:** (Optional) Wird nur benötigt, wenn Sie die Highscore-Funktion nutzen möchten.
 
-## Installation & Einrichtung (Schritt-für-Schritt)
+## Installation & Nutzung
 
-### Schritt 1: Projekt herunterladen
+### Option A: Für Entwickler (Installation aus dem Quellcode)
+
+Folgen Sie diesen Schritten, wenn Sie den Code selbst ausführen oder weiterentwickeln möchten.
+
+#### Schritt 1: Projekt herunterladen
 Öffnen Sie ein Terminal (oder die Kommandozeile/PowerShell unter Windows) und klonen Sie das Repository mit Git an einen Ort Ihrer Wahl.
 
 ```bash

@@ -15,7 +15,7 @@ from core.save_load_manager import SaveLoadManager
 from core.sound_manager import SoundManager
 from core.player_stats_manager import PlayerStatsManager
 from core.highscore_manager import HighscoreManager
-from core.settings_manager import SettingsManager
+from core.settings_dialog import AppSettingsDialog
 
 def get_asset_path(relative_path):
     """
@@ -32,9 +32,18 @@ def get_asset_path(relative_path):
     return base_path / pathlib.Path(relative_path)
 
 class App:
+    """
+    Die Hauptanwendungsklasse, die als zentraler Orchestrator fungiert.
+
+    Verantwortlichkeiten:
+    - Initialisierung des Hauptfensters und der Menüs.
+    - Verwaltung des Lebenszyklus der Anwendung.
+    - Instanziierung und Koordination der verschiedenen Manager (Settings, Sound, etc.).
+    - Starten, Laden und Beenden von Spielsitzungen (`Game`-Instanzen).
+    """
     def __init__(self, root):
         self.root = root
-        self.version = "v1.2"
+        self.version = "v1.2.0"
         
         # Manager-Instanzen als Instanzvariablen
         self.settings_manager = SettingsManager()
@@ -113,42 +122,56 @@ class App:
         if self.game_instance and not self.game_instance.end:
             if not messagebox.askyesno(title, message, parent=self.root):
                 return False  # User cancelled
-            self.game_instance.__del__()
+            self.game_instance.destroy() # Explizit die Ressourcen des Spiels freigeben
             self.game_instance = None
         return True  # OK to proceed
 
     def _initialize_game_session(self, game_options, player_names):
-        """Erstellt die Game- und Dartboard-Instanzen und richtet sie ein."""
-        spiel_instanz = Game(self.root, game_options, player_names, self.sound_manager, self.highscore_manager, self.player_stats_manager)
-        db_instanz = DartBoard(spiel_instanz)
-        spiel_instanz.db = db_instanz
-        spiel_instanz.setup_scoreboards()
-        return spiel_instanz
+        """Erstellt die Game-Instanz, die ihre eigene UI initialisiert."""
+        return Game(self.root, game_options, player_names, self.sound_manager, self.highscore_manager, self.player_stats_manager)
+
+    def _create_game_options(self, source):
+        """Erstellt ein standardisiertes game_options-Dictionary aus verschiedenen Quellen."""
+        # Wir verwenden Duck-Typing (hasattr), da isinstance in Tests mit
+        # gemockten Klassen fehlschlägt. Dies ist robuster.
+        if hasattr(source, 'configure_game'):
+            return {
+                "name": source.game,
+                "opt_in": source.opt_in,
+                "opt_out": source.opt_out,
+                "opt_atc": source.opt_atc,
+                "count_to": source.count_to,
+                "lifes": source.lifes,
+                "rounds": source.shanghai_rounds
+            }
+        # Annahme: source ist ein Dictionary aus einer Speicherdatei
+        return {
+            "name": source['game_name'],
+            "opt_in": source['opt_in'],
+            "opt_out": source['opt_out'],
+            "opt_atc": source['opt_atc'],
+            "count_to": str(source['count_to']),
+            "lifes": str(source['lifes']),
+            "rounds": str(source['rounds'])
+        }
 
     def new_game(self):
+        """Startet den Workflow zum Erstellen eines neuen Spiels."""
         if not self._check_and_close_existing_game("Neues Spiel", "Ein Spiel läuft bereits. Möchtest du es beenden und ein neues starten?"):
             return
 
         self.root.withdraw()
-        gm = GameManager(self.root, self.sound_manager, self.settings_manager)
-        self.root.wait_window(gm.settings_dlg)
+        gm = GameManager(self.sound_manager, self.settings_manager)
 
-        if gm.was_started:
-            game_options = {
-                "name": gm.game,
-                "opt_in": gm.opt_in,
-                "opt_out": gm.opt_out,
-                "opt_atc": gm.opt_atc,
-                "count_to": gm.count_to,
-                "lifes": gm.lifes,
-                "rounds": gm.shanghai_rounds
-            }
+        if gm.configure_game(self.root):
+            game_options = self._create_game_options(gm)
             self.game_instance = self._initialize_game_session(game_options, gm.players)
             self.game_instance.announce_current_player_turn()
         else:
             self.root.deiconify()
 
     def load_game(self):
+        """Startet den Workflow zum Laden eines gespeicherten Spiels."""
         if not self._check_and_close_existing_game("Spiel laden", "Ein Spiel läuft bereits. Möchtest du es beenden und ein anderes laden?"):
             return
 
@@ -157,15 +180,7 @@ class App:
             return
 
         self.root.withdraw()
-        game_options = {
-            "name": data['game_name'],
-            "opt_in": data['opt_in'],
-            "opt_out": data['opt_out'],
-            "opt_atc": data['opt_atc'],
-            "count_to": str(data['count_to']),
-            "lifes": str(data['lifes']),
-            "rounds": str(data['rounds'])
-        }
+        game_options = self._create_game_options(data)
         player_names = [p['name'] for p in data['players']]
 
         loaded_game = self._initialize_game_session(game_options, player_names)
@@ -175,44 +190,11 @@ class App:
 
     def open_settings_dialog(self):
         """Öffnet einen Dialog für globale Anwendungseinstellungen."""
-        settings_dlg = tk.Toplevel(self.root)
-        settings_dlg.title("Globale Einstellungen")
-        settings_dlg.geometry("320x180")
-        settings_dlg.resizable(False, False)
-        settings_dlg.transient(self.root)
-        settings_dlg.grab_set()
-
-        # --- Sound-Einstellungen ---
-        sound_enabled_var = tk.BooleanVar(value=self.sound_manager.sounds_enabled)
-        sound_check = ttk.Checkbutton(
-            settings_dlg,
-            text="Soundeffekte aktivieren",
-            variable=sound_enabled_var,
-            command=lambda: self.sound_manager.toggle_sounds(sound_enabled_var.get())
-        )
-        sound_check.pack(pady=10, padx=20, anchor="w")
-
-        # --- Theme-Einstellungen ---
-        theme_frame = ttk.LabelFrame(settings_dlg, text="Design")
-        theme_frame.pack(fill="x", padx=15, pady=10)
-
-        ttk.Label(theme_frame, text="Basis-Theme:").pack(pady=5, padx=10, anchor="w")
-        
-        theme_select = ttk.Combobox(theme_frame, values=["Light", "Dark"], state="readonly")
-        theme_select.pack(pady=5, padx=10, anchor="w", fill='x')
-        current_theme = self.settings_manager.get('theme', 'light')
-        theme_select.set(current_theme.capitalize())
-
-        def _set_theme_and_save(event):
-            selected_theme = theme_select.get().lower()
-            self.settings_manager.set('theme', selected_theme)
-            sv_ttk.set_theme(selected_theme)
-
-        theme_select.bind("<<ComboboxSelected>>", _set_theme_and_save)
-
-        ttk.Button(settings_dlg, text="Schließen", command=settings_dlg.destroy).pack(pady=15)
+        dialog = AppSettingsDialog(self.root, self.settings_manager, self.sound_manager)
+        self.root.wait_window(dialog)
 
     def save_game(self):
+        """Speichert den Zustand des aktuell laufenden Spiels."""
         # Spiel kann nur gespeichert werden, wenn eine Instanz existiert, das Spiel nicht beendet ist UND das Dartboard-Fenster (db) noch existiert.
         if self.game_instance and not self.game_instance.end and self.game_instance.db:
             SaveLoadManager.save_game_state(self.game_instance, self.root)
@@ -220,6 +202,7 @@ class App:
             messagebox.showinfo("Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=self.root)
 
     def show_highscores(self):
+        """Öffnet das Fenster zur Anzeige der Highscores."""
         if self.highscore_manager:
             self.highscore_manager.show_highscores_window(self.root)
 
@@ -228,15 +211,17 @@ class App:
         self.player_stats_manager.show_stats_window(self.root)
 
     def quit_game(self):
+        """Beendet die Anwendung nach einer Bestätigungsabfrage."""
         confirm = messagebox.askyesno("Programm beenden", "Dartcounter wirklich beenden?", parent=self.root)
         if confirm:
             if self.settings_manager:
                 self.settings_manager.save_settings()
             if self.game_instance:
-                self.game_instance.__del__()
+                self.game_instance.destroy() # Explizit die Ressourcen des Spiels freigeben
             self.root.quit()
 
     def about(self):
+        """Zeigt ein "Über"-Dialogfenster mit Informationen zur Anwendung an."""
         messagebox.showinfo(f"Dartcounter {self.version}", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda", parent=self.root)
 
 if __name__ == "__main__":

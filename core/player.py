@@ -118,15 +118,6 @@ class Player:
     def has_opened(self, value):
         self.state['has_opened'] = value
 
-    def __del__(self):
-        """
-        Bereinigt die Ressourcen des Spielers, insbesondere das Scoreboard-Fenster.
-        """
-        # Sicherstellen, dass das Scoreboard existiert, bevor __del__ aufgerufen wird
-        if self.sb:
-            self.sb.__del__()
-        self.clear()
-
     def leave(self):
         """
         Löst den Prozess zum Verlassen des Spiels für diesen Spieler aus.
@@ -135,7 +126,6 @@ class Player:
         anschließend die eigene Instanz.
         """
         self.game.leave(self.id)
-        self.__del__()
 
     def clear(self):
         """
@@ -182,6 +172,31 @@ class Player:
             return 0.0
         # Durchschnittlicher Punktwert pro Dart, mal 3
         return (self.stats['total_score_thrown'] / self.stats['total_darts_thrown']) * 3
+
+    def get_total_darts_in_game(self):
+        """
+        Berechnet die Gesamtzahl der in diesem Spiel vom Spieler geworfenen Darts.
+
+        Returns:
+            int: Die Gesamtzahl der geworfenen Darts.
+        """
+        return (self.game.round - 1) * 3 + len(self.throws)
+
+    def get_mpr(self):
+        """
+        Berechnet und gibt die "Marks Per Round" (MPR) für Cricket-Spiele zurück.
+
+        Returns:
+            float: Die MPR. Gibt 0.0 zurück, wenn noch keine Darts geworfen
+                   wurden, um eine Division durch Null zu vermeiden.
+        """
+        total_darts = self.get_total_darts_in_game()
+        if total_darts == 0:
+            return 0.0
+
+        total_marks = self.stats.get('total_marks_scored', 0)
+        # MPR ist die durchschnittliche Anzahl der Marks pro 3 Darts.
+        return (total_marks / total_darts) * 3
 
     def get_checkout_percentage(self):
         """

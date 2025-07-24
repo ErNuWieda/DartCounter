@@ -5,7 +5,8 @@ from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 # Micky Mouse Targets, Spielreihenfolge
-TARGET_VALUES = {"20": 20, "19": 19, "18": 18, "17": 17, "16": 16, "15": 15, "14": 14, "13": 13, "12": 12, "Bull": 25}
+MICKY_TARGET_VALUES = {"20": 20, "19": 19, "18": 18, "17": 17, "16": 16, "15": 15, "14": 14, "13": 13, "12": 12, "Bull": 25}
+MICKY_TARGETS = list(MICKY_TARGET_VALUES.keys())
 
 SEGMENTS_AS_STR = [str(s) for s in range(12, 21)] # "12" bis "20"
 
@@ -19,7 +20,7 @@ class Micky(GameLogicBase):
 	"""
 	def __init__(self, game):
 		super().__init__(game)
-		self.targets = [k for k in TARGET_VALUES.keys()]
+		self.targets = MICKY_TARGETS
 
 	def initialize_player_state(self, player):
 		"""
@@ -67,23 +68,23 @@ class Micky(GameLogicBase):
 		target_hit, marks_scored = self._get_target_and_marks(ring, segment)
 
 		if target_hit:
-			current_hits = player.state['hits'].get(target_hit, 0)
-			player.state['hits'][target_hit] = max(0, current_hits - marks_scored)
+			current_hits = player.hits.get(target_hit, 0)
+			player.hits[target_hit] = max(0, current_hits - marks_scored)
 
 		# Nach dem Undo das nächste Ziel neu bestimmen
 		next_unclosed_target = None
 		for target in self.targets:
-			if player.state['hits'].get(target, 0) < 3:
+			if player.hits.get(target, 0) < 3:
 				next_unclosed_target = target
 				break
 		
 		if next_unclosed_target:
-			player.state['next_target'] = next_unclosed_target
+			player.next_target = next_unclosed_target
 		else:
 			# Alle Ziele sind (immer noch) geschlossen
-			player.state['next_target'] = None
+			player.next_target = None
 
-		player.sb.update_display(player.state['hits'], player.score)
+		player.sb.update_display(player.hits, player.score)
 
 	def _handle_throw(self, player, ring, segment, players):
 		"""
@@ -99,12 +100,12 @@ class Micky(GameLogicBase):
 		player.throws.append((ring, segment))
 		target_hit, marks_scored = self._get_target_and_marks (ring, segment)
 
-		current_target = player.state['next_target']
+		current_target = player.next_target
 
 		# Prüfen, ob das korrekte Ziel getroffen wurde
 		if not target_hit or target_hit != current_target:
 			player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurf-Historie)            
-			needed_hits = 3 - player.state['hits'].get(current_target, 0)
+			needed_hits = 3 - player.hits.get(current_target, 0)
 			msg_base = f"{player.name} muss {current_target} noch {needed_hits}x treffen!"
 			remaining_darts = 3 - len(player.throws)
 			if remaining_darts > 0:
@@ -114,29 +115,29 @@ class Micky(GameLogicBase):
 			return None # End processing for this throw
 
 		# Gültiger Treffer: Trefferzahl aktualisieren (maximal 3)
-		current_hits = player.state['hits'].get(current_target, 0)
-		player.state['hits'][current_target] = min(3, current_hits + marks_scored)
+		current_hits = player.hits.get(current_target, 0)
+		player.hits[current_target] = min(3, current_hits + marks_scored)
 
 		# Prüfen, ob das aktuelle Ziel geschlossen wurde und zum nächsten wechseln
-		if player.state['hits'][current_target] >= 3:
+		if player.hits[current_target] >= 3:
 			# Finde das nächste ungeschlossene Ziel
 			next_unclosed_target = None
 			for target in self.targets:
-				if player.state['hits'].get(target, 0) < 3:
+				if player.hits.get(target, 0) < 3:
 					next_unclosed_target = target
 					break
 			
 			if next_unclosed_target:
-				player.state['next_target'] = next_unclosed_target
+				player.next_target = next_unclosed_target
 			else:
 				# Alle Ziele sind geschlossen -> GEWINN
 				self.game.end = True
-				total_darts = (self.game.round - 1) * 3 + len(player.throws)
-				player.sb.update_display(player.state['hits'], player.score)
+				total_darts = player.get_total_darts_in_game()
+				player.sb.update_display(player.hits, player.score)
 				return f"🏆 {player.name} gewinnt {self.game.name} in Runde {self.game.round} mit {total_darts} Darts!"
 
 		# UI nach jedem gültigen Wurf aktualisieren
-		player.sb.update_display(player.state['hits'], player.score)
+		player.sb.update_display(player.hits, player.score)
 
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:

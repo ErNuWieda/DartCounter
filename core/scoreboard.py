@@ -27,7 +27,8 @@ class ScoreBoard:
 
         score_label_text = "Leben:" if self.game.name == "Killer" else "Score:"
         ttk.Label(score_frame, text=score_label_text, font=("Arial", 12)).pack()
-        initial_value = player.lifes if self.game.name == "Killer" else player.score
+        # Im Killer-Modus wird der Punktestand als Lebenszähler verwendet.
+        initial_value = player.score
         self.score_var = tk.StringVar(value=str(initial_value))
         ttk.Label(score_frame, textvariable=self.score_var, font=("Arial", 20, "bold")).pack()
 

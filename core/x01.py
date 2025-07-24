@@ -35,6 +35,13 @@ class X01(GameLogicBase):
         self.opt_in = game.opt_in
         self.opt_out = game.opt_out
         # self.targets bleibt None aus der Basisklasse
+
+    def get_targets(self):
+        """
+        Gibt die Zielliste zurück. Für X01 gibt es keine festen Ziele.
+        Gibt eine leere Liste zurück, um Kompatibilität zu gewährleisten.
+        """
+        return []
     
     def initialize_player_state(self, player):
         """
@@ -65,9 +72,19 @@ class X01(GameLogicBase):
             segment (int): Das Segment des rückgängig zu machenden Wurfs.
             players (list[Player]): Die Liste aller Spieler (in dieser Methode ungenutzt).
         """
+        
         throw_score = self.game.get_score(ring, segment)
         score_before_throw = player.score + throw_score
 
+        opt_in = self.game.opt_in
+        if opt_in != "Single":
+            if (opt_in == "Double" and ring in ("Double", "Bullseye")) or (opt_in == "Masters" and ring in ("Double", "Triple", "Bullseye")):
+                if score_before_throw == int(player.game_name):
+                    player.state['has_opened'] = False
+                    player.score = score_before_throw
+        
+        player.sb.update_score(player.score) # Update score
+                    
         # --- Checkout-Statistik rückgängig machen ---
         # Prüfen, ob der rückgängig gemachte Wurf eine Checkout-Möglichkeit war.
         if score_before_throw == throw_score:
@@ -80,7 +97,8 @@ class X01(GameLogicBase):
                 # Das Zurücksetzen des 'highest_finish' ist komplex und wird hier ausgelassen,
                 # da es das Speichern einer Liste aller Finishes erfordern würde.
 
-        player.update_score_value(throw_score, subtract=False)
+        if player.state['has_opened']:
+            player.update_score_value(throw_score, subtract=False)
 
         # Macht das Update der Statistik für gültige, punktende Würfe rückgängig.
         # Die Logik geht davon aus, dass nur Würfe, die nicht "Bust" waren, zur Statistik hinzugefügt wurden.
@@ -96,18 +114,81 @@ class X01(GameLogicBase):
         suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
         player.sb.update_checkout_suggestion(suggestion)
 
+    def _validate_opt_in(self, player, ring, segment):
+        """
+        Prüft, ob der Wurf die 'Opt-In'-Bedingung erfüllt und den Spieler öffnet.
+
+        Args:
+            player (Player): Der Spieler, der den Wurf gemacht hat.
+            ring (str): Der getroffene Ring.
+            segment (int): Das getroffene Segment.
+
+        Returns:
+            bool: True, wenn der Wurf gültig ist (oder der Spieler bereits offen war),
+                  False, wenn der Wurf ungültig war.
+        """
+        if player.state['has_opened']:
+            return True  # Bereits geöffnet, keine Prüfung nötig
+
+        opened_successfully = False
+        if self.opt_in == "Single":
+            opened_successfully = True
+        elif self.opt_in == "Double" and ring in ("Double", "Bullseye"):
+            opened_successfully = True
+        elif self.opt_in == "Masters" and ring in ("Double", "Triple", "Bullseye"):
+            opened_successfully = True
+
+        if opened_successfully:
+            player.state['has_opened'] = True
+            return True
+        else:
+            # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
+            player.throws.append((ring, segment))
+            player.sb.update_score(player.score)  # Update display for throw history
+            option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
+            msg_base = f"{player.name} braucht ein {option_text} zum Start!"
+            
+            remaining_darts = 3 - len(player.throws)
+            if len(player.throws) == 3:
+                messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.", parent=self.game.db.root)
+            else:
+                messagebox.showerror("Ungültiger Wurf", msg_base + f"\nNoch {remaining_darts} Darts.", parent=self.game.db.root)
+            return False
+
+    def _check_for_bust(self, new_score, ring):
+        """
+        Prüft, ob der Wurf basierend auf dem neuen Punktestand und den Opt-Out-Regeln
+        zu einem 'Bust' führt.
+
+        Args:
+            new_score (int): Der hypothetische Punktestand nach dem Wurf.
+            ring (str): Der getroffene Ring (wichtig für Double/Masters Out).
+
+        Returns:
+            bool: True, wenn der Wurf ein Bust ist, sonst False.
+        """
+        if new_score < 0:
+            return True  # Direkt überworfen
+        
+        if self.opt_out == "Double":
+            if new_score == 1: return True
+            if new_score == 0 and ring not in ("Double", "Bullseye"): return True
+        elif self.opt_out == "Masters":
+            if new_score == 1: return True
+            if new_score == 0 and ring not in ("Double", "Triple", "Bullseye"): return True
+        
+        return False
+
     def _handle_throw(self, player, ring, segment, players):
         """
         Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
 
         Dies ist die Kernmethode, die alle Spielregeln auf einen Wurf anwendet.
         Sie folgt einer Sequenz von Überprüfungen:
-        1. Berechnet den Punktwert des Wurfs.
-        2. Prüft, ob der Wurf eine Checkout-Möglichkeit darstellt.
-        3. Validiert die 'Opt-In'-Regel, falls der Spieler noch nicht eröffnet hat.
-        4. Validiert 'Bust'-Bedingungen basierend auf dem Restpunktestand und den
-           'Opt-Out'-Regeln.
-        5. Wenn der Wurf gültig ist, werden Punktestand und Statistiken des Spielers aktualisiert.
+        1. Berechnet den Punktwert und prüft auf Checkout-Möglichkeiten.
+        2. Delegiert die 'Opt-In'-Validierung an `_validate_opt_in`.
+        3. Delegiert die 'Bust'-Validierung an `_check_for_bust`.
+        4. Wenn der Wurf gültig ist, werden Punktestand und Statistiken aktualisiert.
         6. Prüft auf eine Gewinnbedingung (Punktestand ist genau null).
         7. Bei einem Gewinn wird auf ein spezielles 'Shanghai'-Finish geprüft und
            der Punktestand an den Highscore-Manager übermittelt.
@@ -121,14 +202,16 @@ class X01(GameLogicBase):
         Returns:
             str or None: Eine Gewinnnachricht, wenn das Spiel gewonnen wurde, ansonsten None.
         """
-        # --- x01 Logik ---
         score = self.game.get_score(ring, segment)
         score_before_throw = player.score
 
-        # Ein Wurf ist eine Checkout-Möglichkeit, wenn der Wurfscore dem Restscore entspricht.
-        if score_before_throw == score:
-            player.stats['checkout_opportunities'] += 1
+        # --- Checkout-Möglichkeit prüfen ---
+        # Wenn der Wurf den Score exakt auf 0 bringen würde, war es eine Checkout-Möglichkeit.
+        # Dies wird VOR der Bust-Prüfung gezählt.
+        if score_before_throw == score and self.opt_out in ("Double", "Masters"):
+             player.stats['checkout_opportunities'] += 1
 
+        # --- Handle Miss separately ---
         if ring == "Miss":
             player.throws.append((ring, 0))
             # No messagebox for simple miss, score is 0.
@@ -145,53 +228,17 @@ class X01(GameLogicBase):
                 return None
             return None # Throw processed
 
+        # --- Opt-In-Validierung ---
+        if not self._validate_opt_in(player, ring, segment):
+            return None  # Wurf war ungültig, Verarbeitung abbrechen
 
-        if not player.state['has_opened']:
-            opened_successfully = False
-            if self.opt_in == "Single":
-                opened_successfully = True
-            elif self.opt_in == "Double":
-                if ring in ("Double", "Bullseye"):
-                    opened_successfully = True
-            elif self.opt_in == "Masters":
-                if ring in ("Double", "Triple", "Bullseye"):
-                    opened_successfully = True
-
-            if opened_successfully:
-                player.state['has_opened'] = True
-            else:
-                player.throws.append((ring, segment)) # Record the failed attempt
-                player.sb.update_score(player.score) # Update display for throw history
-                option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
-                msg_base = f"{player.name} braucht ein {option_text} zum Start!"
-                
-                remaining_darts = 3 - len(player.throws)
-                if len(player.throws) == 3:
-                    messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.", parent=self.game.db.root)
-                else: # Show for every failed "in" throw
-                    messagebox.showerror("Ungültiger Wurf", msg_base+f"\nNoch {remaining_darts} Darts.", parent=self.game.db.root)
-                return None # End processing for this throw, turn might end or continue with next dart
-
-        # If player.state['has_opened'] is true, or became true above, proceed to score
-
+        # --- Bust-Prüfung ---
         new_score = player.score - score
-        bust = False
-        if new_score < 0:
-            bust = True # Direkt überworfen
-        elif self.opt_out == "Double":
-            if new_score == 1: bust = True
-            elif new_score == 0 and not (ring == "Double" or ring == "Bullseye"): bust = True
-            elif self.opt_out == "Masters":
-                if new_score == 1: bust = True
-                elif new_score == 0 and ring not in ("Double", "Triple", "Bullseye"): bust = True
-        
-        if bust:
-            # The score will be as it was BEFORE this busting throw.
+        if self._check_for_bust(new_score, ring):
             player.throws.append((ring, segment)) # Mark the bust throw in history
             player.sb.update_score(player.score) # Update display
-
             messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.", parent=self.game.db.root)
-            return None # Turn ends due to bust. Player clicks "Weiter".
+            return None # Turn ends due to bust.
 
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
         # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.
@@ -243,7 +290,7 @@ class X01(GameLogicBase):
                     self.game.shanghai_finish = True
             
             self.game.end = True
-            total_darts = (self.game.round - 1) * 3 + len(player.throws)
+            total_darts = player.get_total_darts_in_game()
             
             # Zum Highscore hinzufügen, falls Manager vorhanden
             if self.game.highscore_manager:

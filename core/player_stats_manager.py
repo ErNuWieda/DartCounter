@@ -45,6 +45,44 @@ class PlayerStatsManager:
             return []
         return self.db_manager.get_all_player_names_from_records()
 
+    def _prompt_and_reset_stats(self, stats_win, player_select_combo):
+        """Öffnet einen Dialog zur Bestätigung des Zurücksetzens von Statistiken."""
+        selected_player = player_select_combo.get()
+
+        # Erstellt einen modalen Dialog
+        reset_dialog = tk.Toplevel(stats_win)
+        reset_dialog.title("Statistiken zurücksetzen")
+        reset_dialog.transient(stats_win)
+        reset_dialog.grab_set()
+        reset_dialog.geometry("400x150")
+
+        # Nachricht anpassen, je nachdem ob ein Spieler ausgewählt ist
+        if selected_player:
+            msg = f"Möchtest du nur die Statistiken für '{selected_player}' oder die Statistiken aller Spieler zurücksetzen?"
+        else:
+            msg = "Möchtest du die Statistiken aller Spieler zurücksetzen?"
+        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(pady=20)
+
+        button_frame = ttk.Frame(reset_dialog)
+        button_frame.pack(pady=10)
+
+        def do_reset(player_to_reset):
+            mode_name = f"'{player_to_reset}'" if player_to_reset else "alle Spieler"
+            confirm_msg = f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} unwiderruflich löschen möchtest?"
+
+            if not messagebox.askyesno("Bestätigung", confirm_msg, parent=reset_dialog):
+                return
+
+            self.db_manager.reset_game_records(player_to_reset)
+            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)
+            reset_dialog.destroy()
+            stats_win.destroy() # Schließt das Hauptfenster, um ein Neuladen zu erzwingen
+
+        if selected_player:
+            ttk.Button(button_frame, text=f"Nur '{selected_player}'", command=lambda: do_reset(selected_player)).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(side="left", padx=5)
+
     def show_stats_window(self, parent):
         """Erstellt und zeigt das Fenster für die Spielerstatistiken an."""
         if not MATPLOTLIB_AVAILABLE:
@@ -53,7 +91,7 @@ class PlayerStatsManager:
 
         win = tk.Toplevel(parent)
         win.title("Spielerstatistiken")
-        win.geometry("800x600")
+        win.geometry("800x650")
 
         # --- Steuerung (oben) ---
         control_frame = ttk.Frame(win, padding=10)
@@ -69,16 +107,22 @@ class PlayerStatsManager:
         game_mode_select = ttk.Combobox(control_frame, state="disabled")
         game_mode_select.pack(side='left')
 
+        # --- Button Frame (ganz unten) ---
+        # Wird vor den expandierenden Widgets gepackt, damit er immer sichtbar ist.
+        bottom_frame = ttk.Frame(win, padding=10)
+        bottom_frame.pack(side='bottom', fill='x')
+        reset_button = ttk.Button(bottom_frame, text="Statistiken zurücksetzen...", command=lambda: self._prompt_and_reset_stats(win, player_select))
+        reset_button.pack(side='right')
+
         # --- Diagramm (Mitte) ---
         fig = Figure(figsize=(8, 4), dpi=100)
         ax = fig.add_subplot(111)
         canvas = FigureCanvasTkAgg(fig, master=win)
-        canvas.get_tk_widget().pack(fill='x', pady=10)
+        canvas.get_tk_widget().pack(side='top', fill='x', pady=10)
 
         # --- Tabelle (unten) ---
         table_frame = ttk.Frame(win, padding=10)
-        table_frame.pack(expand=True, fill='both')
-        
+        table_frame.pack(side='top', expand=True, fill='both')
         cols = ("Datum", "Spiel", "Avg/MPR", "Gewonnen")
         tree = ttk.Treeview(table_frame, columns=cols, show="headings")
         for col in cols:

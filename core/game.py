@@ -5,6 +5,7 @@ Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
 import tkinter as tk 
 from tkinter import ttk, messagebox
 from .player import Player
+from .dartboard import DartBoard
 from .scoreboard import ScoreBoard
 from .x01 import X01
 from .cricket import Cricket
@@ -91,23 +92,31 @@ class Game:
         if self.name == "Killer" and hasattr(self.game, 'set_players'):
             self.game.set_players(self.players)
             
-        self.db = None # DartBoard-Instanz, wird extern nach Initialisierung gesetzt.
+        # --- UI-Setup ---
+        # Die Game-Klasse ist jetzt selbst für die Erstellung ihrer UI verantwortlich.
+        self.db = DartBoard(self)
+        self.setup_scoreboards()
+
+    def destroy(self):
+        """Zerstört alle UI-Elemente, die zu diesem Spiel gehören, sicher."""
+        if self.db and self.db.root:
+            try:
+                # Zerstört das Dartboard-Fenster
+                self.db.root.destroy()
+            except tk.TclError:
+                # Fängt den Fehler ab, falls das Fenster bereits geschlossen wurde
+                pass
         
-    def __del__(self):
-        """
-        Bereinigt Ressourcen, wenn die Spielinstanz gelöscht wird.
-        
-        Wird aufgerufen, wenn ein Spiel endet (durch Sieg, Abbruch oder Laden
-        eines neuen Spiels). Schließt alle zugehörigen UI-Fenster
-        (Scoreboards, Dartboard) und zeigt das Hauptfenster wieder an.
-        """
         for player in self.players:
-            player.__del__()
+            if player.sb and player.sb.root:
+                try:
+                    # Zerstört das Scoreboard-Fenster des Spielers
+                    player.sb.root.destroy()
+                except tk.TclError:
+                    pass
         
-        if self.db:
-            self.db.root.destroy()
-            self.db = None
-        self.root.deiconify()
+        # Setzt die Referenzen zurück, um Memory-Leaks zu vermeiden
+        self.db = None
 
     def setup_scoreboards(self):
         """
@@ -189,7 +198,7 @@ class Game:
         if not self.players:
             messagebox.showinfo("Spielende", "Alle Spieler haben das Spiel verlassen.", parent=self.root)
             self.end = True
-            self.__del__()  # Beendet das Spiel und schließt alle Fenster
+            self.destroy()  # Beendet das Spiel und schließt alle Fenster
             return
 
         # Fall 2: Der Index des aktuellen Spielers ist jetzt außerhalb der Liste
@@ -295,7 +304,7 @@ class Game:
             return
 
         if self.end == True:
-            self.__del__()
+            self.destroy()
             return
 
 
@@ -369,12 +378,7 @@ class Game:
                 stats_data['highest_finish'] = p.stats.get('highest_finish', 0)
             
             elif self.name in ('Cricket', 'Cut Throat', 'Tactics'):
-                total_darts_for_mpr = (self.round - 1) * 3 + len(p.throws)
-                if total_darts_for_mpr > 0:
-                    mpr = (p.stats.get('total_marks_scored', 0) / total_darts_for_mpr) * 3
-                else:
-                    mpr = 0.0
-                stats_data['mpr'] = mpr
+                stats_data['mpr'] = p.get_mpr()
 
             self.player_stats_manager.add_game_record(p.name, stats_data)
 
@@ -394,16 +398,20 @@ class Game:
         """
         player = self.current_player()
         if len(player.throws) < 3:
+            # Soundeffekt für einen Treffer sofort abspielen, BEVOR die Spiellogik
+            # aufgerufen wird, da diese blockierende Dialoge (MessageBox) enthalten kann.
+            if self.sound_manager and ring != "Miss":
+                self.sound_manager.play_hit()
+
             msg = self.game._handle_throw(player, ring, segment, self.players)
             
-            # Soundeffekte abspielen
+            # Soundeffekt für einen Gewinn abspielen.
+            # Dies geschieht, bevor die finale Gewinn-MessageBox im Dartboard angezeigt wird.
             if self.sound_manager:
                 if msg and "🏆" in msg: # Gewinn-Sound
                     self.sound_manager.play_win()
                     # Statistiken für alle Spieler am Ende des Spiels speichern
                     self._finalize_and_record_stats(winner=player)
-                elif ring != "Miss": # Treffer-Sound für alles außer Miss
-                    self.sound_manager.play_hit()
             
             return msg
         else:

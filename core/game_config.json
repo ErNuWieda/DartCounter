@@ -1,0 +1,56 @@
+{
+    "301": {
+        "frame": "x01_options",
+        "defaults": {
+            "opt_in": "Single",
+            "opt_out": "Single"
+        }
+    },
+    "501": {
+        "frame": "x01_options",
+        "defaults": {
+            "opt_in": "Single",
+            "opt_out": "Single"
+        }
+    },
+    "701": {
+        "frame": "x01_options",
+        "defaults": {
+            "opt_in": "Single",
+            "opt_out": "Single"
+        }
+    },
+    "Around the Clock": {
+        "frame": "atc_options",
+        "defaults": {
+            "opt_atc": "Single"
+        }
+    },
+    "Cricket": {},
+    "Cut Throat": {
+        "min_players": 2
+    },
+    "Elimination": {
+        "frame": "elimination_options",
+        "defaults": {
+            "count_to": "301",
+            "opt_out": "Single"
+        },
+        "min_players": 2
+    },
+    "Killer": {
+        "frame": "killer_options",
+        "defaults": {
+            "lifes": "3"
+        },
+        "min_players": 2
+    },
+    "Micky Mouse": {},
+    "Shanghai": {
+        "frame": "shanghai_options",
+        "defaults": {
+            "rounds": "7"
+        }
+    },
+    "Tactics": {}
+}

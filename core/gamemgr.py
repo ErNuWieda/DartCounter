@@ -1,33 +1,77 @@
 import tkinter as tk 
 from tkinter import ttk
-from core.dartboard import DartBoard
-from core.game import Game
-from core.player import Player
+import json
+import pathlib
 
-# Zentrale Konfiguration für alle Spielmodi.
-# Definiert, welcher Options-Frame angezeigt wird, welche Standardwerte gelten
-# und ob es spezielle Regeln wie eine Mindestspieleranzahl gibt.
-GAME_CONFIG = {
-    # game_name: { "frame": frame_key, "defaults": {option: value}, "min_players": N }
-    "301": {"frame": "x01_options", "defaults": {"opt_in": "Single", "opt_out": "Single"}},
-    "501": {"frame": "x01_options", "defaults": {"opt_in": "Single", "opt_out": "Single"}},
-    "701": {"frame": "x01_options", "defaults": {"opt_in": "Single", "opt_out": "Single"}},
-    "Around the Clock": {"frame": "atc_options", "defaults": {"opt_atc": "Single"}},
-    "Cricket": {},
-    "Cut Throat": {"min_players": 2},
-    "Elimination": {"frame": "elimination_options", "defaults": {"count_to": "301", "opt_out": "Single"}, "min_players": 2},
-    "Killer": {"frame": "killer_options", "defaults": {"lifes": "3"}, "min_players": 2},
-    "Micky Mouse": {},
-    "Shanghai": {"frame": "shanghai_options", "defaults": {"rounds": "7"}},
-    "Tactics": {},
-}
-# Klasse für Spielauswahl und Eingabe Playernamen hin
+def _load_game_config():
+    """Lädt die Spielkonfigurationen aus der JSON-Datei."""
+    try:
+        base_path = pathlib.Path(__file__).resolve().parent
+        json_path = base_path / "game_config.json"
+        with open(json_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Fehler beim Laden der Spielkonfiguration: {e}")
+        return {}
+
+# Die Spielkonfiguration wird nur einmal beim Import des Moduls geladen.
+GAME_CONFIG = _load_game_config()
+
 class GameManager:
-    def __init__(self, tk_instance, sound_manager=None, settings_manager=None):
-        self.root = tk_instance
-        self.game = "301"
+    """
+    Ein Controller, der die Spielkonfiguration verwaltet, ohne UI-Logik zu enthalten.
+    Er delegiert die UI-Darstellung an den GameSettingsDialog.
+    """
+    def __init__(self, sound_manager=None, settings_manager=None):
         self.sound_manager = sound_manager
         self.settings_manager = settings_manager
+
+        # Attribute, die die finalen Spieleinstellungen speichern
+        self.game = "301"
+        self.count_to = "301"
+        self.opt_in = "Single"
+        self.opt_out = "Single"
+        self.opt_atc = "Single"
+        self.lifes = "3"
+        self.shanghai_rounds = "7"
+        self.players = []
+
+    def configure_game(self, parent_window):
+        """
+        Öffnet den Einstellungsdialog, wartet auf Benutzereingaben und
+        übernimmt die Einstellungen, wenn das Spiel gestartet wird.
+
+        Args:
+            parent_window (tk.Toplevel or tk.Tk): Das übergeordnete Fenster.
+
+        Returns:
+            bool: True, wenn der Benutzer das Spiel gestartet hat, sonst False.
+        """
+        dialog = GameSettingsDialog(parent_window, self.settings_manager)
+        parent_window.wait_window(dialog) # Blockiert, bis der Dialog geschlossen wird
+
+        if dialog.was_started:
+            self.game = dialog.game
+            self.count_to = dialog.count_to
+            self.opt_in = dialog.opt_in
+            self.opt_out = dialog.opt_out
+            self.opt_atc = dialog.opt_atc
+            self.lifes = dialog.lifes
+            self.shanghai_rounds = dialog.shanghai_rounds
+            self.players = dialog.players
+            return True
+        return False
+
+# Neue, UI-fokussierte Klasse für den Einstellungsdialog.
+# Diese Klasse ist noch nicht integriert und dient als erster Schritt des Refactorings.
+class GameSettingsDialog(tk.Toplevel):
+    def __init__(self, parent, settings_manager=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.settings_manager = settings_manager
+
+        # --- Zustandvariablen zur Speicherung der ausgewählten Einstellungen ---
+        self.game = "301"
         self.count_to = "301"
         self.opt_in = "Single"
         self.opt_out = "Single"
@@ -36,109 +80,94 @@ class GameManager:
         self.lifes = "3"
         self.shanghai_rounds = "7"
         self.max_players = 4
-        self.was_started = False # Wichtig für die Kommunikation mit main.py
+        self.was_started = False
         self.players = []
 
-        # Widgets, die wir global benötigen, werden erst in game_settings_dlg erstellt
+        # --- UI Widgets ---
         self.game_select = None
         self.opt_in_select = None
         self.opt_out_select = None
         self.opt_atc_select = None
-        self.el_opt_out_select = None # Eigene Combobox für Elimination Opt-Out
+        self.el_opt_out_select = None
         self.count_to_select = None
         self.lifes_select = None
         self.rounds_select = None
         self.player_select = None
-        self.settings_dlg = None
-
-        # Dictionary zum Speichern der Frames für spielspezifische Optionen
+        self.player_name_entries = []
         self.game_option_frames = {}
 
-        # Hier rufen wir das Dialogfenster auf, das nun die Frames erstellt
-        self.game_settings_dlg()
+        # --- Dialog aufbauen ---
+        self.title("Spieleinstellungen")
+        self.geometry("320x650")
+        self.resizable(False, True)
+        self.protocol("WM_DELETE_WINDOW", self._on_cancel)
+        self.bind("<Escape>", lambda e: self._on_cancel())
 
-    def run(self):
+        # UI-Elemente erstellen
+        self._create_players_frame(self)
+        self._create_game_selection_frame(self)
+        self._create_start_button_frame(self)
+
+        # Initialen Zustand der Optionen setzen
+        self.set_game()
+
+    def _on_start(self):
+        """Entspricht der alten 'run'-Methode."""
         self.anzahl_spieler = int(self.player_select.get())
-        self.players = [] # Vorherige Liste leeren
+        self.players = []
         for i in range(self.max_players):
             if i < self.anzahl_spieler:
                 self.players.append(self.player_name_entries[i].get())
 
-        # Speichere die zuletzt verwendeten Namen
         if self.settings_manager:
             current_names = [entry.get() for entry in self.player_name_entries]
             self.settings_manager.set('last_player_names', current_names)
 
         self.was_started = True
-        self.settings_dlg.destroy()
+        self.destroy()
 
-    def set_game(self):
+    def _on_cancel(self):
+        """Entspricht der alten 'goback'-Methode."""
+        self.was_started = False
+        self.destroy()
+
+    def set_game(self, event=None):
         self.game = self.game_select.get()
         config = GAME_CONFIG.get(self.game, {})
 
-        # 1. Alle Options-Frames ausblenden
         for frame in self.game_option_frames.values():
             frame.pack_forget()
 
-        # 2. Den korrekten Frame basierend auf der Konfiguration anzeigen
         if "frame" in config:
             frame_key = config["frame"]
             self.game_option_frames[frame_key].pack(fill="x", padx=10, pady=5)
 
-        # 3. Standardwerte für Optionen aus der Konfiguration setzen
         if "defaults" in config:
             for option, value in config["defaults"].items():
-                if option == "opt_in":
-                    self.opt_in_select.set(value)
-                    self.opt_in = value
+                if option == "opt_in": self.opt_in_select.set(value); self.opt_in = value
                 elif option == "opt_out":
-                    # Unterscheiden, welche Combobox gesetzt werden muss
-                    if self.game == "Elimination":
-                        self.el_opt_out_select.set(value)
-                    else: # x01
-                        self.opt_out_select.set(value)
+                    if self.game == "Elimination": self.el_opt_out_select.set(value)
+                    else: self.opt_out_select.set(value)
                     self.opt_out = value
-                elif option == "opt_atc":
-                    self.opt_atc_select.set(value)
-                    self.opt_atc = value
-                elif option == "count_to":
-                    self.count_to_select.set(value)
-                    self.count_to = value
-                elif option == "lifes":
-                    self.lifes_select.set(value)
-                    self.lifes = value
-                elif option == "rounds":
-                    self.rounds_select.set(value)
-                    self.shanghai_rounds = value
+                elif option == "opt_atc": self.opt_atc_select.set(value); self.opt_atc = value
+                elif option == "count_to": self.count_to_select.set(value); self.count_to = value
+                elif option == "lifes": self.lifes_select.set(value); self.lifes = value
+                elif option == "rounds": self.rounds_select.set(value); self.shanghai_rounds = value
 
-        # 4. Mindestspieleranzahl aus der Konfiguration setzen
         min_players = config.get("min_players", 1)
         if int(self.player_select.get()) < min_players:
             self.player_select.set(str(min_players))
             self.set_anzahl_spieler()
 
-    def set_opt_in(self):
-        self.opt_in = self.opt_in_select.get()
+    def set_opt_in(self, event=None): self.opt_in = self.opt_in_select.get()
+    def set_opt_out(self, event=None): self.opt_out = self.opt_out_select.get()
+    def set_opt_atc(self, event=None): self.opt_atc = self.opt_atc_select.get()
+    def set_count_to(self, event=None): self.count_to = self.count_to_select.get()
+    def set_elimination_opt_out(self, event=None): self.opt_out = self.el_opt_out_select.get()
+    def set_lifes(self, event=None): self.lifes = self.lifes_select.get()
+    def set_rounds(self, event=None): self.shanghai_rounds = self.rounds_select.get()
 
-    def set_opt_out(self):
-        self.opt_out = self.opt_out_select.get()
-
-    def set_opt_atc(self):
-        self.opt_atc = self.opt_atc_select.get()
-
-    def set_count_to(self):
-        self.count_to = self.count_to_select.get()
-
-    def set_elimination_opt_out(self):
-        self.opt_out = self.el_opt_out_select.get()
-
-    def set_lifes(self):
-        self.lifes = self.lifes_select.get()
-
-    def set_rounds(self):
-        self.shanghai_rounds = self.rounds_select.get()
-
-    def set_anzahl_spieler(self):
+    def set_anzahl_spieler(self, event=None):
         self.anzahl_spieler = int(self.player_select.get())
         for i in range(self.max_players):
             if i < self.anzahl_spieler:
@@ -148,12 +177,7 @@ class GameManager:
                 self.player_name_entries[i].delete(0, tk.END)
                 self.player_name_entries[i].insert(0, f"Sp{i+1}")
 
-    def goback(self):
-        self.root.deiconify()
-        self.settings_dlg.destroy()
-
     def _create_players_frame(self, parent):
-        """Erstellt den Frame für Spieleranzahl und -namen."""
         tk.Label(parent, text="Spieler", font=("Arial", 12), fg="blue").pack(padx=10, anchor="nw")
         players_frame = tk.Frame(parent, bd=2, relief="groove")
         players_frame.pack(fill="x", padx=10, pady=5)
@@ -162,8 +186,8 @@ class GameManager:
         plr_values = [str(i) for i in range(1, self.max_players + 1)]
         self.player_select = ttk.Combobox(players_frame, values=plr_values, state="readonly")
         self.player_select.pack()
-        self.player_select.bind("<<ComboboxSelected>>", lambda event: self.set_anzahl_spieler())
-        self.player_select.current(0)  # Standard auf 1 Spieler
+        self.player_select.bind("<<ComboboxSelected>>", self.set_anzahl_spieler)
+        self.player_select.current(0)
 
         tk.Label(players_frame, text="Namen", font=("Arial", 12), fg="purple").pack(pady=5)
         self.player_name_entries = [None] * self.max_players
@@ -177,74 +201,49 @@ class GameManager:
             if i >= int(self.player_select.get()):
                 self.player_name_entries[i].config(state="disabled")
 
+    def _create_option_widget(self, parent, label_text, values, callback, default_index=0):
+        """Hilfsmethode zur Erstellung eines Labels und einer Combobox für eine Spieloption."""
+        tk.Label(parent, text=label_text, font=("Arial", 11), fg="green").pack(pady=2)
+        widget = ttk.Combobox(parent, values=values, state="readonly")
+        widget.pack()
+        widget.bind("<<ComboboxSelected>>", callback)
+        widget.current(default_index)
+        return widget
+
     def _create_x01_options_frame(self, parent):
-        """Erstellt den Frame für x01-spezifische Optionen (Opt In/Out)."""
         x01_frame = tk.Frame(parent)
         self.game_option_frames["x01_options"] = x01_frame
         values = ["Single", "Double", "Masters"]
-        tk.Label(x01_frame, text="Opt In", font=("Arial", 11), fg="green").pack(pady=2)
-        self.opt_in_select = ttk.Combobox(x01_frame, values=values, state="readonly")
-        self.opt_in_select.pack()
-        self.opt_in_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_in())
-        self.opt_in_select.current(0)
-    
-        tk.Label(x01_frame, text="Opt Out", font=("Arial", 11), fg="green").pack(pady=2)
-        self.opt_out_select = ttk.Combobox(x01_frame, values=values, state="readonly")
-        self.opt_out_select.pack()
-        self.opt_out_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_out())
-        self.opt_out_select.current(0)
-    
+        self.opt_in_select = self._create_option_widget(x01_frame, "Opt In", values, self.set_opt_in)
+        self.opt_out_select = self._create_option_widget(x01_frame, "Opt Out", values, self.set_opt_out)
+
     def _create_atc_options_frame(self, parent):
-        """Erstellt den Frame für Around the Clock-spezifische Optionen."""
         atc_frame = tk.Frame(parent)
         self.game_option_frames["atc_options"] = atc_frame
         atc_values = ["Single", "Double", "Triple"]
-        tk.Label(atc_frame, text="Around The Clock Variante", font=("Arial", 11), fg="green").pack(pady=2)
-        self.opt_atc_select = ttk.Combobox(atc_frame, values=atc_values, state="readonly")
-        self.opt_atc_select.pack()
-        self.opt_atc_select.bind("<<ComboboxSelected>>", lambda event: self.set_opt_atc())
-        self.opt_atc_select.current(0)
-    
+        self.opt_atc_select = self._create_option_widget(atc_frame, "Around The Clock Variante", atc_values, self.set_opt_atc)
+
     def _create_elimination_options_frame(self, parent):
-        """Erstellt den Frame für Elimination-spezifische Optionen."""
         elimination_frame = tk.Frame(parent)
         self.game_option_frames["elimination_options"] = elimination_frame
         count_to_values = ["301", "501"]
-        tk.Label(elimination_frame, text="Count To", font=("Arial", 11), fg="green").pack(pady=2)
-        self.count_to_select = ttk.Combobox(elimination_frame, values=count_to_values, state="readonly")
-        self.count_to_select.bind("<<ComboboxSelected>>", lambda event: self.set_count_to())
-        self.count_to_select.pack()
+        self.count_to_select = self._create_option_widget(elimination_frame, "Count To", count_to_values, self.set_count_to)
         el_out_values = ["Single", "Double"]
-        tk.Label(elimination_frame, text="Opt Out", font=("Arial", 11), fg="green").pack(pady=2)
-        self.el_opt_out_select = ttk.Combobox(elimination_frame, values=el_out_values, state="readonly")
-        self.el_opt_out_select.pack()
-        self.el_opt_out_select.bind("<<ComboboxSelected>>", lambda event: self.set_elimination_opt_out())
-        self.el_opt_out_select.current(0)
-    
+        self.el_opt_out_select = self._create_option_widget(elimination_frame, "Opt Out", el_out_values, self.set_elimination_opt_out)
+
     def _create_killer_options_frame(self, parent):
-        """Erstellt den Frame für Killer-spezifische Optionen."""
         killer_frame = tk.Frame(parent)
         self.game_option_frames["killer_options"] = killer_frame
         life_values = ["3", "5", "7"]
-        tk.Label(killer_frame, text="Anzahl Leben", font=("Arial", 11), fg="green").pack(pady=2)
-        self.lifes_select = ttk.Combobox(killer_frame, values=life_values, state="readonly")
-        self.lifes_select.pack()
-        self.lifes_select.bind("<<ComboboxSelected>>", lambda event: self.set_lifes())
-        self.lifes_select.current(0)
-    
+        self.lifes_select = self._create_option_widget(killer_frame, "Anzahl Leben", life_values, self.set_lifes)
+
     def _create_shanghai_options_frame(self, parent):
-        """Erstellt den Frame für Shanghai-spezifische Optionen."""
         shanghai_frame = tk.Frame(parent)
         self.game_option_frames["shanghai_options"] = shanghai_frame
         rounds_values = ["7", "10", "20"]
-        tk.Label(shanghai_frame, text="Anzahl Runden", font=("Arial", 11), fg="green").pack(pady=2)
-        self.rounds_select = ttk.Combobox(shanghai_frame, values=rounds_values, state="readonly")
-        self.rounds_select.pack()
-        self.rounds_select.bind("<<ComboboxSelected>>", lambda event: self.set_rounds())
-        self.rounds_select.current(0)
+        self.rounds_select = self._create_option_widget(shanghai_frame, "Anzahl Runden", rounds_values, self.set_rounds)
 
     def _create_dynamic_option_frames(self, parent):
-        """Erstellt die (zunächst unsichtbaren) Frames für spielspezifische Optionen."""
         self._create_x01_options_frame(parent)
         self._create_atc_options_frame(parent)
         self._create_elimination_options_frame(parent)
@@ -252,43 +251,20 @@ class GameManager:
         self._create_shanghai_options_frame(parent)
 
     def _create_game_selection_frame(self, parent):
-        """Erstellt den Frame für die Spielauswahl und die dynamischen Options-Frames."""
         tk.Label(parent, text="Varianten", font=("Arial", 12), fg = "blue").pack(padx=10, pady=(10, 0), anchor="nw")
         game_selection_frame = tk.Frame(parent, bd=2, relief="groove")
         game_selection_frame.pack(fill="x", padx=10, pady=5)
         tk.Label(game_selection_frame, text="Spiel", font=("Arial", 12), fg="purple").pack()
-        self.game_select = ttk.Combobox(game_selection_frame, values=['301', '501', '701', 'Around the Clock', 'Cricket', 'Cut Throat', "Elimination", 'Killer', 'Micky Mouse', 'Shanghai', 'Tactics'], state="readonly")
+        self.game_select = ttk.Combobox(game_selection_frame, values=list(GAME_CONFIG.keys()), state="readonly")
         self.game_select.pack()
-        self.game_select.bind("<<ComboboxSelected>>", lambda event: self.set_game())
+        self.game_select.bind("<<ComboboxSelected>>", self.set_game)
         self.game_select.current(0)
-
-        # Die dynamischen Frames werden innerhalb des game_selection_frame erstellt
         self._create_dynamic_option_frames(game_selection_frame)
 
     def _create_start_button_frame(self, parent):
-        """Erstellt den unteren Frame mit dem Start-Button."""
         start_button_frame = tk.Frame(parent)
         start_button_frame.pack(side="bottom", fill="x", pady=10)
-
-        btn = ttk.Button(start_button_frame, text="Spiel starten", style="Accent.TButton", command=self.run)
+        btn = ttk.Button(start_button_frame, text="Spiel starten", style="Accent.TButton", command=self._on_start)
         btn.pack()
-        btn.bind("<Return>", lambda event: self.run())
+        btn.bind("<Return>", lambda event: self._on_start())
         btn.focus_set()
-
-    def game_settings_dlg(self):
-        self.settings_dlg = tk.Toplevel()
-        self.settings_dlg.title("Spieleinstellungen")
-        self.settings_dlg.geometry("320x650")
-        self.settings_dlg.resizable(False, True)
-        self.settings_dlg.protocol("WM_DELETE_WINDOW", self.goback)
-        self.settings_dlg.bind("<Escape>", lambda e: self.goback())
-        self.settings_dlg.bind("<Alt-x>", lambda e: self.goback())
-        self.settings_dlg.bind("<Alt-q>", lambda e: self.goback())
-
-        # UI-Elemente erstellen
-        self._create_players_frame(self.settings_dlg)
-        self._create_game_selection_frame(self.settings_dlg)
-        self._create_start_button_frame(self.settings_dlg)
-
-        # Initialen Zustand der Optionen setzen (zeigt den Frame für "301" an)
-        self.set_game()

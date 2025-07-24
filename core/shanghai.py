@@ -18,7 +18,6 @@ SEGMENTS_AS_STR = [str(s) for s in range(1, 20)] # "1" bis "20"
 class Shanghai(GameLogicBase):
 	def __init__(self, game):
 		super().__init__(game)
-		self.rounds = self.game.rounds
 		self.targets = []
 
 	def initialize_player_state(self, player):
@@ -32,31 +31,27 @@ class Shanghai(GameLogicBase):
 				player.hits[target] = 0
 
 	def get_targets(self):
-		for i in range(self.rounds):
+		for i in range(self.game.rounds):
 			self.targets.append(str(i+1)) 
 		return self.targets
 
 	def _handle_throw_undo(self, player, ring, segment, players):
-		"""Macht einen Wurf im Shanghai-Modus rückgängig."""
-		points_for_this_throw = 0
-		valid_target = False
+		"""Macht einen Wurf im Shanghai-Modus rückgängig, indem Punkte und Treffer korrigiert werden."""
+		# Der rückgängig gemachte Wurf war nur dann relevant, wenn er auf das Ziel der Runde ging.
+		if str(segment) == str(self.game.round):
+			# 1. Punkte des Wurfs ermitteln und vom Score abziehen
+			score_to_undo = self.game.get_score(ring, segment)
+			player.update_score_value(score_to_undo, subtract=True)
 
-		if str(segment) == str(self.game.round): # Hit the correct number segment
-			valid_target = True
-			# Nur Treffer reduzieren, wenn vorher einer da war
+			# 2. Trefferzähler reduzieren
+			# Da jeder gültige Treffer die 'hits' um 1 erhöht, reduzieren wir sie auch um 1.
 			if player.hits.get(str(self.game.round), 0) > 0:
 				player.hits[str(self.game.round)] -= 1
 
-			# Punkte des Wurfs ermitteln, um sie abzuziehen
-			points_for_this_throw = self.game.get_score(ring, segment)
+		# Das nächste Ziel ist immer die aktuelle Runde (für die UI-Anzeige)
+		player.next_target = str(self.game.round)
 
-		if valid_target:
-			player.update_score_value(points_for_this_throw, subtract=True)
-
-		# Das nächste Ziel ist immer die aktuelle Runde
-		player.next_target = self.game.round
-
-		# 3. Anzeige aktualisieren, um alle Änderungen zu reflektieren.
+		# Anzeige aktualisieren, um alle Änderungen zu reflektieren.
 		player.sb.update_display(player.hits, player.score)
 		
 	def _handle_throw(self, player, ring, segment, players):
@@ -73,27 +68,29 @@ class Shanghai(GameLogicBase):
 		Returns:
 		    str or None: Eine Nachricht über den Spielausgang oder den Wurf, oder None.
 		"""
-		player.throws.append((ring, segment))       
-		points_for_this_throw = 0
-		valid_target = False # Distinguish from progress hit
+		# --- Gewinnbedingung prüfen (Ende der Runden) ---
+		# Diese Prüfung muss VOR der Wurfverarbeitung stattfinden.
+		if self.game.round > self.game.rounds:
+			self.game.end = True
+			winner = max(players, key=lambda p: p.score)
+			return f"🏆 Spiel beendet!\n{winner.name} gewinnt mit {winner.score} Punkten!"
 
-		if str(segment) == str(self.game.round): # Hit the correct number segment
-			valid_target = True
-			player.hits[str(self.game.round)] += 1
-			if ring == "Single":
-				points_for_this_throw = int(segment) # segment is str from dartboard sometimes
-			elif ring == "Double":
-				points_for_this_throw = int(segment) * 2
-			elif ring == "Triple":
-				points_for_this_throw = int(segment) * 3
-		
-		if not valid_target:
-			player.sb.update_score(player.score) # Update for throw history
-			return None # End processing for this throw
+		player.throws.append((ring, segment))
 
-        # Punkte und Anzeige aktualisieren
-		player.update_score_value(points_for_this_throw, subtract=False)
-		player.sb.update_display(player.hits, player.score) # Checkboxen im Scoreboard aktualisieren
+		# Prüfen, ob der Wurf auf das Ziel der aktuellen Runde ging
+		if str(segment) == str(self.game.round):
+			# Trefferzähler erhöhen
+			player.hits[str(self.game.round)] = player.hits.get(str(self.game.round), 0) + 1
+
+			# Punkte berechnen und Score aktualisieren
+			points_for_this_throw = self.game.get_score(ring, segment)
+			player.update_score_value(points_for_this_throw, subtract=False)
+			# Anzeige aktualisieren, um Treffer-Checkboxen zu zeigen
+			player.sb.update_display(player.hits, player.score)
+		else:
+			# Ungültiger Wurf, nur Wurfhistorie aktualisieren
+			player.sb.update_score(player.score)
+			return None
 
 		# --- Gewinnbedingung prüfen ---
         # 1. Shanghai Finish (S, D, T des Zielfelds der Runde)
@@ -109,16 +106,9 @@ class Shanghai(GameLogicBase):
 		if rings_hit_on_target == {"Single", "Double", "Triple"}:
 			self.game.end = True
 			return f"🏆 SHANGHAI ON {target_segment_for_shanghai}!\n{player.name} gewinnt in Runde {self.game.round}!"
-
-		if self.game.round > self.rounds:
-			self.game.end = True
-			winner = max(players, key=lambda p: p.score)
-			return f"🏆 Spiel beendet!\n{winner.name} gewinnt mit {winner.score} Punkten.!"
-
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
-			player.next_target = self.game.round + 1
-			player.sb.update_display(player.hits, player.score) # Checkboxen im Scoreboard aktualisieren
+			player.next_target = str(self.game.round + 1)
 
 		    # Turn ends
 			return None
