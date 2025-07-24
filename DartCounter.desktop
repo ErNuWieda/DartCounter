@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name="DartCounter Deluxe v1.1"
-Comment="Der ultimative Dartcounter"
-Exec=python3 ./main.py
-Icon=assets/dartcounter.ico 
-Terminal=false
-Type=Application
-Categories=Utility;
