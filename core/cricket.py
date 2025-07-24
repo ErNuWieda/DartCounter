@@ -52,10 +52,10 @@ class Cricket(GameLogicBase):
         """
         Setzt den Anfangs-Score auf 0 und initialisiert die Treffer-Map für Cricket.
         """
+        player.state['hits'] = {}
         player.score = 0
-        if self.targets:
-            for target in self.targets:
-                player.hits[target] = 0
+        for target in self.get_targets():
+            player.state['hits'][target] = 0
 
     def get_targets(self):
         """Gibt die Liste der Ziele für den aktuellen Spielmodus zurück."""
@@ -87,11 +87,11 @@ class Cricket(GameLogicBase):
             player.stats['total_marks_scored'] -= marks_scored
 
         # 2. Zustand VOR dem Wurf ermitteln
-        marks_before_throw = player.hits.get(target_hit, 0)
+        marks_before_throw = player.state['hits'].get(target_hit, 0)
         
         # 3. Treffer rückgängig machen
-        player.hits[target_hit] = max(0, marks_before_throw - marks_scored)
-        marks_after_undo = player.hits[target_hit]
+        player.state['hits'][target_hit] = max(0, marks_before_throw - marks_scored)
+        marks_after_undo = player.state['hits'][target_hit]
 
         # 4. Punkte rückgängig machen, falls welche erzielt wurden
         # Punkte wurden nur erzielt, wenn das Ziel schon vorher geschlossen war (>=3 Treffer)
@@ -101,7 +101,7 @@ class Cricket(GameLogicBase):
         scoring_marks_to_undo = max(0, marks_before_throw - max(3, marks_after_undo))
 
         if scoring_marks_to_undo > 0:
-            is_target_open_for_scoring = any(opp != player and opp.hits.get(target_hit, 0) < 3 for opp in players)
+            is_target_open_for_scoring = any(opp != player and opp.state['hits'].get(target_hit, 0) < 3 for opp in players)
             if is_target_open_for_scoring:
                 points_to_undo = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks_to_undo
 
@@ -109,11 +109,11 @@ class Cricket(GameLogicBase):
                     player.update_score_value(points_to_undo, subtract=True)
                 else: # Cut Throat
                     for opp in players:
-                        if opp != player and opp.hits.get(target_hit, 0) < 3:
+                        if opp != player and opp.state['hits'].get(target_hit, 0) < 3:
                             opp.update_score_value(points_to_undo, subtract=True)
 
         # 5. Anzeige aktualisieren
-        player.sb.update_display(player.hits, player.score)
+        player.sb.update_display(player.state['hits'], player.score)
 
     def _get_target_and_marks (self, ring, segment):
         """
@@ -192,8 +192,8 @@ class Cricket(GameLogicBase):
             return None # Throw processed, continue turn
 
         # --- Treffer auf Cricket-Ziel verarbeiten (optimierte Logik) ---
-        marks_before_throw = player.hits.get(target_hit, 0)
-        player.hits[target_hit] += marks_scored
+        marks_before_throw = player.state['hits'].get(target_hit, 0)
+        player.state['hits'][target_hit] += marks_scored
 
         # Berechne, wie viele der geworfenen Marks punktend waren
         # (d.h. auf ein bereits vom Spieler geschlossenes Ziel fielen)
@@ -202,7 +202,7 @@ class Cricket(GameLogicBase):
         points_for_this_throw = 0
         if scoring_marks > 0:
             # Prüfen, ob das Ziel bei mindestens einem Gegner noch offen ist
-            is_target_open_for_scoring = any(opp != player and opp.hits.get(target_hit, 0) < 3 for opp in players)
+            is_target_open_for_scoring = any(opp != player and opp.state['hits'].get(target_hit, 0) < 3 for opp in players)
             if is_target_open_for_scoring:
                 points_for_this_throw = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks
                 
@@ -210,15 +210,15 @@ class Cricket(GameLogicBase):
                     player.update_score_value(points_for_this_throw, subtract=False)
                 else: # Cut Throat
                     for opp in players:
-                        if opp != player and opp.hits.get(target_hit, 0) < 3:
+                        if opp != player and opp.state['hits'].get(target_hit, 0) < 3:
                             opp.score += points_for_this_throw
                             opp.sb.set_score_value(opp.score)
                         
         # Marks und Score aktualisieren
-        player.sb.update_display(player.hits, player.score) 
+        player.sb.update_display(player.state['hits'], player.score) 
 
         # --- Gewinnbedingung prüfen ---
-        all_targets_closed_by_player = all(player.hits.get(target, 0) >= 3 for target in self.targets)
+        all_targets_closed_by_player = all(player.state['hits'].get(target, 0) >= 3 for target in self.targets)
 
         if all_targets_closed_by_player:
             # Ein Spieler gewinnt, wenn er alle Ziele geschlossen hat und

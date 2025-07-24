@@ -1,19 +1,8 @@
 """
-Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
-Es enthält die Game-Klasse, die den Spielablauf, die Spieler,
-Punktestände und Regeln verwaltet.
+Dieses Modul definiert die Hauptlogik für das Spiel "Shanghai".
 """
-import tkinter as tk 
-from tkinter import ttk, messagebox
-from . import player 
-from .player import Player
-from . import scoreboard
-from .scoreboard import ScoreBoard
 from .game_logic_base import GameLogicBase
-
-TARGET_VALUES = {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12, "13": 13, "14": 14, "15": 15, "16": 16, "17": 17, "18": 18, "19": 19, "20": 20}
-
-SEGMENTS_AS_STR = [str(s) for s in range(1, 20)] # "1" bis "20"
+from tkinter import messagebox # Wird vom Test-Setup (patch) benötigt
 
 class Shanghai(GameLogicBase):
 	def __init__(self, game):
@@ -31,8 +20,16 @@ class Shanghai(GameLogicBase):
 				player.hits[target] = 0
 
 	def get_targets(self):
-		for i in range(self.game.rounds):
-			self.targets.append(str(i+1)) 
+		"""
+		Generiert die Zielliste für das Shanghai-Spiel basierend auf der
+		in den Spieloptionen festgelegten Rundenzahl.
+
+		Returns:
+			list[str]: Eine Liste der Zielsegmente als Strings (z.B. ["1", "2", ...]).
+		"""
+		if not self.targets: # Nur generieren, wenn die Liste leer ist
+			for i in range(self.game.rounds):
+				self.targets.append(str(i+1))
 		return self.targets
 
 	def _handle_throw_undo(self, player, ring, segment, players):
@@ -104,8 +101,9 @@ class Shanghai(GameLogicBase):
 		
 		# --- Gewinnbedingungen prüfen ---
 		if rings_hit_on_target == {"Single", "Double", "Triple"}:
+			self.game.shanghai_finish = True
 			self.game.end = True
-			return f"🏆 SHANGHAI ON {target_segment_for_shanghai}!\n{player.name} gewinnt in Runde {self.game.round}!"
+			return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit einem Shanghai auf die {target_segment_for_shanghai}!"
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
 			player.next_target = str(self.game.round + 1)

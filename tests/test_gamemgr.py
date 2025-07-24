@@ -47,7 +47,7 @@ class TestGameManager(unittest.TestCase):
         mock_dialog_instance.opt_in = "Single"
         mock_dialog_instance.opt_atc = "Single"
         mock_dialog_instance.lifes = "5"
-        mock_dialog_instance.shanghai_rounds = "10"
+        mock_dialog_instance.rounds = "10"
 
         # 2. Rufe die zu testende Methode auf
         result = self.gm.configure_game(self.root)
@@ -63,7 +63,7 @@ class TestGameManager(unittest.TestCase):
         self.assertEqual(self.gm.count_to, "501")
         self.assertEqual(self.gm.opt_in, "Single")
         self.assertEqual(self.gm.lifes, "5")
-        self.assertEqual(self.gm.shanghai_rounds, "10")
+        self.assertEqual(self.gm.rounds, "10")
         # Überprüfe, ob auf den Dialog gewartet wurde
         mock_wait_window.assert_called_once_with(mock_dialog_class.return_value)
 

@@ -146,8 +146,3 @@ class ScoreBoard:
                     var.set(True)
                 else:
                     var.set(False)
-
-    def __del__(self):
-        """Zerstört das Scoreboard-Fenster, falls es existiert."""
-        if self.score_window and self.score_window.winfo_exists():
-            self.score_window.destroy()

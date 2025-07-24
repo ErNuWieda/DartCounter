@@ -33,7 +33,7 @@ class GameManager:
         self.opt_out = "Single"
         self.opt_atc = "Single"
         self.lifes = "3"
-        self.shanghai_rounds = "7"
+        self.rounds = "7"
         self.players = []
 
     def configure_game(self, parent_window):
@@ -57,7 +57,7 @@ class GameManager:
             self.opt_out = dialog.opt_out
             self.opt_atc = dialog.opt_atc
             self.lifes = dialog.lifes
-            self.shanghai_rounds = dialog.shanghai_rounds
+            self.rounds = dialog.rounds
             self.players = dialog.players
             return True
         return False
@@ -78,7 +78,7 @@ class GameSettingsDialog(tk.Toplevel):
         self.opt_atc = "Single"
         self.anzahl_spieler = "1"
         self.lifes = "3"
-        self.shanghai_rounds = "7"
+        self.rounds = "7"
         self.max_players = 4
         self.was_started = False
         self.players = []
@@ -152,7 +152,7 @@ class GameSettingsDialog(tk.Toplevel):
                 elif option == "opt_atc": self.opt_atc_select.set(value); self.opt_atc = value
                 elif option == "count_to": self.count_to_select.set(value); self.count_to = value
                 elif option == "lifes": self.lifes_select.set(value); self.lifes = value
-                elif option == "rounds": self.rounds_select.set(value); self.shanghai_rounds = value
+                elif option == "rounds": self.rounds_select.set(value); self.rounds = value
 
         min_players = config.get("min_players", 1)
         if int(self.player_select.get()) < min_players:
@@ -165,7 +165,7 @@ class GameSettingsDialog(tk.Toplevel):
     def set_count_to(self, event=None): self.count_to = self.count_to_select.get()
     def set_elimination_opt_out(self, event=None): self.opt_out = self.el_opt_out_select.get()
     def set_lifes(self, event=None): self.lifes = self.lifes_select.get()
-    def set_rounds(self, event=None): self.shanghai_rounds = self.rounds_select.get()
+    def set_rounds(self, event=None): self.rounds = self.rounds_select.get()
 
     def set_anzahl_spieler(self, event=None):
         self.anzahl_spieler = int(self.player_select.get())

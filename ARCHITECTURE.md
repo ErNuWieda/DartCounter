@@ -26,6 +26,7 @@ Die Anwendung ist in logische, entkoppelte Komponenten mit klar definierten Aufg
 #### **Spiellogik-Klassen** (z.B. `X01`, `Cricket` in `core/`) - Die Strategien
 *   Jede dieser Klassen implementiert die spezifischen Regeln für einen einzelnen Spielmodus (**Strategy Pattern**).
 *   Die `Game`-Klasse wählt mithilfe einer Factory-Methode (`get_game_logic`) die passende Strategie-Klasse aus und delegiert die Verarbeitung von Würfen und die Prüfung von Spielbedingungen (Sieg, Bust) an diese.
+*   Sie sind dafür verantwortlich, den Zustand des `Player`-Objekts (z.B. `player.score`, `player.state`, `player.stats`) entsprechend den Spielregeln zu aktualisieren.
 
 #### **UI-Komponenten** (z.B. `DartBoard`, `ScoreBoard`, `AppSettingsDialog`)
 *   Dies sind reine **View**-Klassen, die für die Darstellung von Informationen und die Entgegennahme von Benutzereingaben zuständig sind.

@@ -1,8 +1,11 @@
 import configparser
 import os
 from datetime import date
+from pathlib import Path
+import shutil
 import psycopg2
 from psycopg2.extras import DictCursor
+from .settings_manager import get_app_data_dir, get_application_root_dir
 
 class DatabaseManager:
     """
@@ -34,13 +37,39 @@ class DatabaseManager:
         self.is_connected = False
         
         config = configparser.ConfigParser()
-        config_path = os.path.join(os.path.dirname(__file__), '..', 'config.ini')
+        
+        # --- Suche nach config.ini an priorisierten Orten ---
+        # 1. Im Benutzer-spezifischen Anwendungsordner (bevorzugt für installierte Version)
+        user_config_path = get_app_data_dir() / 'config.ini'
+        
+        # 2. Im Hauptverzeichnis der Anwendung (für Entwicklung oder portable Nutzung)
+        app_root_path = get_application_root_dir()
+        root_config_path = app_root_path / 'config.ini'
 
-        if not os.path.exists(config_path):
-            print("INFO: 'config.ini' nicht gefunden. Datenbankfunktionen (Highscores) sind deaktiviert.")
+        config_path_to_use = None
+        if user_config_path.exists():
+            config_path_to_use = user_config_path
+            print(f"INFO: Lade Datenbank-Konfiguration von: {user_config_path}")
+        elif root_config_path.exists():
+            config_path_to_use = root_config_path
+            print(f"INFO: Lade Datenbank-Konfiguration von: {root_config_path}")
+        else:
+            example_config_path = app_root_path / 'config.ini.example'
+            if example_config_path.exists():
+                # --- Automatische Erstellung der Konfigurationsdatei ---
+                try:
+                    shutil.copy(example_config_path, user_config_path)
+                    config_path_to_use = user_config_path
+                    print(f"INFO: Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}")
+                    print("INFO: Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen.")
+                except Exception as e:
+                    print(f"FEHLER: Konnte die Standard-Konfigurationsdatei nicht erstellen: {e}")
+        
+        if not config_path_to_use or not config_path_to_use.exists():
+            print("INFO: 'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis gefunden. Datenbankfunktionen sind deaktiviert.")
             return
 
-        config.read(config_path)
+        config.read(config_path_to_use)
 
         try:
             db_config = config['postgresql']
@@ -272,10 +301,9 @@ class DatabaseManager:
         except (Exception, psycopg2.Error) as error:
             print(f"Fehler beim Zurücksetzen der Highscores: {error}")
 
-    def __del__(self):
-        """
-        Destruktor, der sicherstellt, dass die Datenbankverbindung geschlossen wird,
-        wenn die Instanz des DatabaseManagers zerstört wird.
-        """
+    def close_connection(self):
+        """Schließt die Datenbankverbindung, falls sie offen ist."""
         if self.conn:
             self.conn.close()
+            self.is_connected = False
+            print("INFO: Datenbankverbindung geschlossen.")

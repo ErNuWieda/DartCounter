@@ -108,10 +108,10 @@ class Game:
                 pass
         
         for player in self.players:
-            if player.sb and player.sb.root:
+            if player.sb and player.sb.score_window and player.sb.score_window.winfo_exists():
                 try:
                     # Zerstört das Scoreboard-Fenster des Spielers
-                    player.sb.root.destroy()
+                    player.sb.score_window.destroy()
                 except tk.TclError:
                     pass
         
@@ -405,6 +405,10 @@ class Game:
 
             msg = self.game._handle_throw(player, ring, segment, self.players)
             
+            # Wenn eine Gewinn-Nachricht vorhanden ist, wird der Prefix hier hinzugefügt.
+            if msg and self.shanghai_finish:
+                msg = "SHANGHAI-FINISH!\n" + msg
+
             # Soundeffekt für einen Gewinn abspielen.
             # Dies geschieht, bevor die finale Gewinn-MessageBox im Dartboard angezeigt wird.
             if self.sound_manager:

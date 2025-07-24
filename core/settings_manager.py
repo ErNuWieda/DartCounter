@@ -1,7 +1,47 @@
 import json
 import os
+import platform
+from pathlib import Path
+import sys
 
-SETTINGS_FILE = "settings.json"
+def get_application_root_dir() -> Path:
+    """
+    Gibt das Wurzelverzeichnis der Anwendung zurück.
+    Funktioniert sowohl für Skriptausführung als auch für eine gepackte Anwendung.
+    """
+    if getattr(sys, 'frozen', False):
+        # Gepackte Anwendung (PyInstaller, cx_freeze, etc.)
+        return Path(sys.executable).parent
+    else:
+        # Skriptausführung
+        return Path(__file__).resolve().parent.parent
+
+def get_app_data_dir() -> Path:
+    """
+    Gibt das plattformspezifische Anwendungsdaten-Verzeichnis zurück.
+    Fängt Fehler ab und fällt auf das Anwendungsverzeichnis zurück.
+    """
+    try:
+        system = platform.system()
+        app_name = "DartCounter"
+
+        if system == "Windows":
+            appdata = os.getenv('APPDATA')
+            if not appdata:
+                raise OSError("APPDATA Umgebungsvariable nicht gefunden.")
+            path = Path(appdata) / app_name
+        elif system == "Darwin": # macOS
+            path = Path.home() / "Library" / "Application Support" / app_name
+        else: # Linux
+            path = Path.home() / ".config" / app_name.lower()
+
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    except (OSError, TypeError) as e:
+        print(f"WARNUNG: Konnte das Benutzer-spezifische Datenverzeichnis nicht erstellen: {e}")
+        print("WARNUNG: Fallback auf das Anwendungsverzeichnis für Einstellungen und Konfiguration.")
+        return get_application_root_dir()
+
 
 class SettingsManager:
     """
@@ -25,10 +65,10 @@ class SettingsManager:
         """
         Initialisiert den SettingsManager.
 
-        Setzt den Pfad zur Einstellungsdatei und löst sofort das Laden der
-        Einstellungen in den Speicher aus.
+        Ermittelt den Pfad zur Einstellungsdatei und löst sofort das Laden
+        der Einstellungen in den Speicher aus.
         """
-        self.filepath = SETTINGS_FILE
+        self.filepath = get_app_data_dir() / "settings.json"
         self.settings = self._load_settings()
 
     def _get_defaults(self):
@@ -44,7 +84,7 @@ class SettingsManager:
             dict: Ein Dictionary mit den Standardeinstellungen.
         """
         return {
-            'sound_enabled': True,
+            'sound_enabled': False,
             'theme': 'light',
             'last_player_names': ["Sp1", "Sp2", "Sp3", "Sp4"]
         }

@@ -137,7 +137,7 @@ class DartBoard:
 
         def _cleanup_and_quit():
             dialog.destroy()
-            self.spiel.__del__()
+            self.spiel.destroy()
             if self.root.winfo_exists():
                 self.root.destroy()
 
@@ -241,8 +241,6 @@ class DartBoard:
         ring, segment = self.get_ring_segment(event.x+7, event.y+7)
         msg = self.spiel.throw(ring, segment)
         if msg:
-            if self.spiel.shanghai_finish:
-                msg = "SHANGHAI-FINISH!\n"+msg
             tk.messagebox.showinfo("Dartcounter", msg, parent=self.root)
 
     def _create_board(self):

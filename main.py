@@ -142,7 +142,7 @@ class App:
                 "opt_atc": source.opt_atc,
                 "count_to": source.count_to,
                 "lifes": source.lifes,
-                "rounds": source.shanghai_rounds
+                "rounds": source.rounds
             }
         # Annahme: source ist ein Dictionary aus einer Speicherdatei
         return {
@@ -216,6 +216,8 @@ class App:
         if confirm:
             if self.settings_manager:
                 self.settings_manager.save_settings()
+            if self.highscore_manager and self.highscore_manager.db_manager:
+                self.highscore_manager.db_manager.close_connection()
             if self.game_instance:
                 self.game_instance.destroy() # Explizit die Ressourcen des Spiels freigeben
             self.root.quit()

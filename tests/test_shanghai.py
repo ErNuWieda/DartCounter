@@ -73,7 +73,7 @@ class TestShanghai(GameLogicTestBase):
         result = self.shanghai_logic._handle_throw(player, "Triple", 5, []) # Der letzte Wurf löst die Prüfung aus
         
         self.assertTrue(self.mock_game.end)
-        self.assertIn("SHANGHAI ON 5", result)
+        self.assertIn("Shanghai auf die 5", result)
 
     def test_end_of_rounds_win_condition(self):
         """Testet, ob nach der letzten Runde der Spieler mit den meisten Punkten gewinnt."""

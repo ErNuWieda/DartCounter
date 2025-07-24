@@ -1,12 +1,22 @@
 import unittest
 from unittest.mock import patch, mock_open
 import json
+from pathlib import Path
 
 # Klasse, die getestet wird
-from core.settings_manager import SettingsManager, SETTINGS_FILE
+from core.settings_manager import SettingsManager
 
 class TestSettingsManager(unittest.TestCase):
     """Testet die Logik zum Laden und Speichern von Anwendungseinstellungen."""
+
+    def setUp(self):
+        """Patcht die Hilfsfunktion, um den Dateipfad zu kontrollieren."""
+        patcher = patch('core.settings_manager.get_app_data_dir')
+        self.mock_get_app_data_dir = patcher.start()
+        self.mock_app_data_dir = Path('/fake/appdata/dir')
+        self.mock_get_app_data_dir.return_value = self.mock_app_data_dir
+        self.expected_filepath = self.mock_app_data_dir / "settings.json"
+        self.addCleanup(patcher.stop)
 
     @patch('os.path.exists', return_value=False)
     def test_load_settings_no_file_uses_defaults(self, mock_exists):
@@ -16,6 +26,7 @@ class TestSettingsManager(unittest.TestCase):
         
         self.assertEqual(sm.settings, defaults)
         self.assertEqual(sm.get('theme'), 'light')
+        mock_exists.assert_called_once_with(self.expected_filepath)
 
     @patch('os.path.exists', return_value=True)
     def test_load_settings_with_existing_file(self, mock_exists):
@@ -27,7 +38,7 @@ class TestSettingsManager(unittest.TestCase):
             self.assertEqual(sm.get('theme'), 'dark')
             self.assertFalse(sm.get('sound_enabled'))
             self.assertEqual(sm.get('last_player_names'), ['A', 'B'])
-            mock_file.assert_called_once_with(SETTINGS_FILE, 'r', encoding='utf-8')
+            mock_file.assert_called_once_with(self.expected_filepath, 'r', encoding='utf-8')
 
     @patch('os.path.exists', return_value=True)
     def test_load_settings_with_partial_file_merges_defaults(self, mock_exists):
@@ -37,7 +48,7 @@ class TestSettingsManager(unittest.TestCase):
         with patch('builtins.open', mock_open(read_data=mock_data)):
             sm = SettingsManager()
             self.assertEqual(sm.get('theme'), 'dark') # Wert aus Datei
-            self.assertTrue(sm.get('sound_enabled')) # Wert aus Defaults
+            self.assertFalse(sm.get('sound_enabled')) # Wert aus Defaults
             self.assertIsNotNone(sm.get('last_player_names')) # Wert aus Defaults
 
     @patch('os.path.exists', return_value=True)
@@ -75,7 +86,7 @@ class TestSettingsManager(unittest.TestCase):
         sm.save_settings()
         
         # Überprüfen, ob die Datei zum Schreiben geöffnet wurde
-        mock_file.assert_called_once_with(SETTINGS_FILE, 'w', encoding='utf-8')
+        mock_file.assert_called_once_with(self.expected_filepath, 'w', encoding='utf-8')
         
         # Überprüfen, ob json.dump mit den korrekten, aktualisierten Daten aufgerufen wurde
         self.assertTrue(mock_json_dump.called)
@@ -83,4 +94,4 @@ class TestSettingsManager(unittest.TestCase):
         
         self.assertEqual(saved_data['theme'], 'dark')
         self.assertEqual(saved_data['new_setting'], 123)
-        self.assertTrue(saved_data['sound_enabled']) # Standardwert sollte noch da sein
+        self.assertFalse(saved_data['sound_enabled']) # Standardwert sollte noch da sein

@@ -177,6 +177,9 @@ class Player:
         """
         Berechnet die Gesamtzahl der in diesem Spiel vom Spieler geworfenen Darts.
 
+        Diese Methode wird für die Anzeige in Gewinn-Nachrichten und für die
+        MPR-Berechnung verwendet, wo eine rundenbasierte Zählung erforderlich ist.
+
         Returns:
             int: Die Gesamtzahl der geworfenen Darts.
         """
@@ -185,6 +188,9 @@ class Player:
     def get_mpr(self):
         """
         Berechnet und gibt die "Marks Per Round" (MPR) für Cricket-Spiele zurück.
+
+        Die Berechnung basiert auf der Gesamtzahl der geworfenen Darts in der
+        Partie, um eine faire "Marks pro 3 Darts"-Rate zu ermitteln.
 
         Returns:
             float: Die MPR. Gibt 0.0 zurück, wenn noch keine Darts geworfen
@@ -195,7 +201,6 @@ class Player:
             return 0.0
 
         total_marks = self.stats.get('total_marks_scored', 0)
-        # MPR ist die durchschnittliche Anzahl der Marks pro 3 Darts.
         return (total_marks / total_darts) * 3
 
     def get_checkout_percentage(self):

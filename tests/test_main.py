@@ -64,7 +64,7 @@ class TestApp(unittest.TestCase):
         self.assertIsNotNone(self.app.highscore_manager)
         self.assertIsNotNone(self.app.player_stats_manager)
         self.assertIsNone(self.app.game_instance)
-        self.assertEqual(self.app.version, "v1.2")
+        self.assertEqual(self.app.version, "v1.2.0")
 
     @patch('main.GameManager')
     @patch('main.App._initialize_game_session')

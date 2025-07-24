@@ -38,24 +38,24 @@ class TestAtC(GameLogicTestBase):
         """Testet, ob ein Spieler korrekt für ATC initialisiert wird."""
         player = self._create_player()
         self.assertEqual(player.score, 0)
-        self.assertEqual(player.next_target, "1")
-        self.assertEqual(player.hits.get("1"), 0)
-        self.assertIn("20", player.hits) # Prüfen, ob alle Ziele initialisiert sind
+        self.assertEqual(player.state['next_target'], "1")
+        self.assertEqual(player.state['hits'].get("1"), 0)
+        self.assertIn("20", player.state['hits']) # Prüfen, ob alle Ziele initialisiert sind
 
     def test_valid_hit_advances_target(self):
         """Testet, ob ein gültiger Treffer das nächste Ziel korrekt setzt."""
         player = self._create_player()
         self.atc_logic._handle_throw(player, "Single", 1, [])
-        self.assertEqual(player.hits["1"], 1, "Ziel 1 sollte als getroffen markiert sein.")
-        self.assertEqual(player.next_target, "2", "Das nächste Ziel sollte 2 sein.")
+        self.assertEqual(player.state['hits']["1"], 1, "Ziel 1 sollte als getroffen markiert sein.")
+        self.assertEqual(player.state['next_target'], "2", "Das nächste Ziel sollte 2 sein.")
         self.mock_messagebox.showerror.assert_not_called()
 
     def test_invalid_hit_shows_error(self):
         """Testet, ob ein Wurf auf das falsche Ziel eine Fehlermeldung auslöst."""
         player = self._create_player()
         self.atc_logic._handle_throw(player, "Single", 5, []) # Falsches Ziel
-        self.assertEqual(player.hits["1"], 0, "Ziel 1 sollte unberührt bleiben.")
-        self.assertEqual(player.next_target, "1", "Das Ziel sollte 1 bleiben.")
+        self.assertEqual(player.state['hits']["1"], 0, "Ziel 1 sollte unberührt bleiben.")
+        self.assertEqual(player.state['next_target'], "1", "Das Ziel sollte 1 bleiben.")
         self.mock_messagebox.showerror.assert_called_once()
 
     def test_valid_hit_with_double_option(self):
@@ -65,8 +65,8 @@ class TestAtC(GameLogicTestBase):
         player = self._create_player()
 
         self.atc_logic._handle_throw(player, "Double", 1, [])
-        self.assertEqual(player.hits["1"], 1)
-        self.assertEqual(player.next_target, "2")
+        self.assertEqual(player.state['hits']["1"], 1)
+        self.assertEqual(player.state['next_target'], "2")
         self.mock_messagebox.showerror.assert_not_called()
 
     def test_win_condition(self):
@@ -87,9 +87,9 @@ class TestAtC(GameLogicTestBase):
         """Testet, ob die Undo-Funktion den Zustand korrekt wiederherstellt."""
         player = self._create_player()
         self.atc_logic._handle_throw(player, "Single", 1, [])
-        self.assertEqual(player.next_target, "2")
+        self.assertEqual(player.state['next_target'], "2")
 
         self.atc_logic._handle_throw_undo(player, "Single", 1, [])
         
-        self.assertEqual(player.next_target, "1", "Das Ziel sollte auf 1 zurückgesetzt werden.")
-        self.assertEqual(player.hits["1"], 0, "Die Treffer auf Ziel 1 sollten zurückgesetzt werden.")
+        self.assertEqual(player.state['next_target'], "1", "Das Ziel sollte auf 1 zurückgesetzt werden.")
+        self.assertEqual(player.state['hits']["1"], 0, "Die Treffer auf Ziel 1 sollten zurückgesetzt werden.")

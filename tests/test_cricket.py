@@ -38,9 +38,9 @@ class TestCricket(GameLogicTestBase):
         """Testet, ob ein Spieler korrekt für Cricket initialisiert wird."""
         player = self._create_players(1)[0]
         self.assertEqual(player.score, 0)
-        self.assertEqual(player.hits.get("20"), 0)
-        self.assertIn("15", player.hits)
-        self.assertNotIn("14", player.hits, "14 sollte kein Ziel im Standard-Cricket sein.")
+        self.assertEqual(player.state['hits'].get("20"), 0)
+        self.assertIn("15", player.state['hits'])
+        self.assertNotIn("14", player.state['hits'], "14 sollte kein Ziel im Standard-Cricket sein.")
 
     def test_valid_hit_adds_marks(self):
         """Testet, ob ein gültiger Treffer die Trefferzahl korrekt erhöht."""
@@ -48,11 +48,11 @@ class TestCricket(GameLogicTestBase):
         
         # Ein Single-Treffer
         self.cricket_logic._handle_throw(player, "Single", 20, [])
-        self.assertEqual(player.hits["20"], 1)
+        self.assertEqual(player.state['hits']["20"], 1)
 
         # Ein Double-Treffer auf dasselbe Ziel
         self.cricket_logic._handle_throw(player, "Double", 20, [])
-        self.assertEqual(player.hits["20"], 3, "Ein Single und ein Double sollten das Ziel schließen.")
+        self.assertEqual(player.state['hits']["20"], 3, "Ein Single und ein Double sollten das Ziel schließen.")
 
     def test_hit_on_closed_target_scores_points(self):
         """Testet, ob ein Treffer auf ein geschlossenes Ziel Punkte gibt."""
@@ -60,7 +60,7 @@ class TestCricket(GameLogicTestBase):
         player1, player2 = players
 
         # Spieler 1 schließt die 20
-        player1.hits["20"] = 3
+        player1.state['hits']["20"] = 3
         
         # Spieler 1 wirft erneut auf die 20
         self.cricket_logic._handle_throw(player1, "Single", 20, players)
@@ -74,8 +74,8 @@ class TestCricket(GameLogicTestBase):
         player1, player2 = players
 
         # Beide Spieler schließen die 20
-        player1.hits["20"] = 3
-        player2.hits["20"] = 3
+        player1.state['hits']["20"] = 3
+        player2.state['hits']["20"] = 3
 
         # Spieler 1 wirft erneut auf die 20
         self.cricket_logic._handle_throw(player1, "Single", 20, players)
@@ -89,7 +89,7 @@ class TestCricket(GameLogicTestBase):
 
         # Simuliere, dass Spieler 1 alle Ziele geschlossen hat und mehr Punkte hat
         for target in self.cricket_logic.get_targets():
-            player1.hits[target] = 3
+            player1.state['hits'][target] = 3
         player1.score = 100
         player2.score = 50
 
@@ -106,7 +106,7 @@ class TestCricket(GameLogicTestBase):
 
         # Spieler 1 schließt alle Ziele, hat aber weniger Punkte
         for target in self.cricket_logic.get_targets():
-            player1.hits[target] = 3
+            player1.state['hits'][target] = 3
         player1.score = 50
         player2.score = 100
 
@@ -128,7 +128,7 @@ class TestCricket(GameLogicTestBase):
         
         # Spieler 2 schließt alle Ziele und erreicht damit 100 Punkte.
         for target in self.cricket_logic.get_targets():
-            player2.hits[target] = 3
+            player2.state['hits'][target] = 3
         player2.score = 80
 
         # Aktion: Spieler 2 wirft eine S20, um den Score auf 100 zu erhöhen.
@@ -149,11 +149,11 @@ class TestCricket(GameLogicTestBase):
 
         # Setup:
         # Player 1 hat die 20 geschlossen.
-        player1.hits["20"] = 3
+        player1.state['hits']["20"] = 3
         # Player 2 hat die 20 offen.
-        player2.hits["20"] = 1
+        player2.state['hits']["20"] = 1
         # Player 3 hat die 20 ebenfalls geschlossen.
-        player3.hits["20"] = 3
+        player3.state['hits']["20"] = 3
 
         # Aktion: Spieler 1 trifft die 20 erneut.
         self.cricket_logic._handle_throw(player1, "Single", 20, players)
@@ -172,7 +172,7 @@ class TestCricket(GameLogicTestBase):
 
         # Setup: Spieler 1 schließt alle Ziele und hat den niedrigeren Score.
         for target in self.cricket_logic.get_targets():
-            player1.hits[target] = 3
+            player1.state['hits'][target] = 3
         player1.score = 50
         player2.score = 100
 
@@ -192,7 +192,7 @@ class TestCricket(GameLogicTestBase):
 
         # Setup: Spieler 1 schließt alle Ziele und hat den gleichen (niedrigen) Score wie Spieler 2.
         for target in self.cricket_logic.get_targets():
-            player1.hits[target] = 3
+            player1.state['hits'][target] = 3
         player1.score = 50
         player2.score = 50
 
@@ -213,7 +213,7 @@ class TestCricket(GameLogicTestBase):
 
         # Setup: Spieler 1 schließt alle Ziele, hat aber den höheren Score.
         for target in self.cricket_logic.get_targets():
-            player1.hits[target] = 3
+            player1.state['hits'][target] = 3
         player1.score = 100
         player2.score = 50
 
@@ -232,13 +232,13 @@ class TestCricket(GameLogicTestBase):
 
         # Aktion: Ein Treffer
         self.cricket_logic._handle_throw(player, "Double", 20, [])
-        self.assertEqual(player.hits["20"], 2)
+        self.assertEqual(player.state['hits']["20"], 2)
 
         # Aktion: Rückgängig machen
         self.cricket_logic._handle_throw_undo(player, "Double", 20, [])
 
         # Überprüfung:
-        self.assertEqual(player.hits["20"], 0, "Die Treffer auf Ziel 20 sollten zurückgesetzt sein.")
+        self.assertEqual(player.state['hits']["20"], 0, "Die Treffer auf Ziel 20 sollten zurückgesetzt sein.")
 
     def test_undo_scoring_hit_restores_score_and_marks(self):
         """Testet, ob das Rückgängigmachen eines punktenden Wurfs Score und Marks wiederherstellt."""
@@ -246,17 +246,17 @@ class TestCricket(GameLogicTestBase):
         player1, player2 = players
 
         # Setup: Spieler 1 schließt die 20 und wirft dann einen punktenden Dart.
-        player1.hits["20"] = 3
+        player1.state['hits']["20"] = 3
         self.cricket_logic._handle_throw(player1, "Single", 20, players)
         self.assertEqual(player1.score, 20)
-        self.assertEqual(player1.hits["20"], 4)
+        self.assertEqual(player1.state['hits']["20"], 4)
 
         # Aktion: Rückgängig machen
         self.cricket_logic._handle_throw_undo(player1, "Single", 20, players)
 
         # Überprüfung:
         self.assertEqual(player1.score, 0, "Der Punktestand sollte auf 0 zurückgesetzt sein.")
-        self.assertEqual(player1.hits["20"], 3, "Die Treffer sollten auf 3 zurückgesetzt sein.")
+        self.assertEqual(player1.state['hits']["20"], 3, "Die Treffer sollten auf 3 zurückgesetzt sein.")
 
     def test_undo_cut_throat_scoring_hit_restores_opponent_score(self):
         """Testet, ob Undo bei Cut Throat die Strafpunkte des Gegners korrekt entfernt."""
@@ -266,7 +266,7 @@ class TestCricket(GameLogicTestBase):
         player1, player2 = players
 
         # Setup: Spieler 1 schließt die 19 und gibt Spieler 2 Strafpunkte.
-        player1.hits["19"] = 3
+        player1.state['hits']["19"] = 3
         self.cricket_logic._handle_throw(player1, "Double", 19, players)
         self.assertEqual(player2.score, 38)
 
@@ -275,4 +275,4 @@ class TestCricket(GameLogicTestBase):
 
         # Überprüfung:
         self.assertEqual(player2.score, 0, "Die Strafpunkte von Spieler 2 sollten entfernt worden sein.")
-        self.assertEqual(player1.hits["19"], 3, "Die Treffer von Spieler 1 sollten auf 3 zurückgesetzt sein.")
+        self.assertEqual(player1.state['hits']["19"], 3, "Die Treffer von Spieler 1 sollten auf 3 zurückgesetzt sein.")
