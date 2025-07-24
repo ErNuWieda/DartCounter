@@ -1,13 +1,24 @@
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
 Dieses Modul definiert die Hauptlogik für das Spiel "Elimination".
 Es enthält die Elimination-Klasse, die den Spielablauf und die Regeln verwaltet.
 """
-import tkinter as tk 
-from tkinter import ttk, messagebox
-from . import player 
-from .player import Player
-from . import scoreboard
-from .scoreboard import ScoreBoard
+from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 class Elimination(GameLogicBase):

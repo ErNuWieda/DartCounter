@@ -107,8 +107,6 @@ class Shanghai(GameLogicBase):
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
 			player.next_target = str(self.game.round + 1)
-
-		    # Turn ends
+			# Turn ends
 			return None
-        
 		return None # Throw processed, turn continues

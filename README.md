@@ -1,5 +1,9 @@
 # Dartcounter Deluxe
 
+[![CI](https://github.com/ErNuWieda/DartCounter/actions/workflows/ci.yml/badge.svg)](https://github.com/ErNuWieda/DartCounter/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+
 Ein einfacher, aber funktionsreicher Dart-Zähler, entwickelt mit Python und Tkinter.
 Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für verschiedene Dartspiele zu bieten, um das manuelle Zählen von Punkten zu ersetzen.
 

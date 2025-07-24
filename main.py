@@ -1,6 +1,22 @@
 #!python3 
 # -*- coding: utf-8 -*-
 
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import tkinter as tk 
 from tkinter import ttk, messagebox, Menu
 from PIL import Image, ImageTk
@@ -224,7 +240,14 @@ class App:
 
     def about(self):
         """Zeigt ein "Über"-Dialogfenster mit Informationen zur Anwendung an."""
-        messagebox.showinfo(f"Dartcounter {self.version}", "Idee, Konzept und Code\nvon Martin Hehl\naka airnooweeda\n\nOptimiert mit KI-Unterstützung\n\n©2025 airnooweeda", parent=self.root)
+        about_text = (
+            "Idee, Konzept und Code\n"
+            "von Martin Hehl (airnooweeda)\n\n"
+            "Ein besonderer Dank geht an Gemini Code Assist\n"
+            "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
+            f"© 2025 Martin Hehl"
+        )
+        messagebox.showinfo(f"Dartcounter {self.version}", about_text, parent=self.root)
 
 if __name__ == "__main__":
     root = tk.Tk()
