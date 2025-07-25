@@ -202,6 +202,19 @@ Inno Setup erstellt eine einzelne `setup.exe`-Datei im `installer/Output`-Verzei
 
 ---
 
+## Contributing & Support
+
+Dieses Projekt lebt von der Community. Beiträge sind herzlich willkommen!
+
+*   **Fehler melden & Wünsche äußern:** Erstelle einfach ein [Issue](https://github.com/ErNuWieda/DartCounter/issues).
+*   **Code beitragen:** Forke das Repository und erstelle einen [Pull Request](https://github.com/ErNuWieda/DartCounter/pulls).
+
+Wenn dir dieses Projekt gefällt und du die Weiterentwicklung unterstützen möchtest, kannst du dem Entwickler einen Kaffee spendieren. Jede Unterstützung wird sehr geschätzt!
+
+*(Platzhalter für einen zukünftigen "Donate"-Button)*
+
+---
+
 ## Danksagung
 
 Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Strukturierung des Codes und der Erstellung von Dokumentation von unschätzbarem Wert. Viele der Implementierungen und Verbesserungen wurden durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ verbessert.

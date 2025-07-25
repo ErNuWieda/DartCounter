@@ -19,83 +19,121 @@ import platform
 import shutil
 import subprocess
 import sys
+import pathlib
 
 # --- Konfiguration ---
 VERSION = "1.2.0"
 APP_NAME = "DartCounter"
-SCRIPT_NAME = "main.py"
+SCRIPT_NAME = pathlib.Path("main.py")
+ASSETS_DIR = pathlib.Path("assets")
 
 def main():
     """Führt den plattformspezifischen Build-Prozess aus."""
+    # --- Vorab-Prüfungen ---
+    print(">>> Schritt 0: Überprüfe Voraussetzungen...")
+    if not SCRIPT_NAME.is_file():
+        print(f"\nFEHLER: Hauptskript '{SCRIPT_NAME}' nicht gefunden.")
+        print("Stellen Sie sicher, dass Sie das Skript im Hauptverzeichnis des Projekts ausführen.")
+        sys.exit(1)
+
+    if not ASSETS_DIR.is_dir():
+        print(f"\nFEHLER: Asset-Verzeichnis '{ASSETS_DIR}' nicht gefunden.")
+        sys.exit(1)
+
+    try:
+        import PyInstaller
+        print(">>> PyInstaller-Modul gefunden.")
+    except ImportError:
+        print("\nFEHLER: Das Modul 'PyInstaller' wurde nicht gefunden.")
+        print(f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:")
+        print("pip install pyinstaller")
+        sys.exit(1)
+
     # --- Plattformspezifisches Setup ---
     system = platform.system()
     if system == "Windows":
         platform_name = "Windows"
-        # PyInstaller --add-data separator for Windows is ';'
         data_separator = ";"
-        # The final executable/bundle in the dist folder
         dist_artifact_name = f"{APP_NAME}.exe"
     elif system == "Darwin":  # macOS
         platform_name = "macOS"
         data_separator = ":"
         dist_artifact_name = f"{APP_NAME}.app"
-    elif system == "Linux":
+    else:  # Linux ist das einzig andere unterstützte System
         platform_name = "Linux"
         data_separator = ":"
         dist_artifact_name = APP_NAME
-    else:
-        print(f"FEHLER: Nicht unterstütztes Betriebssystem: {system}")
-        sys.exit(1)
 
-    release_dir = f"{APP_NAME}_{platform_name}_v{VERSION}"
-    zip_filename_base = release_dir
+    release_dir = pathlib.Path(f"{APP_NAME}_{platform_name}_v{VERSION}")
+    zip_filename_base = str(release_dir)
 
-    print(f">>> Erstelle Release für {platform_name} v{VERSION}...")
+    print(f"\n>>> Erstelle Release für {platform_name} v{VERSION}...")
 
     # --- Schritt 1: Alte Build-Artefakte bereinigen ---
     print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
-    for path in [release_dir, f"{zip_filename_base}.zip", "build", "dist", f"{APP_NAME}.spec"]:
-        if os.path.isdir(path):
+    for path in [release_dir, pathlib.Path(f"{zip_filename_base}.zip"), pathlib.Path("build"), pathlib.Path("dist"), pathlib.Path(f"{APP_NAME}.spec")]:
+        if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
-        elif os.path.isfile(path):
+        elif path.is_file():
             try:
-                os.remove(path)
+                path.unlink()
             except OSError:
-                pass # Ignore errors if file is in use
+                pass  # Fehler ignorieren, wenn Datei in Gebrauch ist
 
     # --- Schritt 2: Anwendung mit PyInstaller bauen ---
-    print(">>> Schritt 2: Anwendung mit PyInstaller bauen...")
+    print("\n>>> Schritt 2: Anwendung mit PyInstaller bauen...")
+    # Dies ist die robusteste Methode, PyInstaller aufzurufen. Sie verwendet denselben
+    # Python-Interpreter, der dieses Skript ausführt, und umgeht so PATH-Probleme.
     pyinstaller_command = [
-        "pyinstaller", "--noconfirm", "--onefile", "--windowed",
+        sys.executable, "-m", "PyInstaller",
+        "--noconfirm",
+        "--onefile",
+        "--windowed",
         f"--name={APP_NAME}",
-        f"--add-data=assets{data_separator}assets",
+        f"--add-data={ASSETS_DIR}{data_separator}{ASSETS_DIR}",
         "--hidden-import=PIL._tkinter_finder",
-        SCRIPT_NAME
+        str(SCRIPT_NAME)
     ]
 
-    result = subprocess.run(pyinstaller_command, capture_output=True, text=True, encoding='utf-8')
+    print("Führe Befehl aus:")
+    print(f"  {' '.join(pyinstaller_command)}")
+
+    # Führe den Befehl aus und zeige die Ausgabe in Echtzeit an. KEIN capture_output.
+    result = subprocess.run(pyinstaller_command)
+
     if result.returncode != 0:
-        print("FEHLER: PyInstaller ist fehlgeschlagen.")
-        print(result.stdout)
-        print(result.stderr)
+        print("\n" + "="*50)
+        print("FEHLER: PyInstaller ist mit einem Fehler fehlgeschlagen.")
+        print(f"Exit-Code: {result.returncode}")
+        print("Bitte überprüfen Sie die obige Ausgabe von PyInstaller auf die genaue Fehlermeldung.")
+        print("Stellen Sie sicher, dass alle Abhängigkeiten aus requirements.txt installiert sind.")
+        print("="*50 + "\n")
         sys.exit(1)
+    print(">>> PyInstaller erfolgreich abgeschlossen.")
 
     # --- Schritt 3: Release-Verzeichnis erstellen und Dateien kopieren ---
-    print(f">>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
-    os.makedirs(release_dir, exist_ok=True)
-    shutil.move(os.path.join("dist", dist_artifact_name), os.path.join(release_dir, dist_artifact_name))
-    shutil.copy("config.ini.example", release_dir)
-    shutil.copy("README.md", release_dir)
+    print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
+    release_dir.mkdir(exist_ok=True)
+
+    source_artifact = pathlib.Path("dist") / dist_artifact_name
+    if source_artifact.exists():
+        shutil.move(str(source_artifact), str(release_dir / dist_artifact_name))
+    else:
+        print(f"FEHLER: Build-Artefakt '{source_artifact}' wurde nicht gefunden!")
+        sys.exit(1)
+
+    shutil.copy("config.ini.example", str(release_dir))
+    shutil.copy("README.md", str(release_dir))
 
     # --- Schritt 4: ZIP-Archiv erstellen ---
-    print(f">>> Schritt 4: ZIP-Archiv '{zip_filename_base}.zip' erstellen...")
-    shutil.make_archive(zip_filename_base, 'zip', root_dir='.', base_dir=release_dir)
+    print(f"\n>>> Schritt 4: ZIP-Archiv '{zip_filename_base}.zip' erstellen...")
+    shutil.make_archive(zip_filename_base, 'zip', root_dir='.', base_dir=str(release_dir))
 
     # --- Schritt 5: Temporäre Build-Artefakte bereinigen ---
-    print(">>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
+    print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
     shutil.rmtree("build")
     shutil.rmtree("dist")
-    os.remove(f"{APP_NAME}.spec")
+    pathlib.Path(f"{APP_NAME}.spec").unlink()
     shutil.rmtree(release_dir)
 
     print(f"\n{'='*50}\n✅ Fertig! Das Release-Paket befindet sich in: {zip_filename_base}.zip\n{'='*50}")
