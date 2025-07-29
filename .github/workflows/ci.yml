@@ -57,7 +57,10 @@ jobs:
     - name: Version aus Tag extrahieren
       id: get_version
       # Entfernt das 'v' vom Tag-Namen, z.B. v1.2.0 -> 1.2.0
-      run: echo "VERSION=${{ github.event.release.tag_name#v }}" >> $GITHUB_ENV
+      shell: bash # Explizit angeben, um sicherzustellen, dass die Syntax funktioniert
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        echo "VERSION=${TAG#v}" >> $GITHUB_ENV
 
     - name: Python 3.11 einrichten
       uses: actions/setup-python@v5
