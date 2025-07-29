@@ -29,7 +29,7 @@ Dies ist ein großes Release, das den Dartcounter von einem einfachen Prototyp z
 
 ### 🐛 Bugfixes & Stabilität
 
-*   **Umfassende Tests:** Eine Test-Suite mit über 115 Unit-Tests wurde implementiert, um die Kernlogik abzusichern und Regressionen zu verhindern.
+*   **Umfassende Tests:** Eine Test-Suite mit über 166 Unit-Tests wurde implementiert, um die Kernlogik abzusichern und Regressionen zu verhindern.
 *   **Fehlerbehandlung:** Die Fehlerbehandlung bei ungültigen Würfen oder Aktionen wurde verbessert.
 *   **UI-Stabilität:** Diverse kleine Fehler in der UI-Anzeige und Fensterpositionierung wurden behoben.
 

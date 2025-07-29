@@ -10,6 +10,7 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
 - [x] **Code-Überprüfung:** Eine letzte Überprüfung aller kürzlichen Änderungen und Bugfixes durchführen.
 - [x] **Linting:** Einen Linter (z.B. `pylint`, `flake8`) über die gesamte Codebasis laufen lassen, um Stilprobleme oder potenzielle Fehler zu finden.
 - [x] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle 160 Tests erfolgreich sind.
+- [x] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle 166 Tests erfolgreich sind.
   ```bash
   python3 -m pytest
   ```

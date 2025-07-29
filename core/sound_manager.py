@@ -103,16 +103,22 @@ class SoundManager:
 
     def _load_all_sounds(self):
         """Lädt alle definierten Sound-Dateien."""
+        # Datengesteuerter Ansatz: Definiere alle Sounds an einer Stelle.
+        # Das macht das Hinzufügen neuer Sounds einfacher.
+        sound_definitions = {
+            "hit": "hit.wav",
+            "win": "win.wav",
+            "miss": "miss.wav",
+            "bust": "bust.wav",
+            "bull": "bull.wav",
+            "bullseye": "bullseye.wav",
+            "score_100": "100.wav",
+            "score_180": "180.wav",
+            "shanghai": "shanghai.wav",
+        }
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
-        self.hit_sound = self._load_sound(assets_dir / "hit.wav")
-        self.win_sound = self._load_sound(assets_dir / "win.wav")
-        self.miss_sound = self._load_sound(assets_dir / "miss.wav")
-        self.bust_sound = self._load_sound(assets_dir / "bust.wav")
-        self.bull_sound = self._load_sound(assets_dir / "bull.wav")
-        self.bullseye_sound = self._load_sound(assets_dir / "bullseye.wav")
-        self.score_100_sound = self._load_sound(assets_dir / "100.wav")
-        self.score_180_sound = self._load_sound(assets_dir / "180.wav")
-        self.shanghai_sound = self._load_sound(assets_dir / "shanghai.wav")
+        for attr_name, filename in sound_definitions.items():
+            setattr(self, f"{attr_name}_sound", self._load_sound(assets_dir / filename))
 
     def _load_sound(self, path):
         """
