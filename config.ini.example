@@ -1,0 +1,5 @@
+[postgresql]
+host = localhost
+database = dartcounter
+user = your_username
+password = your_password

@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.spec
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+
+# Environments
+.venv/
+
+# IDE-specific
+.idea/
+.vscode/
+
+# Sensitive configuration files
+config.ini
