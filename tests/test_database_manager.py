@@ -12,7 +12,7 @@ class TestDatabaseManager(unittest.TestCase):
     """
 
     @patch('core.database_manager.shutil.copy')
-    @patch('core.database_manager.os.path.exists')
+    @patch('pathlib.Path.exists')
     @patch('core.database_manager.configparser.ConfigParser')
     @patch('core.database_manager.psycopg2.connect')
     def setUp(self, mock_connect, mock_configparser, mock_exists, mock_copy):
