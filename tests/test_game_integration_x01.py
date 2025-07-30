@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import sys
 import os
+import tkinter as tk
 
 # Füge das Hauptverzeichnis zum Python-Pfad hinzu
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -11,6 +12,19 @@ from core.game import Game
 
 class TestGameWithX01(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """Erstellt eine einzige, versteckte Tk-Wurzel für alle Integrationstests in dieser Klasse."""
+        cls.root = tk.Tk()
+        cls.root.withdraw()
+
+    @classmethod
+    def tearDownClass(cls):
+        """Zerstört die Tk-Wurzel, nachdem alle Tests beendet sind."""
+        if cls.root:
+            cls.root.destroy()
+            cls.root = None
+
     def setUp(self):
         """Wird vor jedem Test ausgeführt."""
         # Wir "patchen" messagebox, damit keine echten Fenster aufpoppen
@@ -18,7 +32,6 @@ class TestGameWithX01(unittest.TestCase):
         self.mock_messagebox = self.patcher.start()
 
         # Mocks für alle externen Abhängigkeiten erstellen
-        self.mock_root = MagicMock()
         self.mock_sound_manager = MagicMock()
         self.mock_highscore_manager = MagicMock()
         self.mock_player_stats_manager = MagicMock()
@@ -37,7 +50,7 @@ class TestGameWithX01(unittest.TestCase):
         # Wir mocken die Scoreboard-Erstellung, da sie UI erzeugt
         with patch('core.game.ScoreBoard'):
             self.game = Game(
-                self.mock_root, 
+                self.root, 
                 game_options, 
                 player_names, 
                 self.mock_sound_manager, 
@@ -53,6 +66,10 @@ class TestGameWithX01(unittest.TestCase):
     def tearDown(self):
         """Wird nach jedem Test ausgeführt, um den Patcher zu stoppen."""
         self.patcher.stop()
+        # Zerstöre die Spielinstanz und alle zugehörigen UI-Fenster,
+        # um Ressourcenlecks und hängende Tests zu vermeiden.
+        if self.game:
+            self.game.destroy()
 
     def test_initial_state(self):
         """Testet den korrekten Anfangszustand des Spiels."""
@@ -158,6 +175,28 @@ class TestGameWithX01(unittest.TestCase):
                 break
         
         self.assertTrue(winner_call_found, "Statistikaufzeichnung für den Gewinner wurde nicht gefunden.")
+
+    def test_undo_winning_throw_resets_game_state(self):
+        """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spielzustand (end, winner) zurücksetzt."""
+        # Setup: Alice hat 40 Punkte
+        alice = self.game.players[0]
+        alice.score = 40
+        
+        # Aktion: Alice wirft den Gewinn-Dart (D20).
+        # Dies ruft die echte X01._handle_throw-Logik auf.
+        self.game.throw("Double", 20)
+        
+        # Überprüfung des Endzustands
+        self.assertTrue(self.game.end, "Das Spiel sollte nach dem Gewinnwurf beendet sein.")
+        self.assertEqual(self.game.winner, alice, "Alice sollte die Gewinnerin sein.")
+        
+        # Aktion: Undo
+        self.game.undo()
+        
+        # Überprüfung des wiederhergestellten Zustands
+        self.assertFalse(self.game.end, "Die 'end'-Flagge sollte nach dem Undo zurückgesetzt sein.")
+        self.assertIsNone(self.game.winner, "Der 'winner' sollte nach dem Undo zurückgesetzt sein.")
+        self.assertEqual(alice.score, 40, "Der Punktestand von Alice sollte wiederhergestellt sein.")
 
 if __name__ == '__main__':
     unittest.main()

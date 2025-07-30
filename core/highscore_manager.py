@@ -228,3 +228,5 @@ class HighscoreManager:
         
         reset_button = ttk.Button(bottom_frame, text="Highscores zurücksetzen", command=lambda: self._prompt_and_reset(win, notebook))
         reset_button.pack(side='right', padx=20)
+
+        return win

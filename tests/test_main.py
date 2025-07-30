@@ -13,22 +13,8 @@ from core.gamemgr import GameManager
 from core.save_load_manager import SaveLoadManager
 from core.tournament_manager import TournamentManager
 
-# --- Module-level Tkinter setup ---
-# To prevent Tcl/Tk interpreter errors on Windows when creating and destroying
-# multiple root windows in the same test run, we create a single root window
-# for the entire test module.
-_module_root = None
-
-def setUpModule():
-    """Create a single Tk root for the entire module."""
-    global _module_root
-    _module_root = tk.Tk()
-    _module_root.geometry("+5000+5000")
-
-def tearDownModule():
-    """Destroy the single Tk root after all tests in the module have run."""
-    if _module_root:
-        _module_root.destroy()
+# Mock tkinter to prevent system hangs
+mock_tk = MagicMock()
 
 class TestGetAssetPath(unittest.TestCase):
     """Testet die Hilfsfunktion get_asset_path."""
@@ -48,22 +34,27 @@ class TestGetAssetPath(unittest.TestCase):
         # Erwartet, dass der Pfad vom _MEIPASS-Verzeichnis ausgeht
         self.assertEqual(str(path), str(pathlib.Path('/tmp/_MEI12345/assets/test.png')))
 
-
+@patch.dict('sys.modules', {
+    'tkinter': mock_tk,
+    'tkinter.ttk': mock_tk.ttk,
+    'tkinter.messagebox': mock_tk.messagebox,
+    'tkinter.filedialog': mock_tk.filedialog
+})
 class TestApp(unittest.TestCase):
     """Testet die Hauptanwendungsklasse 'App'."""
 
     @patch('main.sv_ttk.set_theme')
     @patch('main.Image.open')
     @patch('main.ImageTk.PhotoImage')
-    @patch('tkinter.Canvas')
-    @patch('tkinter.Menu')
+    @patch('main.tk.Canvas')
+    @patch('main.tk.Menu')
     def setUp(self, mock_menu, mock_canvas, mock_photo, mock_img_open, mock_theme):
         """Setzt eine Testumgebung für jeden Test auf."""
-        self.app = App(_module_root)
+        self.mock_root = MagicMock()
+        self.app = App(self.mock_root)
 
     def tearDown(self):
         """Räumt nach jedem Test auf."""
-        # Die App-Instanz wird in jedem setUp neu erstellt. Die Wurzel wird in tearDownModule zerstört.
         pass
 
     def test_initialization(self):
@@ -77,8 +68,7 @@ class TestApp(unittest.TestCase):
 
     @patch('main.GameManager')
     @patch('main.App._initialize_game_session')
-    @patch.object(tk.Tk, 'wait_window') # Fängt den Aufruf von self.root.wait_window ab
-    def test_new_game_starts_successfully(self, mock_wait_window, mock_init_session, mock_game_manager):
+    def test_new_game_starts_successfully(self, mock_init_session, mock_game_manager):
         """Testet den 'Neues Spiel'-Workflow, wenn der Benutzer das Spiel startet."""
         # Konfiguriere den Mock für GameManager
         mock_gm_instance = mock_game_manager.return_value
@@ -105,12 +95,11 @@ class TestApp(unittest.TestCase):
         # Prüfen, ob die game_instance gesetzt wurde
         self.assertIsNotNone(self.app.game_instance)
         # Prüfen, ob auf das (gemockte) Spielfenster gewartet wurde
-        mock_wait_window.assert_called_once_with(mock_game_instance.db.root)
+        self.mock_root.wait_window.assert_called_once_with(mock_game_instance.db.root)
 
     @patch('main.GameManager')
     @patch('main.App._initialize_game_session')
-    @patch.object(tk.Tk, 'wait_window') # Muss auch hier gepatcht werden, obwohl nicht erwartet
-    def test_new_game_aborted_by_user(self, mock_wait_window, mock_init_session, mock_game_manager):
+    def test_new_game_aborted_by_user(self, mock_init_session, mock_game_manager):
         """Testet den 'Neues Spiel'-Workflow, wenn der Benutzer den Dialog abbricht."""
         mock_gm_instance = mock_game_manager.return_value
         mock_gm_instance.configure_game.return_value = False # Simuliert, dass der User den Dialog abbricht
@@ -121,10 +110,10 @@ class TestApp(unittest.TestCase):
         mock_gm_instance.configure_game.assert_called_once_with(self.app.root)
         # Die Spiel-Session darf nicht initialisiert worden sein
         mock_init_session.assert_not_called()
-        mock_wait_window.assert_not_called()
+        self.mock_root.wait_window.assert_not_called()
         self.assertIsNone(self.app.game_instance)
 
-    @patch('tkinter.messagebox.askyesno', return_value=True)
+    @patch('main.messagebox.askyesno', return_value=True)
     def test_check_and_close_existing_game_confirmed(self, mock_askyesno):
         """Testet, ob ein laufendes Spiel beendet wird, wenn der Benutzer bestätigt."""
         # Erstelle ein Mock-Spiel
@@ -140,7 +129,7 @@ class TestApp(unittest.TestCase):
         self.assertIsNone(self.app.game_instance)
         self.assertTrue(result)
 
-    @patch('tkinter.messagebox.askyesno', return_value=False)
+    @patch('main.messagebox.askyesno', return_value=False)
     def test_check_and_close_existing_game_cancelled(self, mock_askyesno):
         """Testet, ob ein laufendes Spiel NICHT beendet wird, wenn der Benutzer abbricht."""
         mock_game = MagicMock(spec=Game)
@@ -157,8 +146,7 @@ class TestApp(unittest.TestCase):
     @patch('main.SaveLoadManager.load_game_data')
     @patch('main.App._initialize_game_session') # Geändert: return_value entfernt, um Test-Isolation zu gewährleisten
     @patch('main.SaveLoadManager.restore_game_state')
-    @patch.object(tk.Tk, 'wait_window') # Fängt den Aufruf von self.root.wait_window ab
-    def test_load_game_successful(self, mock_wait_window, mock_restore, mock_init_session, mock_load_data): # Reihenfolge der Mocks ist wichtig!
+    def test_load_game_successful(self, mock_restore, mock_init_session, mock_load_data): # Reihenfolge der Mocks ist wichtig!
         """Testet den erfolgreichen Ladevorgang eines Spiels."""
         # Simuliere geladene Spieldaten
         mock_data = {
@@ -186,11 +174,11 @@ class TestApp(unittest.TestCase):
         mock_init_session.assert_called_once()
         mock_restore.assert_called_once_with(mock_game_instance, mock_data)
         self.assertEqual(self.app.game_instance, mock_game_instance)
-        mock_wait_window.assert_called_once_with(mock_game_instance.db.root)
+        self.mock_root.wait_window.assert_called_once_with(mock_game_instance.db.root)
 
 
     @patch('main.SaveLoadManager.save_game_state')
-    @patch('tkinter.messagebox.showinfo')
+    @patch('main.messagebox.showinfo')
     def test_save_game_with_no_active_game(self, mock_showinfo, mock_save):
         """Testet, dass das Speichern fehlschlägt, wenn kein Spiel läuft."""
         self.app.game_instance = None
@@ -216,7 +204,7 @@ class TestApp(unittest.TestCase):
 
         mock_save.assert_called_once_with(self.app.game_instance, self.app.root)
 
-    @patch('tkinter.messagebox.askyesno', return_value=True)
+    @patch('main.messagebox.askyesno', return_value=True)
     def test_quit_game_confirmed(self, mock_askyesno):
         """Testet, ob die Anwendung bei Bestätigung beendet wird."""
         # Mocken die Methoden, die innerhalb von quit_game aufgerufen werden
@@ -245,24 +233,31 @@ class TestApp(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main(verbosity=2)
 
+@patch.dict('sys.modules', {
+    'tkinter': mock_tk,
+    'tkinter.ttk': mock_tk.ttk,
+    'tkinter.messagebox': mock_tk.messagebox,
+    'tkinter.filedialog': mock_tk.filedialog
+})
 class TestAppTournamentFlows(unittest.TestCase):
     """Tests the tournament-related workflows in the App class."""
 
     @patch('main.sv_ttk.set_theme')
     @patch('main.Image.open')
     @patch('main.ImageTk.PhotoImage')
-    @patch('tkinter.Canvas')
-    @patch('tkinter.Menu')
+    @patch('main.tk.Canvas')
+    @patch('main.tk.Menu')
     def setUp(self, mock_menu, mock_canvas, mock_photo, mock_img_open, mock_theme):
         """Set up a test environment for each test."""
-        self.app = App(_module_root)
+        self.mock_root = MagicMock()
+        self.app = App(self.mock_root)
 
     def tearDown(self):
         """Clean up after each test."""
         pass
 
     @patch('main.SaveLoadManager.save_tournament_state')
-    @patch('tkinter.messagebox.showinfo')
+    @patch('main.messagebox.showinfo')
     def test_save_tournament_with_active_tournament(self, mock_showinfo, mock_save):
         """Tests that save_tournament calls the manager when a tournament is active."""
         # Setup: Create a mock tournament manager and assign it
@@ -277,7 +272,7 @@ class TestAppTournamentFlows(unittest.TestCase):
         mock_showinfo.assert_not_called()
 
     @patch('main.SaveLoadManager.save_tournament_state')
-    @patch('tkinter.messagebox.showinfo')
+    @patch('main.messagebox.showinfo')
     def test_save_tournament_with_no_active_tournament(self, mock_showinfo, mock_save):
         """Tests that save_tournament shows a message if no tournament is active."""
         # Setup: No tournament manager

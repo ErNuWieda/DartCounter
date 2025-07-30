@@ -15,10 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
+import logging
 import os
 import platform
 from pathlib import Path
 import sys
+
+logger = logging.getLogger(__name__)
 
 def get_application_root_dir() -> Path:
     """
@@ -54,8 +57,8 @@ def get_app_data_dir() -> Path:
         path.mkdir(parents=True, exist_ok=True)
         return path
     except (OSError, TypeError) as e:
-        print(f"WARNUNG: Konnte das Benutzer-spezifische Datenverzeichnis nicht erstellen: {e}")
-        print("WARNUNG: Fallback auf das Anwendungsverzeichnis für Einstellungen und Konfiguration.")
+        logger.warning(f"Konnte das Benutzer-spezifische Datenverzeichnis nicht erstellen: {e}", exc_info=True)
+        logger.warning("Fallback auf das Anwendungsverzeichnis für Einstellungen und Konfiguration.")
         return get_application_root_dir()
 
 
@@ -94,8 +97,8 @@ class SettingsManager:
         if self.save_filepath.exists():
             filepath_to_load_from = self.save_filepath
         elif root_filepath.exists():
-            filepath_to_load_from = root_filepath
-            print(f"INFO: Lade 'settings.json' aus dem Anwendungsverzeichnis als Fallback.")
+            filepath_to_load_from = root_filepath            
+            logger.info(f"Lade 'settings.json' aus dem Anwendungsverzeichnis als Fallback: {root_filepath}")
 
         if filepath_to_load_from:
             self.settings = self._load_settings(filepath_to_load_from)
@@ -162,7 +165,7 @@ class SettingsManager:
             with open(self.save_filepath, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=4)
         except IOError as e:
-            print(f"Fehler beim Speichern der Einstellungen: {e}")
+            logger.error(f"Fehler beim Speichern der Einstellungen: {e}", exc_info=True)
 
     def get(self, key, default=None):
         """

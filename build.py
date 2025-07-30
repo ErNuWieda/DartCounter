@@ -20,11 +20,11 @@ import shutil
 import subprocess
 import sys
 import pathlib
+from core._version import __version__
 
 # --- Konfiguration ---
-# Lese die Version aus einer Umgebungsvariable, wenn sie im CI-Kontext gesetzt ist.
-# Ansonsten falle auf die hartkodierte Version zurück.
-VERSION = os.getenv('CI_VERSION', '1.2.0')
+# Die Version wird jetzt aus einer zentralen Datei gelesen (Single Source of Truth).
+VERSION = __version__
 APP_NAME = "DartCounter"
 SCRIPT_NAME = pathlib.Path("main.py")
 ASSETS_DIR = pathlib.Path("assets")
@@ -76,22 +76,21 @@ def main():
     # --- Plattformspezifisches Setup ---
     system = platform.system()
     if system == "Windows":
-        platform_name = "Windows"
         data_separator = ";"
-        dist_artifact_name = f"{APP_NAME}.exe"
+        icon_extension = ".ico"
     elif system == "Darwin":  # macOS
-        platform_name = "macOS"
         data_separator = ":"
-        dist_artifact_name = f"{APP_NAME}.app"
+        icon_extension = ".icns"
     else:  # Linux ist das einzig andere unterstützte System
-        platform_name = "Linux"
         data_separator = ":"
-        dist_artifact_name = APP_NAME
+        icon_extension = None # Kein Standard-Icon-Format für ausführbare Linux-Dateien
 
-    release_dir = pathlib.Path(f"{APP_NAME}_{platform_name}_v{VERSION}")
+    # Artefakt-Namen zentral definieren
+    dist_artifact_name = f"{APP_NAME}.exe" if system == "Windows" else (f"{APP_NAME}.app" if system == "Darwin" else APP_NAME)
+    release_dir = pathlib.Path(f"{APP_NAME}_{system}_v{VERSION}")
     zip_filename_base = str(release_dir)
 
-    print(f"\n>>> Erstelle Release für {platform_name} v{VERSION}...")
+    print(f"\n>>> Erstelle Release für {system} v{VERSION}...")
 
     # --- Schritt 1: Alte Build-Artefakte bereinigen ---
     print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
@@ -118,13 +117,9 @@ def main():
         "--hidden-import=mx.DateTime",
     ]
 
-    # Plattformspezifische Optionen hinzufügen (z.B. Icon)
-    if system == "Windows":
-        icon_path = ASSETS_DIR / "icon.ico"
-        if icon_path.is_file():
-            pyinstaller_command.append(f"--icon={icon_path}")
-    elif system == "Darwin":  # macOS
-        icon_path = ASSETS_DIR / "icon.icns"
+    # Plattformspezifisches Icon hinzufügen (sauberere Logik)
+    if icon_extension:
+        icon_path = ASSETS_DIR / f"icon{icon_extension}"
         if icon_path.is_file():
             pyinstaller_command.append(f"--icon={icon_path}")
 
@@ -134,6 +129,8 @@ def main():
         (ASSETS_DIR, ASSETS_DIR),
         (pathlib.Path("core/game_config.json"), pathlib.Path("core")),
         (pathlib.Path("core/checkout_paths.json"), pathlib.Path("core")),
+        (pathlib.Path("config.ini.example"), pathlib.Path(".")),
+        (pathlib.Path("README.md"), pathlib.Path(".")),
     ]
     for src, dest in data_to_add:
         pyinstaller_command.append(f"--add-data={src}{data_separator}{dest}")
@@ -167,21 +164,25 @@ def main():
         print(f"FEHLER: Build-Artefakt '{source_artifact}' wurde nicht gefunden!")
         sys.exit(1)
 
-    shutil.copy("config.ini.example", str(release_dir))
-    shutil.copy("README.md", str(release_dir))
+    # --- Schritt 4 & 5: Finalisieren (ZIP oder für Installer vorbereiten) ---
+    # Im CI-Kontext auf Windows überspringen wir das Zippen und Aufräumen,
+    # damit der Installer-Workflow auf die erstellten Dateien zugreifen kann.
+    if system == "Windows" and os.getenv("CI"):
+        print("\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe ZIP-Erstellung und Cleanup.")
+        print(f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'")
+    else:
+        # --- Schritt 4: ZIP-Archiv erstellen (lokaler Build) ---
+        print(f"\n>>> Schritt 4: ZIP-Archiv '{zip_filename_base}.zip' erstellen...")
+        shutil.make_archive(zip_filename_base, 'zip', root_dir='.', base_dir=str(release_dir))
 
-    # --- Schritt 4: ZIP-Archiv erstellen ---
-    print(f"\n>>> Schritt 4: ZIP-Archiv '{zip_filename_base}.zip' erstellen...")
-    shutil.make_archive(zip_filename_base, 'zip', root_dir='.', base_dir=str(release_dir))
+        # --- Schritt 5: Temporäre Build-Artefakte bereinigen (lokaler Build) ---
+        print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
+        shutil.rmtree("build")
+        shutil.rmtree("dist")
+        pathlib.Path(f"{APP_NAME}.spec").unlink()
+        shutil.rmtree(release_dir)
 
-    # --- Schritt 5: Temporäre Build-Artefakte bereinigen ---
-    print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
-    shutil.rmtree("build")
-    shutil.rmtree("dist")
-    pathlib.Path(f"{APP_NAME}.spec").unlink()
-    shutil.rmtree(release_dir)
-
-    print(f"\n{'='*50}\n✅ Fertig! Das Release-Paket befindet sich in: {zip_filename_base}.zip\n{'='*50}")
+    print(f"\n{'='*50}\n✅ Build-Prozess abgeschlossen.\n{'='*50}")
 
 if __name__ == "__main__":
     main()

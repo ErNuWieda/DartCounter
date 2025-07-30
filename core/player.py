@@ -46,9 +46,21 @@ class Player:
         'successful_finishes': [],
     }
 
-    # Ein Set, das alle spielspezifischen Zustands-Schlüssel enthält.
-    STATE_KEYS = {'hits', 'life_segment', 'can_kill', 'killer_throws', 'next_target', 'has_opened'}
+    # Ein Dictionary, das die Standardwerte für alle spielspezifischen
+    # Zustands-Attribute enthält. Dies zentralisiert die Initialisierung und
+    # macht sie wartbarer (DRY-Prinzip).
+    INITIAL_STATE = {
+        'hits': {},
+        'life_segment': "",
+        'can_kill': False,
+        'killer_throws': 0,
+        'next_target': None,
+        'has_opened': False,
+    }
 
+    # Das Set der Zustandsschlüssel wird nun direkt aus dem Dictionary abgeleitet.
+    STATE_KEYS = set(INITIAL_STATE.keys())
+ 
     def __init__(self, name, game, profile=None):
         """
         Initialisiert eine neue Spielerinstanz.
@@ -69,22 +81,13 @@ class Player:
         self.game = game
         self.targets = self.game.targets
 
-        # State-Dictionary für spielspezifische Attribute
-        self.state = {
-            'hits': {},
-            'life_segment': "",
-            'can_kill': False,
-            'killer_throws': 0,
-            'next_target': None,
-            'has_opened': False,
-        }
-
-        # Statistik-Dictionary
+        # State- und Statistik-Dictionaries aus den Klassenvorlagen initialisieren
+        self.state = self.INITIAL_STATE.copy()
         self.stats = self.INITIAL_STATS.copy()
 
         # Eindeutige ID zuweisen und den Zähler erhöhen
         self.id = Player.id
-        Player.id = self.id+1
+        Player.id += 1
         self.turn_is_over = False
         self.all_game_throws = [] # Hält alle Würfe des gesamten Spiels für Statistiken
         self.throws = []
@@ -152,21 +155,11 @@ class Player:
         """
         Löst den Prozess zum Verlassen des Spiels für diesen Spieler aus.
 
-        Delegiert den Entfernungsaufruf an die `Game`-Klasse und zerstört
-        anschließend die eigene Instanz.
+        Delegiert den Entfernungsaufruf an die `Game`-Klasse, welche den Spieler
+        aus der Liste der aktiven Spieler entfernt und das zugehörige
+        Scoreboard-Fenster schließt.
         """
         self.game.leave(self.id)
-
-    def clear(self):
-        """
-        Platzhalter-Methode für potenzielle zukünftige Bereinigungslogik.
-
-        Früher wurde hier `Player.id` dekrementiert, was aber zu Problemen mit
-        nicht-eindeutigen IDs führen konnte. Jetzt bleibt die Methode leer,
-        um die Eindeutigkeit der IDs über die gesamte Laufzeit der Anwendung
-        sicherzustellen.
-        """
-        pass
 
 
     def reset_turn(self):

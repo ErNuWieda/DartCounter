@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
+import logging
 import pathlib
 from tkinter import messagebox
 
@@ -24,6 +25,8 @@ try:
     PYGAME_AVAILABLE = True
 except ImportError:
     PYGAME_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 class SoundManager:
     """
@@ -72,7 +75,7 @@ class SoundManager:
         self.loading_errors = [] # To collect errors for a single messagebox
 
         if not PYGAME_AVAILABLE:
-            print("Warnung: pygame ist nicht installiert. Soundeffekte sind deaktiviert.")
+            logger.warning("pygame ist nicht installiert. Soundeffekte sind deaktiviert.")
             self.sounds_enabled = False
             return
 
@@ -85,7 +88,7 @@ class SoundManager:
         try:
             pygame.mixer.init()
         except pygame.error as e:
-            print(f"Pygame mixer konnte nicht initialisiert werden: {e}")
+            logger.error(f"Pygame mixer konnte nicht initialisiert werden: {e}", exc_info=True)
             self.sounds_enabled = False
             self.loading_errors.append(f"Pygame mixer konnte nicht initialisiert werden: {e}")
             return
@@ -136,14 +139,14 @@ class SoundManager:
         """
         if not path.exists():
             msg = f"Datei nicht gefunden: {path.name}"
-            print(f"WARNUNG: {msg}")
+            logger.warning(msg)
             self.loading_errors.append(msg)
             return None
         try:
             return pygame.mixer.Sound(path)
         except pygame.error as e:
             msg = f"Fehler beim Laden von {path.name}: {e}"
-            print(f"FEHLER: {msg}")
+            logger.error(msg, exc_info=True)
             self.loading_errors.append(msg)
             return None
 
@@ -161,7 +164,7 @@ class SoundManager:
         # Speichere die neue Einstellung im SettingsManager
         self.settings_manager.set('sound_enabled', self.sounds_enabled)
         if not self.sounds_enabled:
-            print("Soundeffekte deaktiviert.")
+            logger.info("Soundeffekte deaktiviert.")
 
     def play_hit(self):
         """Spielt den Sound für einen Treffer ab, falls Sounds aktiviert sind."""

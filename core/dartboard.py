@@ -111,9 +111,9 @@ class DartBoard:
             # Initial eine Standardfarbe setzen
             self.update_dart_image("#ff0000") # Standard-Rot
         except FileNotFoundError:
-            print(f"Warnung: Dart-Bild nicht gefunden unter {self.dart_path}")
+            pass # print(f"Warnung: Dart-Bild nicht gefunden unter {self.dart_path}")
         except Exception as e:
-            print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
+            pass # print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
 
     def update_dart_image(self, hex_color: str):
         """
@@ -130,7 +130,7 @@ class DartBoard:
         try:
             target_color_rgb = ImageColor.getrgb(hex_color)
         except (ValueError, TypeError):
-            print(f"Warnung: Ungültige Farbe '{hex_color}'. Fallback auf Rot.")
+            # print(f"Warnung: Ungültige Farbe '{hex_color}'. Fallback auf Rot.")
             target_color_rgb = (255, 0, 0)
 
         # Lade die Pixeldaten für den direkten Zugriff
@@ -304,7 +304,10 @@ class DartBoard:
         if self._dart_photo_image and self.canvas:
             dart_id = self.canvas.create_image(x - 5, y - 20, image=self._dart_photo_image)
             self.dart_image_ids_on_canvas.append(dart_id)
-
+        # Korrektur der x,y Koordinaten zwingend erforderlich zur korrekten Wurf-Ermittlung
+        # NICHT ENTERNEN!!!
+        x += 8
+        y += 8
         # Schritt 1: Ermittle den Wurf
         ring, segment = self.get_ring_segment(x, y)
 
@@ -437,8 +440,10 @@ class DartBoard:
         else:
             self.done_button.config(state=tk.DISABLED)
 
-        # 'Zurück'-Button: Aktiv, wenn mindestens ein Wurf gemacht wurde und das Spiel nicht beendet ist.
-        if num_throws > 0 and not self.spiel.end:
+        # 'Zurück'-Button: Aktiv, wenn mindestens ein Wurf in der aktuellen Runde
+        # gemacht wurde. Das Spielende ist hier irrelevant, da der Undo-Handler
+        # den Spielzustand bei Bedarf selbst zurücksetzt.
+        if num_throws > 0:
             self.undo_button.config(state=tk.NORMAL)
         else:
             self.undo_button.config(state=tk.DISABLED)

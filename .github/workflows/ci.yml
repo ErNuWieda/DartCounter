@@ -67,17 +67,10 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Version in main.py aktualisieren (Linux)
-      if: runner.os == 'Linux'
+    - name: Version in _version.py aktualisieren
       run: |
-        sed -i "s/self.version = .*/self.version = \"v${{ env.VERSION }}\"/" main.py
-
-    - name: Version in main.py aktualisieren (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        (Get-Content main.py) -replace 'self.version = .*', 'self.version = "v${{ env.VERSION }}"' | Set-Content main.py
-
+        echo "__version__ = \"${{ env.VERSION }}\"" > core/_version.py
+        
     - name: Systemabhängigkeiten installieren (nur für Linux)
       if: runner.os == 'Linux'
       run: |
@@ -91,10 +84,28 @@ jobs:
         pip install pyinstaller pytest
 
     - name: Anwendung bauen
-      env:
-        # Übergibt die saubere Versionsnummer an das Build-Skript
-        CI_VERSION: ${{ env.VERSION }}
       run: python build.py
+
+    - name: Windows Installer erstellen (nur für Windows)
+      if: runner.os == 'Windows'
+      uses: Minionguy/setup-inno-setup@v1.0
+      with:
+        version: 6.2.2 # Oder eine andere gewünschte Inno Setup Version
+
+    - name: Installer-Skript kompilieren (nur für Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Pfad zum Build-Verzeichnis definieren
+        $SourcePath = "DartCounter_Windows_v${{ env.VERSION }}"
+        $IssFile = "installer/create_installer.iss"
+        
+        # Inno Setup Skript mit den korrekten Werten aktualisieren
+        (Get-Content $IssFile) -replace '!define AppVersion ".*"', '!define AppVersion "${{ env.VERSION }}"' | Set-Content $IssFile
+        (Get-Content $IssFile) -replace 'Source: ".*"', 'Source: "' + $SourcePath + '\*"' | Set-Content $IssFile
+        
+        # Inno Setup Compiler ausführen
+        iscc.exe $IssFile
 
     - name: Release-Artefakt hochladen
       uses: actions/upload-release-asset@v1
@@ -102,6 +113,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./DartCounter_${{ matrix.os_name }}_v${{ env.VERSION }}.zip
-        asset_name: DartCounter_${{ matrix.os_name }}_v${{ env.VERSION }}.zip
-        asset_content_type: application/zip
+        # Lade entweder die ZIP-Datei (Linux) oder die Setup.exe (Windows) hoch
+        asset_path: ./${{ runner.os == 'Windows' && format('installer/Output/DartCounter-v{0}-setup.exe', env.VERSION) || format('DartCounter_{0}_v{1}.zip', matrix.os_name, env.VERSION) }}
+        asset_name: DartCounter_${{ matrix.os_name }}_v${{ env.VERSION }}_setup.${{ runner.os == 'Windows' && 'exe' || 'zip' }}
+        asset_content_type: ${{ runner.os == 'Windows' && 'application/vnd.microsoft.portable-executable' || 'application/zip' }}

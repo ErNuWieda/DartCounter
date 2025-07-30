@@ -22,27 +22,14 @@ class TestX01(GameLogicTestBase):
 
         # Instanz der zu testenden Klasse
         self.x01_logic = X01(self.mock_game)
-
-    def _create_player(self, score, has_opened=True):
-        """
-        Hilfsfunktion, um eine echte Player-Instanz für Tests zu erstellen.
-        Dies ist robuster als ein Mock, da es die interne Logik des Spielers
-        (z.B. Properties) korrekt verwendet.
-        """
-        # Erstelle eine echte Player-Instanz mit dem gemockten Spiel
-        player = Player(name="Tester", game=self.mock_game)
-        player.score = score
-        player.state['has_opened'] = has_opened
-        # Mock für das ScoreBoard, das vom Spieler referenziert wird.
-        # spec=ScoreBoard stellt sicher, dass der Mock die __del__-Methode hat.
-        player.sb = MagicMock(spec=ScoreBoard)
-        return player
+        # Weist die Logik-Instanz der Basisklassen-Variable zu, damit _create_player sie verwenden kann.
+        self.logic = self.x01_logic
 
     # --- Opt-In Tests ---
     def test_opt_in_double_fails_on_single_throw(self):
         """Testet, ob bei 'Double In' ein Single-Wurf ungültig ist."""
         self.mock_game.opt_in = "Double"
-        player = self._create_player(score=501, has_opened=False)
+        player = self._create_player(score=501, state={'has_opened': False})
 
         self.x01_logic._handle_throw(player, "Single", 20, [])
 
@@ -54,7 +41,7 @@ class TestX01(GameLogicTestBase):
     def test_opt_in_double_succeeds_on_double_throw(self):
         """Testet, ob bei 'Double In' ein Double-Wurf gültig ist und das Spiel eröffnet."""
         self.mock_game.opt_in = "Double"
-        player = self._create_player(score=501, has_opened=False)
+        player = self._create_player(score=501, state={'has_opened': False})
 
         self.x01_logic._handle_throw(player, "Double", 20, [])
 
@@ -65,35 +52,38 @@ class TestX01(GameLogicTestBase):
     # --- Bust Tests ---
     def test_bust_if_score_goes_below_zero(self):
         """Testet, ob ein Wurf, der den Score unter 0 bringen würde, ein 'Bust' ist."""
-        player = self._create_player(score=20)
+        player = self._create_player(score=20, state={'has_opened': True})
 
         self.x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
 
         self.assertEqual(player.score, 20, "Der Punktestand sollte nach einem Bust unverändert sein.")
+        self.assertTrue(player.turn_is_over, "Der Zug sollte nach einem Bust beendet sein.")
         self.mock_messagebox.showerror.assert_called_once()
 
     def test_opt_out_double_busts_if_score_is_one(self):
         """Testet, ob bei 'Double Out' ein Rest von 1 ein 'Bust' ist."""
-        player = self._create_player(score=21)
+        player = self._create_player(score=21, state={'has_opened': True})
 
-        self.x01_logic._handle_throw(player, "Single", 20, []) # Bringt Score auf 1
+        self.x01_logic._handle_throw(player, "Single", 20, []) # Bringt Score auf 1 -> Bust
 
         self.assertEqual(player.score, 21, "Der Punktestand sollte nach einem Bust unverändert sein.")
+        self.assertTrue(player.turn_is_over, "Der Zug sollte nach einem Bust beendet sein.")
         self.mock_messagebox.showerror.assert_called_once()
 
     def test_opt_out_double_busts_on_single_finish(self):
         """Testet, ob bei 'Double Out' ein Finish mit einem Single-Wurf ein 'Bust' ist."""
-        player = self._create_player(score=20)
+        player = self._create_player(score=20, state={'has_opened': True})
 
         self.x01_logic._handle_throw(player, "Single", 20, [])
 
         self.assertEqual(player.score, 20, "Der Punktestand sollte nach einem Bust unverändert sein.")
+        self.assertTrue(player.turn_is_over, "Der Zug sollte nach einem Bust beendet sein.")
         self.mock_messagebox.showerror.assert_called_once()
 
     # --- Gültiger Wurf & Gewinn Tests ---
     def test_valid_throw_updates_score_and_stats(self):
         """Testet, ob ein gültiger Wurf den Score und die Statistiken korrekt aktualisiert."""
-        player = self._create_player(score=100)
+        player = self._create_player(score=100, state={'has_opened': True})
 
         self.x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
 
@@ -104,7 +94,7 @@ class TestX01(GameLogicTestBase):
 
     def test_win_on_double_out_updates_all_stats(self):
         """Testet, ob ein Gewinnwurf bei 'Double Out' alle relevanten Daten korrekt aktualisiert."""
-        player = self._create_player(score=40)
+        player = self._create_player(score=40, state={'has_opened': True})
 
         # Initialzustand der Statistiken
         self.assertEqual(player.stats['checkout_opportunities'], 0)
@@ -125,7 +115,7 @@ class TestX01(GameLogicTestBase):
     # --- Undo Tests ---
     def test_undo_simple_throw_restores_state(self):
         """Testet, ob das Rückgängigmachen eines Wurfs Score und Stats korrekt wiederherstellt."""
-        player = self._create_player(score=100)
+        player = self._create_player(score=100, state={'has_opened': True})
         # Simuliere einen Wurf
         self.x01_logic._handle_throw(player, "Triple", 20, [])
         self.assertEqual(player.score, 40)
@@ -142,7 +132,7 @@ class TestX01(GameLogicTestBase):
 
     def test_undo_winning_throw_restores_player_state(self):
         """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spieler-Zustand wiederherstellt."""
-        player = self._create_player(score=40)
+        player = self._create_player(score=40, state={'has_opened': True})
         # Simuliere einen Gewinnwurf
         self.x01_logic._handle_throw(player, "Double", 20, [])
         self.assertEqual(player.stats['checkouts_successful'], 1)

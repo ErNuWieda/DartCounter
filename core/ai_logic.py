@@ -35,9 +35,9 @@ class AILogic:
         """
         Hauptmethode zur Bestimmung des Ziels. Delegiert an spielspezifische Logik.
         """
-        if self.game_logic.game.name in ("301", "501", "701"):
+        if player.score > 0 and self.game_logic.game.name in ("301", "501", "701"):
             return self._determine_target_for_x01(player)
-
+            
         # Fallback für andere Spielmodi (z.B. immer auf T20 zielen)
         return self.geometry.get_target_coords("T20")
 
@@ -47,11 +47,11 @@ class AILogic:
         Die KI versucht, einen Rest zu hinterlassen, der ein bekanntes Finish ist.
         """
         # Bevorzugte Ziele, geordnet nach Punktwert
-        targets_to_try = {
+        targets_to_try : dict[str, int] = {
             "T20": 60, "T19": 57, "T18": 54, "T17": 51, "T16": 48, "T15": 45,
             "S20": 20, "S19": 19, "S18": 18, "BE": 25
         }
-
+        
         # Finde den besten Wurf, der einen bevorzugten Rest hinterlässt
         for target_name, target_score in targets_to_try.items():
             # Ein Setup-Wurf darf niemals überwerfen (muss mind. 2 Rest lassen für D1)
@@ -60,7 +60,7 @@ class AILogic:
                     return target_name
 
         # Fallback: Wenn kein bevorzugter Rest erreicht werden kann, ziele auf
-        # die höchste Punktzahl, die nicht überwirft.
+        # die höchste Punktzahl, die nicht überwirft
         return "T20" if current_score > 61 else "S20"
 
     def _determine_target_for_x01(self, player) -> tuple[int, int]:

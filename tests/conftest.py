@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 # --- One-time setup for all tests, executed by pytest before test collection ---
 
@@ -21,3 +22,20 @@ if sys.platform == "win32":  # "win32" is the value for both 32-bit and 64-bit W
                     os.environ['TCL_LIBRARY'] = lib_path
                 elif d.startswith('tk8.') and "TK_LIBRARY" not in os.environ:
                     os.environ['TK_LIBRARY'] = lib_path
+
+def pytest_configure(config):
+    """
+    Konfiguriert das Logging für die Test-Suite, um die Konsolenausgabe zu unterdrücken.
+
+    Diese Funktion wird von pytest automatisch vor der Testausführung aufgerufen.
+    """
+    # Hole den Root-Logger, auf dem die Handler in `logger_setup.py` konfiguriert werden.
+    root_logger = logging.getLogger()
+
+    # Entferne alle existierenden Handler, um eine saubere Konfiguration zu gewährleisten.
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # Füge einen NullHandler hinzu. Dieser "schluckt" alle Log-Nachrichten,
+    # ohne sie auszugeben. Dies verhindert, dass Anwendungs-Logs die Testausgabe stören.
+    root_logger.addHandler(logging.NullHandler())

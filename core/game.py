@@ -209,6 +209,14 @@ class Game:
         if not player_to_remove:
             return  # Spieler nicht gefunden
 
+        # Zerstöre das Scoreboard des Spielers, bevor er aus der Liste entfernt wird,
+        # um hängende UI-Fenster zu vermeiden.
+        if player_to_remove.sb and player_to_remove.sb.score_window.winfo_exists():
+            try:
+                player_to_remove.sb.score_window.destroy()
+            except tk.TclError:
+                pass # Fenster wurde möglicherweise bereits anderweitig geschlossen
+
         was_current_player = (player_to_remove_index == self.current)
 
         # Passe den 'current' Index an, BEVOR der Spieler entfernt wird.
@@ -248,8 +256,12 @@ class Game:
         Logik zur Wiederherstellung des Spielzustands an die zuständige
         Spiellogik-Klasse und entfernt die Dart-Grafik vom Board.
         """
+        # Wenn das Spiel beendet war, müssen alle Gewinn-Flags zurückgesetzt werden,
+        # bevor die Logik des Wurfs selbst rückgängig gemacht wird.
         if self.end:
             self.end = False
+            self.winner = None
+            self.shanghai_finish = False
         player = self.current_player()
         if player and player.throws:
             popped_throw = player.throws.pop() # This is now a 3-tuple (ring, segment, coords)

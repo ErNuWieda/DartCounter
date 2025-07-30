@@ -74,69 +74,73 @@ class X01(GameLogicBase):
         """
         return 430
 
+    def _is_valid_opening_throw(self, ring: str) -> bool:
+        """Prüft, ob ein Wurf die aktuelle Opt-In-Bedingung erfüllt."""
+        if self.opt_in == "Single":
+            return True
+        if self.opt_in == "Double":
+            return ring in ("Double", "Bullseye")
+        if self.opt_in == "Masters":
+            return ring in ("Double", "Triple", "Bullseye")
+        return False
+
     def _handle_throw_undo(self, player, ring, segment, players):
         """
         Macht den letzten Wurf für einen Spieler rückgängig.
-
+    
         Stellt den Zustand des Spielers vor dem letzten Wurf wieder her. Dies
         umfasst die Neuberechnung des Punktestands und die Korrektur von
         Statistiken wie Checkout-Möglichkeiten und dem 3-Dart-Average.
-
+    
         Args:
             player (Player): Der Spieler, dessen Wurf rückgängig gemacht wird.
             ring (str): Der Ring des rückgängig zu machenden Wurfs.
             segment (int): Das Segment des rückgängig zu machenden Wurfs.
             players (list[Player]): Die Liste aller Spieler (in dieser Methode ungenutzt).
         """
-        
+        # 1. Wurf- und Score-Werte berechnen
         throw_score = self.game.get_score(ring, segment)
-        score_before_throw = player.score + throw_score
+        if throw_score == 0: # Miss-Wurf, nichts zu tun außer UI-Update
+            # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
+            darts_remaining = 3 - len(player.throws)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+            player.sb.update_checkout_suggestion(suggestion)
+            player.sb.update_score(player.score)
+            return
 
-        opt_in = self.game.opt_in
-        if opt_in != "Single":
-            if (opt_in == "Double" and ring in ("Double", "Bullseye")) or (opt_in == "Masters" and ring in ("Double", "Triple", "Bullseye")):
-                if score_before_throw == int(player.game_name):
-                    player.state['has_opened'] = False
-                    player.score = score_before_throw
-        
-        player.sb.update_score(player.score) # Update score
-                    
-        # --- Checkout-Statistik rückgängig machen ---
-        # Prüfen, ob der rückgängig gemachte Wurf eine Checkout-Möglichkeit war.
-        if score_before_throw == throw_score:
-            if player.stats['checkout_opportunities'] > 0:
-                player.stats['checkout_opportunities'] -= 1
-            # Prüfen, ob es ein erfolgreicher Checkout war.
-            if player.score == 0:
-                if player.stats['checkouts_successful'] > 0:
-                    player.stats['checkouts_successful'] -= 1
+        score_after_throw = player.score
+        score_before_throw = score_after_throw + throw_score
+        was_winning_throw = (score_after_throw == 0)
 
-                # 'highest_finish' ebenfalls zurücksetzen
+        # 2. Statistiken zurücksetzen (muss vor der Score-Änderung geschehen)
+        player.stats['total_darts_thrown'] -= 1
+        player.stats['total_score_thrown'] -= throw_score
+
+        # Checkout-Statistiken zurücksetzen, falls es eine Checkout-Möglichkeit war
+        if score_before_throw == throw_score and self.opt_out != "Single":
+            player.stats['checkout_opportunities'] -= 1
+            if was_winning_throw:
+                player.stats['checkouts_successful'] -= 1
                 finishes = player.stats.get('successful_finishes', [])
-                # Den rückgängig gemachten Finish-Wert aus der Liste entfernen.
-                # Wir gehen davon aus, dass er vorhanden ist, wenn die Logik korrekt ist.
                 if score_before_throw in finishes:
                     finishes.remove(score_before_throw)
-
-                # Den höchsten Finish neu berechnen
                 player.stats['highest_finish'] = max(finishes) if finishes else 0
 
-        if player.state['has_opened']:
-            player.update_score_value(throw_score, subtract=False)
+        # 3. Spieler-Zustand (Score und 'has_opened') wiederherstellen
+        was_opening_throw = (
+            player.has_opened and
+            score_before_throw == int(player.game_name) and
+            self._is_valid_opening_throw(ring)
+        )
+        if was_opening_throw:
+            player.has_opened = False
+        player.score = score_before_throw
 
-        # Macht das Update der Statistik für gültige, punktende Würfe rückgängig.
-        # Die Logik geht davon aus, dass nur Würfe, die nicht "Bust" waren, zur Statistik hinzugefügt wurden.
-        # Wir prüfen auf score > 0, um "Miss"-Würfe auszuschließen.
-        if throw_score > 0 and player.game_name in ('301', '501', '701'):
-            if player.stats['total_darts_thrown'] > 0:
-                player.stats['total_darts_thrown'] -= 1
-            if player.stats['total_score_thrown'] >= throw_score:
-                player.stats['total_score_thrown'] -= throw_score
-        
-        # Finish-Vorschlag für den wiederhergestellten Punktestand mit der korrekten Anzahl verbleibender Darts aktualisieren
+        # 4. UI aktualisieren
         darts_remaining = 3 - len(player.throws)
         suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
         player.sb.update_checkout_suggestion(suggestion)
+        player.sb.update_score(player.score)
 
     def _validate_opt_in(self, player, ring, segment):
         """
@@ -154,13 +158,7 @@ class X01(GameLogicBase):
         if player.state['has_opened']:
             return True  # Bereits geöffnet, keine Prüfung nötig
 
-        opened_successfully = False
-        if self.opt_in == "Single":
-            opened_successfully = True
-        elif self.opt_in == "Double" and ring in ("Double", "Bullseye"):
-            opened_successfully = True
-        elif self.opt_in == "Masters" and ring in ("Double", "Triple", "Bullseye"):
-            opened_successfully = True
+        opened_successfully = self._is_valid_opening_throw(ring)
 
         if opened_successfully:
             player.state['has_opened'] = True
@@ -201,6 +199,54 @@ class X01(GameLogicBase):
             if new_score == 0 and ring not in ("Double", "Triple", "Bullseye"): return True
         
         return False
+
+    def _is_shanghai_finish(self, player):
+        """Prüft, ob die drei Würfe des Spielers ein 120er Shanghai-Finish ergeben."""
+        if len(player.throws) != 3:
+            return False
+
+        # Prüfen auf spezifisches "120 Shanghai-Finish" (T20, S20, D20 in beliebiger Reihenfolge)
+        # player.throws enthält Tupel (ring_name, segment, coords)
+        all_darts_on_20_segment = True
+        rings_hit_on_20 = set()
+
+        for r_name, seg_val, _ in player.throws: # Coords ignorieren
+            if seg_val == 20: # Muss das Segment 20 sein
+                if r_name in ("Single", "Double", "Triple"):
+                    rings_hit_on_20.add(r_name)
+                else:
+                    # Getroffenes Segment 20, aber kein S, D, oder T Ring (sollte nicht vorkommen bei korrekter Segmenterkennung)
+                    all_darts_on_20_segment = False
+                    break
+            else:
+                # Ein Wurf war nicht auf Segment 20
+                all_darts_on_20_segment = False
+                break
+        
+        return all_darts_on_20_segment and rings_hit_on_20 == {"Single", "Double", "Triple"}
+
+    def _handle_win_condition(self, player, score_before_throw):
+        """Behandelt die Logik, wenn ein Spieler das Spiel gewinnt (Score erreicht 0)."""
+        # --- Checkout-Statistik bei Gewinn aktualisieren ---
+        player.stats['checkouts_successful'] += 1
+        # Erfolgreiches Finish zur Liste hinzufügen und höchsten Finish aktualisieren
+        finishes = player.stats.setdefault('successful_finishes', [])
+        finishes.append(score_before_throw)
+        player.stats['highest_finish'] = max(finishes)
+
+        self.game.shanghai_finish = self._is_shanghai_finish(player)
+        
+        self.game.end = True
+        self.game.winner = player
+        total_darts = player.get_total_darts_in_game()
+        
+        # Zum Highscore hinzufügen, falls Manager vorhanden
+        if self.game.highscore_manager:
+            self.game.highscore_manager.add_score(self.game.name, player.name, total_darts)
+
+        # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
+        # wenn self.game.shanghai_finish True ist.
+        return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
     def _handle_throw(self, player, ring, segment, players):
         """
@@ -278,51 +324,7 @@ class X01(GameLogicBase):
         player.sb.update_checkout_suggestion(suggestion)
 
         if player.score == 0: # Gilt nur für x01
-            # --- Checkout-Statistik bei Gewinn aktualisieren ---
-            player.stats['checkouts_successful'] += 1
-            # Erfolgreiches Finish zur Liste hinzufügen und höchsten Finish aktualisieren
-            finishes = player.stats.setdefault('successful_finishes', [])
-            finishes.append(score_before_throw)
-            player.stats['highest_finish'] = max(finishes)
-
-            self.game.shanghai_finish = False # Standardmäßig kein Shanghai-Finish
-
-            if len(player.throws) == 3:
-                # Prüfen auf spezifisches "120 Shanghai-Finish" (T20, S20, D20 in beliebiger Reihenfolge)
-                # player.throws enthält Tupel (ring_name, segment, coords)
-
-                all_darts_on_20_segment = True
-                rings_hit_on_20 = set()
-
-                for r_name, seg_val, _ in player.throws: # Coords ignorieren
-                    if seg_val == 20: # Muss das Segment 20 sein
-                        if r_name in ("Single", "Double", "Triple"):
-                            rings_hit_on_20.add(r_name)
-                        else:
-                            # Getroffenes Segment 20, aber kein S, D, oder T Ring (sollte nicht vorkommen bei korrekter Segmenterkennung)
-                            all_darts_on_20_segment = False
-                            break
-                    else:
-                        # Ein Wurf war nicht auf Segment 20
-                        all_darts_on_20_segment = False
-                        break
-                
-                if all_darts_on_20_segment and rings_hit_on_20 == {"Single", "Double", "Triple"}:
-                    # Alle drei Darts auf Segment 20 und die Ringe sind S, D, T.
-                    # Die Summe ist implizit 120 (20 + 40 + 60), und da player.score == 0 ist, war es ein 120er Finish.
-                    self.game.shanghai_finish = True
-            
-            self.game.end = True
-            self.game.winner = player
-            total_darts = player.get_total_darts_in_game()
-            
-            # Zum Highscore hinzufügen, falls Manager vorhanden
-            if self.game.highscore_manager:
-                self.game.highscore_manager.add_score(self.game.name, player.name, total_darts)
-
-            # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
-            # wenn self.game.shanghai_finish True ist.
-            return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
+            return self._handle_win_condition(player, score_before_throw)
 
         if len(player.throws) == 3:
             # Turn ends, user clicks "Weiter"

@@ -156,7 +156,7 @@ class EditProfileDialog(tk.Toplevel):
             self.avatar_preview_label.config(image=self.avatar_photo, text="")
         except (FileNotFoundError, Image.UnidentifiedImageError, IOError) as e:
             self.avatar_preview_label.config(image=None, text="Fehler")
-            print(f"Fehler beim Laden des Avatar-Vorschaubildes: {e}")
+            # print(f"Fehler beim Laden des Avatar-Vorschaubildes: {e}")
 
     def _select_avatar(self):
         """Öffnet einen Dateidialog zur Auswahl eines Avatar-Bildes."""

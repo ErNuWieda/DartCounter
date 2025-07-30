@@ -82,6 +82,13 @@ class TestCricket(GameLogicTestBase):
 
         self.assertEqual(player1.score, 0, "Es sollten keine Punkte vergeben werden, da das Ziel 'tot' ist.")
 
+    def test_bullseye_counts_as_two_marks(self):
+        """Testet, dass ein Bullseye als zwei Treffer auf 'Bull' zählt."""
+        player = self._create_players(1)[0]
+        self.assertEqual(player.state['hits']["Bull"], 0)
+        self.cricket_logic._handle_throw(player, "Bullseye", 50, [])
+        self.assertEqual(player.state['hits']["Bull"], 2)
+
     def test_win_condition_all_targets_closed_and_highest_score(self):
         """Testet die Gewinnbedingung: Alle Ziele geschlossen und höchste Punktzahl."""
         players = self._create_players(2)
@@ -93,8 +100,9 @@ class TestCricket(GameLogicTestBase):
         player1.score = 100
         player2.score = 50
 
-        # Der letzte Wurf, der das letzte Ziel schließt (und den Sieg auslöst)
-        result = self.cricket_logic._handle_throw(player1, "Triple", 15, players)
+        # Ein Wurf auf ein gültiges, bereits geschlossenes Ziel, um die Gewinnprüfung auszulösen.
+        # Der vorherige Fehler war ein Wurf auf ein ungültiges Ziel (z.B. "1").
+        result = self.cricket_logic._handle_throw(player1, "Single", 20, players)
 
         self.assertTrue(self.mock_game.end, "Das Spiel sollte als beendet markiert sein.")
         self.assertIn("gewinnt", result, "Eine Gewinnnachricht sollte zurückgegeben werden.")
@@ -110,7 +118,7 @@ class TestCricket(GameLogicTestBase):
         player1.score = 50
         player2.score = 100
 
-        result = self.cricket_logic._handle_throw(player1, "Triple", 15, players)
+        result = self.cricket_logic._handle_throw(player1, "Single", 20, players)
 
         self.assertFalse(self.mock_game.end, "Das Spiel sollte nicht beendet sein, da der Score niedriger ist.")
         self.assertIsNone(result)
@@ -176,8 +184,8 @@ class TestCricket(GameLogicTestBase):
         player1.score = 50
         player2.score = 100
 
-        # Aktion: Der letzte Wurf, der das Spiel beendet.
-        result = self.cricket_logic._handle_throw(player1, "Triple", 15, players)
+        # Aktion: Ein Wurf auf ein gültiges Ziel, um die Gewinnprüfung auszulösen.
+        result = self.cricket_logic._handle_throw(player1, "Single", 20, players)
 
         # Überprüfung:
         self.assertTrue(self.mock_game.end, "Das Spiel sollte als beendet markiert sein.")
@@ -197,8 +205,7 @@ class TestCricket(GameLogicTestBase):
         player2.score = 50
 
         # Aktion: Der letzte Wurf, der das Spiel beendet.
-        # Der Wurf selbst ist für die Logik hier irrelevant, er löst nur die Gewinnprüfung aus.
-        result = self.cricket_logic._handle_throw(player1, "Triple", 15, players)
+        result = self.cricket_logic._handle_throw(player1, "Single", 20, players)
 
         # Überprüfung:
         self.assertTrue(self.mock_game.end, "Das Spiel sollte bei Punktegleichstand als gewonnen gelten.")
@@ -218,7 +225,7 @@ class TestCricket(GameLogicTestBase):
         player2.score = 50
 
         # Aktion: Der Wurf, der die Ziele schließt, aber nicht das Spiel beendet.
-        result = self.cricket_logic._handle_throw(player1, "Triple", 15, players)
+        result = self.cricket_logic._handle_throw(player1, "Single", 20, players)
 
         # Überprüfung:
         self.assertFalse(self.mock_game.end, "Das Spiel sollte nicht beendet sein, da der Score höher ist.")

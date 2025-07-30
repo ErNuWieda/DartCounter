@@ -1,4 +1,4 @@
-th# Release Checklist für Dartcounter v1.2.0
+ # Release Checklist für Dartcounter v1.2.0
 
 Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-Prozess sicher.
 

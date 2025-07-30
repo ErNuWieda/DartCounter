@@ -16,6 +16,7 @@
 
 import tkinter as tk 
 from tkinter import ttk
+from tkinter import messagebox
 from .profile_manager_dialog import ProfileManagerDialog
 import json
 import pathlib

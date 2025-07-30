@@ -31,6 +31,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import configparser
+import logging
 import os
 from datetime import date
 from pathlib import Path
@@ -41,6 +42,8 @@ from psycopg2.extras import DictCursor
 from .settings_manager import get_app_data_dir, get_application_root_dir
 
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 def db_operation(write=False, default_return_value=None):
     """
@@ -64,7 +67,7 @@ def db_operation(write=False, default_return_value=None):
                         self.conn.commit()
                     return result
             except (Exception, psycopg2.Error) as error:
-                print(f"Datenbankfehler in '{func.__name__}': {error}")
+                logger.error(f"Datenbankfehler in '{func.__name__}': {error}", exc_info=True)
                 if write and self.conn:
                     self.conn.rollback()
                 if default_return_value is not None: return default_return_value
@@ -122,10 +125,10 @@ class DatabaseManager:
         config_path_to_use = None
         if user_config_path.exists():
             config_path_to_use = user_config_path
-            print(f"INFO: Lade Datenbank-Konfiguration von: {user_config_path}")
+            logger.info(f"Lade Datenbank-Konfiguration von: {user_config_path}")
         elif root_config_path.exists():
             config_path_to_use = root_config_path
-            print(f"INFO: Lade Datenbank-Konfiguration von: {root_config_path}")
+            logger.info(f"Lade Datenbank-Konfiguration von: {root_config_path}")
         else:
             example_config_path = app_root_path / 'config.ini.example'
             if example_config_path.exists():
@@ -133,13 +136,13 @@ class DatabaseManager:
                 try:
                     shutil.copy(example_config_path, user_config_path)
                     config_path_to_use = user_config_path
-                    print(f"INFO: Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}")
-                    print("INFO: Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen.")
+                    logger.info(f"Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}")
+                    logger.info("Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen.")
                 except Exception as e:
-                    print(f"FEHLER: Konnte die Standard-Konfigurationsdatei nicht erstellen: {e}")
+                    logger.error(f"Konnte die Standard-Konfigurationsdatei nicht erstellen: {e}", exc_info=True)
         
         if not config_path_to_use or not config_path_to_use.exists():
-            print("INFO: 'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis gefunden. Datenbankfunktionen sind deaktiviert.")
+            logger.info("'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis gefunden. Datenbankfunktionen sind deaktiviert.")
             return None
 
         config.read(config_path_to_use)
@@ -151,7 +154,7 @@ class DatabaseManager:
             db_config = config['postgresql']
             required_keys = ['host', 'database', 'user', 'password']
             if not all(key in db_config for key in required_keys):
-                print("FEHLER: 'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] Abschnitt. Datenbankfunktionen sind deaktiviert.")
+                logger.error("'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] Abschnitt. Datenbankfunktionen sind deaktiviert.")
                 return
 
             self.conn = psycopg2.connect(
@@ -162,7 +165,7 @@ class DatabaseManager:
             )
             self.is_connected = True
         except (configparser.NoSectionError, KeyError, psycopg2.Error) as error:
-            print(f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}")
+            logger.error(f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}", exc_info=True)
             self.is_connected = False
 
     def _migrate_schema(self):
@@ -180,17 +183,17 @@ class DatabaseManager:
         if cur.fetchone():
             cur.execute("SELECT 1 FROM information_schema.columns WHERE table_name='highscores' AND column_name='score_metric';")
             if not cur.fetchone():
-                print("INFO: Veraltetes Datenbankschema gefunden. Migriere 'darts_used' zu 'score_metric'.")
+                logger.info("Veraltetes Datenbankschema gefunden. Migriere 'darts_used' zu 'score_metric'.")
                 cur.execute("ALTER TABLE highscores RENAME COLUMN darts_used TO score_metric;")
                 cur.execute("ALTER TABLE highscores ALTER COLUMN score_metric TYPE FLOAT;")
-                print("INFO: Migration 'score_metric' erfolgreich.")
+                logger.info("Migration 'score_metric' erfolgreich.")
 
         # Migration für die Heatmap-Spalte
         cur.execute("SELECT 1 FROM information_schema.columns WHERE table_name='game_records' AND column_name='all_throws_coords';")
         if not cur.fetchone():
-            print("INFO: Datenbankschema wird erweitert. Füge Spalte 'all_throws_coords' zu 'game_records' hinzu.")
+            logger.info("Datenbankschema wird erweitert. Füge Spalte 'all_throws_coords' zu 'game_records' hinzu.")
             cur.execute("ALTER TABLE game_records ADD COLUMN all_throws_coords JSONB;")
-            print("INFO: Migration 'all_throws_coords' erfolgreich.")
+            logger.info("Migration 'all_throws_coords' erfolgreich.")
 
     @db_operation(write=True)
     def _create_tables_if_not_exist(self, cur):

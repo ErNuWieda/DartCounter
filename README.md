@@ -176,26 +176,20 @@ Nachdem das Skript erfolgreich durchgelaufen ist, finden Sie im Hauptverzeichnis
 
 ### Option C: Windows-Installer erstellen (mit Inno Setup)
 
-Nachdem Sie die ausführbare Datei mit Option B erstellt haben, können Sie einen professionellen Windows-Installer (`setup.exe`) erstellen. Dies bietet Benutzern eine vertraute Installationserfahrung, inklusive Startmenü-Einträgen und einer Deinstallationsroutine.
+Ein professioneller Windows-Installer (`setup.exe`) wird **automatisch** für jedes GitHub Release erstellt.
+
+Wenn Sie den Installer manuell erstellen möchten:
 
 #### Schritt 1: Inno Setup installieren
 Laden und installieren Sie den Inno Setup Compiler von der offiziellen Webseite: https://jrsoftware.org/isinfo.php
 
-#### Schritt 2: Anwendungsdateien vorbereiten
-1.  Führen Sie das Build-Skript wie in "Option B" beschrieben aus: `python build.py`.
-2.  Entpacken Sie die resultierende ZIP-Datei (z.B. `DartCounter_Windows_v1.2.0.zip`) in einen Ordner. Dieser Ordner enthält die `DartCounter.exe` und alle zugehörigen Dateien.
+#### Schritt 2: Anwendung bauen
+Führen Sie das Build-Skript wie in "Option B" beschrieben aus: `python build.py`. Das Skript erstellt ein ZIP-Archiv. Entpacken Sie dieses.
 
-#### Schritt 3: Installer-Skript anpassen und kompilieren
-1.  Im Projektverzeichnis finden Sie den Ordner `installer` mit der Datei `create_installer.iss`.
-2.  Öffnen Sie `create_installer.iss` mit einem Texteditor.
-3.  **WICHTIG:** Passen Sie in der `[Files]`-Sektion den `Source`-Pfad an. Er muss auf den Ordner zeigen, den Sie in Schritt 2 entpackt haben.
-    ```pascal
-    [Files]
-    ; Passen Sie den folgenden Pfad an!
-    Source: "C:\Pfad\zu\Ihren\entpackten\Build-Dateien\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-    ```
-4.  Speichern Sie die Datei.
-5.  Klicken Sie mit der rechten Maustaste auf die `create_installer.iss`-Datei und wählen Sie "Compile" oder öffnen Sie sie mit dem Inno Setup Compiler und klicken Sie auf den "Compile"-Button (blauer Play-Button).
+#### Schritt 3: Installer-Skript kompilieren
+1.  Öffnen Sie die Datei `installer/create_installer.iss`.
+2.  Passen Sie die Platzhalter für Version und Pfad (`!define AppVersion`, `Source: ...`) manuell an.
+3.  Kompilieren Sie das Skript mit dem Inno Setup Compiler.
 
 #### Schritt 4: Ergebnis
 Inno Setup erstellt eine einzelne `setup.exe`-Datei im `installer/Output`-Verzeichnis. Diese Datei können Sie an Windows-Benutzer weitergeben.
@@ -217,7 +211,7 @@ Wenn dir dieses Projekt gefällt und du die Weiterentwicklung unterstützen möc
 
 ## Danksagung
 
-Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Strukturierung des Codes und der Erstellung von Dokumentation von unschätzbarem Wert. Viele der Implementierungen und Verbesserungen wurden durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ verbessert.
+Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Code-Strukturierung und der Erstellung der Dokumentation von unschätzbarem Wert. Zahlreiche Implementierungen und Verbesserungen konnten durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ aufgewertet werden.
 
 ## Lizenz
 

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from .test_base import GameLogicTestBase
+from tests.test_base import GameLogicTestBase
 # Klasse, die getestet wird
 from core.micky import Micky
 # Klassen, die als Abhängigkeiten gemockt werden
@@ -15,7 +15,7 @@ class TestMicky(GameLogicTestBase):
         """Setzt eine kontrollierte Testumgebung für jeden Test auf."""
         self.logic_class_module = 'micky'
         super().setUp()
-        self.mock_game.name = "Micky Mouse"
+        self.mock_game.name = "Micky Maus"
 
         self.micky_logic = Micky(self.mock_game)
         self.mock_game.targets = self.micky_logic.get_targets()

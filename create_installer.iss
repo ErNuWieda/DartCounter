@@ -1,30 +1,26 @@
-; -- Inno Setup Script for DartCounter --
-; Dieses Skript definiert, wie der Windows-Installer erstellt wird.
-; Weitere Informationen: https://jrsoftware.org/ishelp/
+; Inno Setup Script für Dartcounter Deluxe
+; Dieses Skript wird vom CI/CD-Workflow verwendet, um einen Windows-Installer zu erstellen.
 
-#define MyAppName "DartCounter"
-#define MyAppVersion "1.2.0"
-#define MyAppPublisher "airnooweeda"
-#define MyAppURL "https://github.com/ErNuWieda/DartCounter"
-#define MyAppExeName "DartCounter.exe"
+#define AppName "DartCounter"
+; Die Versionsnummer wird vom CI-Workflow dynamisch ersetzt.
+#define AppVersion "0.0.0"
+#define AppPublisher "Martin Hehl (airnooweeda)"
+#define AppURL "https://github.com/ErNuWieda/DartCounter"
+; Der Name der finalen Setup-Datei.
+#define OutputName "DartCounter-v" + AppVersion + "-setup"
 
 [Setup]
-; HINWEIS: Die AppId identifiziert diese Anwendung eindeutig.
-; Um eine neue GUID zu generieren, klicken Sie in der Inno Setup IDE auf Tools | Generate GUID.
-AppId={{A4B8C1D2-E3F4-5A6B-7C8D-9E0F1A2B3C4D}}
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppPublisher={#MyAppPublisher}
-AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}/issues
-DefaultDirName={autopf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
-AllowNoIcons=yes
-; Die Lizenzdatei wird im Installer angezeigt. Der Pfad muss relativ zum Skript sein.
-LicenseFile=..\LICENSE
-OutputBaseFilename=DartCounter_v{#MyAppVersion}_setup
-; Das Verzeichnis, in dem der fertige Installer gespeichert wird.
-OutputDir=Output
+AppId={{F2A7A6F0-7B3A-4E1C-9B0A-5A7A7E0B6C1D}}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#AppPublisher}
+AppPublisherURL={#AppURL}
+AppSupportURL={#AppURL}
+AppUpdatesURL={#AppURL}
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+DisableProgramGroupPage=yes
+OutputBaseFilename={#OutputName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -36,15 +32,16 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; HINWEIS: Passen Sie den folgenden Pfad an!
-; Er muss auf den Ordner zeigen, in den Sie die Build-Dateien entpackt haben.
-Source: "C:\Pfad\zum\entpackten\build_output\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; "{app}" ist das Installationsverzeichnis (z.B. C:\Program Files\DartCounter)
+; Der Quellpfad wird vom CI-Workflow dynamisch ersetzt.
+; Er zeigt auf das Verzeichnis, das von build.py erstellt wurde.
+Source: "SOURCE_PATH\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppName}.exe"
+Name: "{group}\{cm:ProgramOnTheWeb,{#AppName}}"; Filename: "{#AppURL}"
+Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppName}.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#AppName}.exe"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent

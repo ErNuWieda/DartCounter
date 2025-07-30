@@ -55,6 +55,7 @@ class TestGame(unittest.TestCase):
             player.name = name
             player.id = i + 1
             player.throws = []
+            player.sb = MagicMock()
             player.reset_turn = MagicMock()
             player.profile = None # Hinzufügen, da Player jetzt ein Profil-Attribut erwartet
             self.mock_players.append(player)
