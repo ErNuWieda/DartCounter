@@ -64,6 +64,7 @@ def app_with_mocks():
         'player_stats_manager': patch('main.PlayerStatsManager'),
         'app_settings_dialog': patch('main.AppSettingsDialog'),
         'tournament_view': patch('main.TournamentView'),
+        'db_manager': patch('main.DatabaseManager'),
         'tournament_manager_from_dict': patch('main.TournamentManager.from_dict'),
     }
     
