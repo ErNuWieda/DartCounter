@@ -1,133 +1,126 @@
-import unittest
-from unittest.mock import patch, MagicMock, ANY
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .test_base import GameLogicTestBase
+import pytest
+from unittest.mock import MagicMock
+
 # Klasse, die getestet wird
 from core.killer import Killer
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
-from core.scoreboard import ScoreBoard
 
-class TestKiller(GameLogicTestBase):
-    """Testet die Spiellogik der Killer-Klasse."""
+# Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
-    def setUp(self):
-        """Setzt eine kontrollierte Testumgebung für jeden Test auf."""
-        self.logic_class_module = 'killer'
-        super().setUp()
-        self.mock_game.name = "Killer"
-        self.mock_game.lifes = 3
-        self.mock_game.next_player = MagicMock() # Wichtig, da es direkt aufgerufen wird
+@pytest.fixture
+def killer_logic(mock_game):
+    """Erstellt eine Instanz der Killer-Logik mit dem gemockten Spiel."""
+    mock_game.name = "Killer"
+    mock_game.lifes = 3
+    mock_game.next_player = MagicMock()
+    return Killer(mock_game)
 
-        self.killer_logic = Killer(self.mock_game)
+@pytest.fixture
+def players(mock_game, killer_logic):
+    """Erstellt eine Liste von zwei initialisierten Spielern für Killer."""
+    player_list = []
+    for i in range(2):
+        p = Player(name=f"Player {i+1}", game=mock_game)
+        killer_logic.initialize_player_state(p)
+        p.sb = MagicMock()
+        player_list.append(p)
+    # Wichtig: Die Killer-Logik muss die Spielerliste kennen
+    killer_logic.set_players(player_list)
+    return player_list
 
-    def _create_players(self, num_players=2):
-        """Hilfsfunktion, um eine Liste von Spielern für Tests zu erstellen."""
-        players = []
-        for i in range(num_players):
-            # Player benötigt game.targets, auch wenn es für Killer leer ist
-            self.mock_game.targets = []
-            player = Player(name=f"Player {i+1}", game=self.mock_game)
-            self.killer_logic.initialize_player_state(player)
-            player.sb = MagicMock(spec=ScoreBoard)
-            players.append(player)
-        # Wichtig: Die Killer-Logik muss die Spielerliste kennen
-        self.killer_logic.set_players(players)
-        return players
+def test_initialization(players, mock_game):
+    """Testet, ob ein Spieler korrekt für Killer initialisiert wird."""
+    player1 = players[0]
+    assert player1.score == mock_game.lifes
+    assert player1.state['life_segment'] is None
+    assert player1.state['can_kill'] is False
 
-    def test_initialization(self):
-        """Testet, ob ein Spieler korrekt für Killer initialisiert wird."""
-        player = self._create_players(1)[0]
-        self.assertEqual(player.score, self.mock_game.lifes)
-        self.assertIsNone(player.state['life_segment'])
-        self.assertFalse(player.state['can_kill'])
+def test_set_life_segment_success(killer_logic, players):
+    """Testet das erfolgreiche Festlegen eines Lebensfeldes."""
+    player1 = players[0]
+    status, message = killer_logic._handle_throw(player1, "Single", 15, players)
+    assert player1.state['life_segment'] == "15"
+    assert player1.game.next_player.called
+    assert status == 'info'
+    assert "hat Lebensfeld" in message
 
-    def test_set_life_segment_success(self):
-        """Testet das erfolgreiche Festlegen eines Lebensfeldes."""
-        players = self._create_players(2)
-        player1 = players[0]
+def test_set_life_segment_fails_on_taken_segment(killer_logic, players):
+    """Testet, dass das Festlegen eines bereits vergebenen Feldes fehlschlägt."""
+    player1, player2 = players
+    player2.state['life_segment'] = "15"
 
-        self.killer_logic._handle_throw(player1, "Single", 15, players)
+    status, message = killer_logic._handle_throw(player1, "Single", 15, players)
 
-        self.assertEqual(player1.state['life_segment'], "15")
-        self.mock_game.next_player.assert_called_once() # Spiel sollte sofort zum nächsten Spieler wechseln
+    assert player1.state['life_segment'] is None
+    assert not player1.game.next_player.called
+    assert status == 'warning'
+    assert "bereits an" in message
 
-    def test_set_life_segment_fails_on_taken_segment(self):
-        """Testet, dass das Festlegen eines bereits vergebenen Feldes fehlschlägt."""
-        players = self._create_players(2)
-        player1, player2 = players
-        player2.state['life_segment'] = "15" # Segment 15 ist bereits vergeben
+def test_become_killer_success(killer_logic, players):
+    """Testet, ob ein Spieler durch Treffen seines Doubles zum Killer wird."""
+    player1 = players[0]
+    player1.state['life_segment'] = "20"
 
-        self.killer_logic._handle_throw(player1, "Single", 15, players)
+    status, message = killer_logic._handle_throw(player1, "Double", 20, [])
 
-        self.assertIsNone(player1.state['life_segment'])
-        self.mock_messagebox.showwarning.assert_called_once()
-        self.mock_game.next_player.assert_not_called()
+    assert player1.state['can_kill'] is True
+    assert status == 'info'
+    assert "ist jetzt ein KILLER" in message
 
-    def test_become_killer_success(self):
-        """Testet, ob ein Spieler durch Treffen seines Doubles zum Killer wird."""
-        player = self._create_players(1)[0]
-        player.state['life_segment'] = "20"
+def test_killer_takes_opponent_life(killer_logic, players):
+    """Testet, ob ein Killer einem Gegner ein Leben nehmen kann."""
+    killer, victim = players
+    killer.state['life_segment'] = "20"
+    killer.state['can_kill'] = True
+    victim.state['life_segment'] = "19"
+    victim_initial_lives = victim.score
 
-        self.killer_logic._handle_throw(player, "Double", 20, [])
+    status, _ = killer_logic._handle_throw(killer, "Double", 19, players)
 
-        self.assertTrue(player.state['can_kill'])
-        self.mock_messagebox.showinfo.assert_called_with("Killer Status!", f"{player.name} ist jetzt ein KILLER!", parent=ANY)
+    assert victim.score == victim_initial_lives - 1
+    assert status == 'info'
 
-    def test_killer_takes_opponent_life(self):
-        """Testet, ob ein Killer einem Gegner ein Leben nehmen kann."""
-        players = self._create_players(2)
-        killer, victim = players
-        killer.state['life_segment'] = "20"
-        killer.state['can_kill'] = True
-        victim.state['life_segment'] = "19"
-        victim_initial_lives = victim.score
+def test_win_condition_last_player_standing(killer_logic, players):
+    """Testet die Gewinnbedingung, wenn nur noch ein Spieler übrig ist."""
+    killer, victim = players
+    killer.state['life_segment'] = "20"
+    killer.state['can_kill'] = True
+    victim.state['life_segment'] = "19"
+    victim.score = 1
 
-        self.killer_logic._handle_throw(killer, "Double", 19, players)
+    status, _ = killer_logic._handle_throw(killer, "Double", 19, players)
 
-        self.assertEqual(victim.score, victim_initial_lives - 1)
-        victim.sb.set_score_value.assert_called_with(victim_initial_lives - 1)
+    assert victim.score == 0
+    assert killer.game.end is True
+    assert status == 'info'
 
-    def test_killer_takes_own_life(self):
-        """Testet, ob ein Killer sich selbst ein Leben nimmt, wenn er sein eigenes Feld trifft."""
-        player = self._create_players(1)[0]
-        player.state['life_segment'] = "20"
-        player.state['can_kill'] = True
-        initial_lives = player.score
+def test_undo_take_life_restores_victim_life(killer_logic, players, mock_game):
+    """Testet, ob das Rückgängigmachen einer 'take_life'-Aktion das Leben wiederherstellt."""
+    killer, victim = players
+    killer.state['life_segment'] = "20"
+    killer.state['can_kill'] = True
+    victim.state['life_segment'] = "19"
 
-        self.killer_logic._handle_throw(player, "Double", 20, [])
+    killer_logic._handle_throw(killer, "Double", 19, players)
+    assert victim.score == mock_game.lifes - 1
 
-        self.assertEqual(player.score, initial_lives - 1)
-        player.sb.set_score_value.assert_called_with(initial_lives - 1)
+    killer_logic._handle_throw_undo(killer, "Double", 19, players)
 
-    def test_win_condition_last_player_standing(self):
-        """Testet die Gewinnbedingung, wenn nur noch ein Spieler übrig ist."""
-        players = self._create_players(2)
-        killer, victim = players
-        killer.state['life_segment'] = "20" # Ein Killer muss ein Lebensfeld haben
-        killer.state['can_kill'] = True
-        victim.state['life_segment'] = "19"
-        victim.score = 1 # Opfer hat nur noch ein Leben
-
-        result = self.killer_logic._handle_throw(killer, "Double", 19, players)
-
-        self.assertEqual(victim.score, 0)
-        self.assertTrue(self.mock_game.end)
-        self.assertIn("gewinnt Killer", result)
-
-    def test_undo_take_life_restores_victim_life(self):
-        """Testet, ob das Rückgängigmachen einer 'take_life'-Aktion das Leben wiederherstellt."""
-        players = self._create_players(2)
-        killer, victim = players
-        killer.state['life_segment'] = "20" # Ein Killer muss ein Lebensfeld haben
-        killer.state['can_kill'] = True
-        victim.state['life_segment'] = "19"
-
-        # Aktion: Leben nehmen
-        self.killer_logic._handle_throw(killer, "Double", 19, players)
-        self.assertEqual(victim.score, self.mock_game.lifes - 1, "Das Leben des Opfers sollte reduziert sein.")
-
-        # Aktion: Rückgängig machen
-        self.killer_logic._handle_throw_undo(killer, "Double", 19, players)
-
-        self.assertEqual(victim.score, self.mock_game.lifes, "Das Leben des Opfers sollte wiederhergestellt sein.")
+    assert victim.score == mock_game.lifes

@@ -18,7 +18,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tkinter as tk 
-from tkinter import ttk, messagebox, Menu
+from core._version import __version__
+from tkinter import ttk
 from PIL import Image, ImageTk
 import sys
 import sv_ttk
@@ -36,8 +37,10 @@ from core.player_profile_manager import PlayerProfileManager
 from core.profile_manager_dialog import ProfileManagerDialog
 from core.settings_dialog import AppSettingsDialog
 from core.tournament_dialog import TournamentSettingsDialog
+from core.app_menu import AppMenu
 from core.tournament_view import TournamentView
 from core.tournament_manager import TournamentManager
+from core import ui_utils
 
 def get_asset_path(relative_path):
     """
@@ -65,7 +68,7 @@ class App:
     """
     def __init__(self, root):
         self.root = root
-        self.version = "v1.2.0"
+        self.version = f"v{__version__}"
         
         # Manager-Instanzen als Instanzvariablen
         self.settings_manager = SettingsManager()
@@ -105,28 +108,7 @@ class App:
         self.root.bind("<Escape>", lambda e: self.quit_game())
 
     def _setup_menu(self):
-        menu_bar = Menu(self.root)
-        file_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="Datei", menu=file_menu)
-        file_menu.add_command(label="Neues Turnier", command=self.new_tournament)
-        file_menu.add_command(label="Turnier laden", command=self.load_tournament)
-        file_menu.add_command(label="Turnier speichern", command=self.save_tournament)
-        file_menu.add_separator()
-        file_menu.add_command(label="Neues Spiel", command=self.new_game)
-        file_menu.add_command(label="Spiel laden", command=self.load_game)
-        file_menu.add_command(label="Spiel speichern", command=self.save_game)
-        file_menu.add_separator()
-        file_menu.add_command(label="Spielerprofile verwalten", command=self.open_profile_manager)
-        file_menu.add_command(label="Einstellungen", command=self.open_settings_dialog)
-        file_menu.add_separator()
-        file_menu.add_command(label="Spielerstatistiken", command=self.show_player_stats)
-        file_menu.add_command(label="Highscores", command=self.show_highscores)
-        file_menu.add_separator()
-        file_menu.add_command(label="Spiel beenden", command=self.quit_game)
-        about_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="Über", menu=about_menu)
-        about_menu.add_command(label="Über Dartcounter", command=self.about)
-        self.root.config(menu=menu_bar)
+        self.menu = AppMenu(self.root, self)
 
     def _setup_main_canvas(self):
         assets_base_dir = get_asset_path("assets")
@@ -134,11 +116,11 @@ class App:
         try:
             image = Image.open(image_path)
         except FileNotFoundError:
-            messagebox.showerror("Fehler", f"Image nicht gefunden: {image_path}", parent=self.root)
+            ui_utils.show_message('error', "Fehler", f"Image nicht gefunden: {image_path}", parent=self.root)
             self.root.quit()
             return
         except Exception as e:
-            messagebox.showerror("Fehler", f"Fehler beim Laden des Images: {e}", parent=self.root)
+            ui_utils.show_message('error', "Fehler", f"Fehler beim Laden des Images: {e}", parent=self.root)
             self.root.quit()
             return
 
@@ -178,7 +160,7 @@ class App:
 
         if activity_type:
             # Die übergebene 'message' wird für die Abfrage verwendet.
-            if not messagebox.askyesno(title, message, parent=self.root):
+            if not ui_utils.ask_question('yesno', title, message, parent=self.root):
                 return False  # User cancelled
 
             # Bestehende Aktivität beenden
@@ -234,7 +216,7 @@ class App:
             self.game_instance = self._initialize_game_session(game_options, gm.players)
             self.game_instance.announce_current_player_turn()
             # Warten, bis das Spielfenster geschlossen wird, um das Hauptfenster wieder anzuzeigen.
-            self.root.wait_window(self.game_instance.db.root)
+            self.root.wait_window(self.game_instance.ui.db.root)
             self.root.deiconify()
         else:
             self.root.deiconify()
@@ -254,75 +236,21 @@ class App:
                 "count_to": dialog.game_mode,
                 "lifes": "3", "rounds": "7"
             }
-
             # Erstelle die TournamentManager-Instanz
             self.tournament_manager = TournamentManager(
                 player_names=dialog.player_names,
                 game_mode=dialog.game_mode,
                 game_options=game_options
             )
-
             # Statt der MessageBox, öffne die neue Turnieransicht
             self.tournament_view = TournamentView(self.root, self.tournament_manager, self.start_next_tournament_match)
-
-    def start_next_tournament_match(self):
-        """Startet das nächste verfügbare Match aus dem aktuellen Turnier."""
-        if not self.tournament_manager:
-            return
-
-        match = self.tournament_manager.get_next_match()
-        if not match:
-            tournament_winner = self.tournament_manager.get_tournament_winner()
-            if tournament_winner:
-                if self.sound_manager:
-                    self.sound_manager.play_win()
-                messagebox.showinfo("Turniersieger", f"🏆 {tournament_winner} hat das Turnier gewonnen!", parent=self.root)
-                if self.tournament_view and self.tournament_view.winfo_exists():
-                    self.tournament_view.update_bracket_tree()
-            return
-
-        if self.tournament_view and self.tournament_view.winfo_exists():
-            self.tournament_view.withdraw()
-        self.root.withdraw()
-
-        player_names = [match["player1"], match["player2"]]
-        game_options = self.tournament_manager.game_options
-        
-        self.game_instance = self._initialize_game_session(game_options, player_names)
-        self.game_instance.announce_current_player_turn()
-
-        self.root.wait_window(self.game_instance.db.root)
-
-        winner_name = None
-        if self.game_instance and self.game_instance.end and self.game_instance.winner:
-            winner_name = self.game_instance.winner.name
-
-        # Das Spiel ist beendet, die Instanz wird nicht mehr benötigt.
-        self.game_instance = None
-
-        if winner_name:
-            self.tournament_manager.record_match_winner(match, winner_name)
-            # Nach einem erfolgreichen Spiel, zeige die aktualisierte Ansicht
-            # und starte automatisch das nächste Match (oder beende das Turnier).
-            if self.tournament_view and self.tournament_view.winfo_exists():
-                self.tournament_view.deiconify()
-                self.tournament_view.update_bracket_tree()
-                self.tournament_view.lift()
-            self.start_next_tournament_match() # Rekursiver Aufruf für das nächste Spiel
-        else:
-            # Wenn das Spiel ohne Sieger beendet wurde (abgebrochen).
-            messagebox.showwarning("Spiel abgebrochen", "Das Turnierspiel wurde ohne Sieger beendet.", parent=self.root)
-            # Zeige die Turnieransicht wieder an, aber starte NICHT automatisch neu.
-            if self.tournament_view and self.tournament_view.winfo_exists():
-                self.tournament_view.deiconify()
-                self.tournament_view.lift()
 
     def save_tournament(self):
         """Speichert den Zustand des aktuell laufenden Turniers."""
         if self.tournament_manager and not self.tournament_manager.is_finished:
             SaveLoadManager.save_tournament_state(self.tournament_manager, self.root)
         else:
-            messagebox.showinfo("Turnier speichern", "Es läuft kein aktives Turnier, das gespeichert werden könnte.", parent=self.root)
+            ui_utils.show_message('info', "Turnier speichern", "Es läuft kein aktives Turnier, das gespeichert werden könnte.", parent=self.root)
 
     def load_tournament(self):
         """Startet den Workflow zum Laden eines gespeicherten Turniers."""
@@ -353,9 +281,56 @@ class App:
         SaveLoadManager.restore_game_state(loaded_game, data)
         self.game_instance = loaded_game
         # Warten und Hauptfenster wiederherstellen
-        self.root.wait_window(self.game_instance.db.root)
+        self.root.wait_window(self.game_instance.ui.db.root)
         self.root.deiconify()
         self.game_instance.announce_current_player_turn()
+
+    def start_next_tournament_match(self):
+        """Wird von der TournamentView aufgerufen, um das nächste Match zu starten."""
+        match = self.tournament_manager.get_next_match()
+        if not match:
+            # Sollte nicht passieren, wenn der Button geklickt wird, aber als Sicherheitsnetz.
+            return
+
+        # Verstecke das Turnierfenster, während ein Match läuft
+        if self.tournament_view and self.tournament_view.winfo_exists():
+            self.tournament_view.withdraw()
+
+        game_options = self.tournament_manager.game_options
+        player_names = [match['player1'], match['player2']]
+        self.game_instance = self._initialize_game_session(game_options, player_names)
+
+        # Dieser Aufruf startet den Spielfluss (und damit auch den Zug der KI)
+        self.game_instance.announce_current_player_turn()
+
+        # Warten, bis das Spielfenster geschlossen wird
+        self.root.wait_window(self.game_instance.ui.db.root)
+
+        # --- Nach Beendigung des Matches ---
+
+        # Trage den Gewinner ein und gehe zur nächsten Runde über
+        if self.game_instance and self.game_instance.winner:
+            winner_name = self.game_instance.winner.name
+            self.tournament_manager.record_match_winner(match, winner_name)
+            self.tournament_manager.advance_to_next_round()
+
+        # Bereinige die beendete Spielinstanz
+        self.game_instance = None
+
+        # Zeige das Turnierfenster wieder an und aktualisiere es
+        if self.tournament_view and self.tournament_view.winfo_exists():
+            self.tournament_view.deiconify()
+            self.tournament_view.update_bracket_tree()
+            
+            # --- Siegerehrung, wenn das Turnier beendet ist ---
+            if self.tournament_manager.is_finished:
+                winner = self.tournament_manager.get_tournament_winner()
+                ui_utils.show_message(
+                    'info',
+                    "Turnier beendet!",
+                    f"Herzlichen Glückwunsch, {winner}!\n\nDu hast das Turnier gewonnen!",
+                    parent=self.tournament_view
+                )
 
     def open_settings_dialog(self):
         """Öffnet einen Dialog für globale Anwendungseinstellungen."""
@@ -370,10 +345,10 @@ class App:
     def save_game(self):
         """Speichert den Zustand des aktuell laufenden Spiels."""
         # Spiel kann nur gespeichert werden, wenn eine Instanz existiert, das Spiel nicht beendet ist UND das Dartboard-Fenster (db) noch existiert.
-        if self.game_instance and not self.game_instance.end and self.game_instance.db:
+        if self.game_instance and not self.game_instance.end and self.game_instance.ui and self.game_instance.ui.db:
             SaveLoadManager.save_game_state(self.game_instance, self.root)
         else:
-            messagebox.showinfo("Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=self.root)
+            ui_utils.show_message('info', "Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=self.root)
 
     def show_highscores(self):
         """Öffnet das Fenster zur Anzeige der Highscores."""
@@ -386,7 +361,7 @@ class App:
 
     def quit_game(self):
         """Beendet die Anwendung nach einer Bestätigungsabfrage."""
-        confirm = messagebox.askyesno("Programm beenden", "Dartcounter wirklich beenden?", parent=self.root)
+        confirm = ui_utils.ask_question('yesno', "Programm beenden", "DartCounter wirklich beenden?", parent=self.root)
         if confirm:
             if self.settings_manager:
                 self.settings_manager.save_settings()
@@ -406,7 +381,7 @@ class App:
             "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
             f"© 2025 Martin Hehl"
         )
-        messagebox.showinfo(f"Dartcounter {self.version}", about_text, parent=self.root)
+        ui_utils.show_message('info', f"Dartcounter {self.version}", about_text, parent=self.root)
 
 if __name__ == "__main__":
     root = tk.Tk()

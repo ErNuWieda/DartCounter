@@ -27,9 +27,11 @@ class TestGameWithX01(unittest.TestCase):
 
     def setUp(self):
         """Wird vor jedem Test ausgeführt."""
-        # Wir "patchen" messagebox, damit keine echten Fenster aufpoppen
-        self.patcher = patch('core.game.messagebox')
-        self.mock_messagebox = self.patcher.start()
+        # Wir "patchen" die zentralen UI-Utility-Funktionen, damit keine echten Fenster aufpoppen.
+        self.patcher_show = patch('core.game.ui_utils.show_message')
+        self.patcher_ask = patch('core.game.ui_utils.ask_question')
+        self.mock_show_message = self.patcher_show.start()
+        self.mock_ask_question = self.patcher_ask.start()
 
         # Mocks für alle externen Abhängigkeiten erstellen
         self.mock_sound_manager = MagicMock()
@@ -47,8 +49,8 @@ class TestGameWithX01(unittest.TestCase):
             "rounds": "7"
         }
         
-        # Wir mocken die Scoreboard-Erstellung, da sie UI erzeugt
-        with patch('core.game.ScoreBoard'):
+        # Wir mocken die gesamte GameUI-Klasse, da sie alle UI-Fenster erzeugt
+        with patch('core.game.GameUI'):
             self.game = Game(
                 self.root, 
                 game_options, 
@@ -61,11 +63,16 @@ class TestGameWithX01(unittest.TestCase):
         # Manuelles Zuweisen von IDs, um die `leave`-Methode zuverlässig testen zu können
         self.game.players[0].id = 101 # Alice
         self.game.players[1].id = 102 # Bob
+        # Da GameUI gemockt ist, müssen wir die Scoreboards manuell mocken
+        for p in self.game.players:
+            p.sb = MagicMock()
+
         self.game.players[2].id = 103 # Charlie
 
     def tearDown(self):
         """Wird nach jedem Test ausgeführt, um den Patcher zu stoppen."""
-        self.patcher.stop()
+        self.patcher_show.stop()
+        self.patcher_ask.stop()
         # Zerstöre die Spielinstanz und alle zugehörigen UI-Fenster,
         # um Ressourcenlecks und hängende Tests zu vermeiden.
         if self.game:
@@ -126,7 +133,7 @@ class TestGameWithX01(unittest.TestCase):
         self.assertEqual(len(self.game.players), 1)
         self.assertEqual(self.game.players[0].name, "Bob")
         self.assertEqual(self.game.current_player().name, "Bob", "Der nächste Spieler sollte nun am Zug sein.")
-        self.mock_messagebox.showinfo.assert_called() # Es sollte eine Nachricht angezeigt werden
+        self.mock_show_message.assert_called() # Es sollte eine Nachricht angezeigt werden
 
     def test_undo_dispatches_to_logic_handler(self):
         """Testet, ob game.undo() den Aufruf an den Spiellogik-Handler weiterleitet."""
@@ -134,15 +141,15 @@ class TestGameWithX01(unittest.TestCase):
         player.throws.append(("Triple", 20))
         
         # Mocken der Methoden, die aufgerufen werden sollen
-        self.game.game._handle_throw_undo = MagicMock()
-        self.game.db = MagicMock() # Mocken der Dartboard-Instanz
+        self.game.game._handle_throw_undo = MagicMock() # Mock für die Spiellogik
+        self.game.ui = MagicMock() # Mocken der gesamten UI-Instanz
 
         self.game.undo()
 
         # Überprüfen, ob die Undo-Methode des Logik-Handlers aufgerufen wurde
         self.game.game._handle_throw_undo.assert_called_once_with(player, "Triple", 20, self.game.players)
         # Überprüfen, ob die clear-Methode des Dartboards aufgerufen wurde
-        self.game.db.clear_last_dart_image_from_canvas.assert_called_once()
+        self.game.ui.db.clear_last_dart_image_from_canvas.assert_called_once()
 
     def test_stat_recording_on_win(self):
         """Testet, ob Statistiken bei einem Sieg korrekt erfasst werden."""

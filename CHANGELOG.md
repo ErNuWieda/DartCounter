@@ -6,6 +6,21 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### ✨ Features & Verbesserungen
+
+*   **KI-Logik:** Die strategische Zielauswahl der KI-Spieler wurde grundlegend überarbeitet. Sie agiert jetzt im Finish-Bereich deutlich menschlicher, versucht gezielt Setup-Würfe zu spielen und vermeidet unsinnige Würfe auf die 20.
+*   **Profil-Manager UI:** Der Dialog zur Verwaltung der Spielerprofile wurde überarbeitet. Er gruppiert und sortiert die Spieler nun logisch (Menschen zuerst, dann KI nach Stärke) und passt seine Fenstergröße dynamisch an den Inhalt an.
+*   **Turnierbaum-Visualisierung:** Die Darstellung des Turnierbaums wurde verbessert. Verbindungslinien sind nun pixelgenau, und der Turniersieger wird am Ende prominent mit einem Trophäen-Symbol hervorgehoben.
+
+### 🐛 Bugfixes & Stabilität
+
+*   **Turnier-Logik:** Mehrere kritische Fehler im Turniermodus wurden behoben, die zu Endlosschleifen, falschen Spielerzuweisungen in Folgerunden und einer fehlerhaften Finaldarstellung führten.
+*   **Statistik-Heatmap:** Die Wurf-Heatmap im Statistik-Fenster wird jetzt korrekt skaliert und passt sich der Bildschirmgröße an, analog zum Haupt-Dartboard.
+
+---
+
 ## [1.2.0] - 2025-XX-XX
 
 Dies ist ein großes Release, das den Dartcounter von einem einfachen Prototyp zu einer vollwertigen, robusten Anwendung weiterentwickelt. Der Fokus lag auf der Implementierung zahlreicher neuer Spielmodi, der Verbesserung der Code-Qualität durch Refactoring und der Einführung einer umfassenden Test-Suite.

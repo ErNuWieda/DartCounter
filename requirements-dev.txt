@@ -1,0 +1,8 @@
+# Diese Datei enthält die Abhängigkeiten für Entwicklung, Tests und das Bauen der Anwendung.
+
+# Beinhaltet alle Laufzeit-Abhängigkeiten aus der Haupt-Anforderungsdatei.
+-r requirements.txt
+
+# Pakete, die nur für die Entwicklung benötigt werden.
+pytest
+pyinstaller

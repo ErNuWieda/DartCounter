@@ -51,7 +51,7 @@ class TournamentView(tk.Toplevel):
         """Aktualisiert die Canvas-Zeichnung und den Status der Buttons."""
         # Die update_idletasks() ist wichtig, damit das Canvas seine Größe kennt, bevor gezeichnet wird.
         self.bracket_canvas.update_idletasks()
-        self.bracket_canvas.draw_bracket(self.tm.rounds, self.tm.get_next_match())
+        self.bracket_canvas.draw_bracket(self.tm.rounds, self.tm.get_next_match(), self.tm.get_tournament_winner())
         # Button-Status aktualisieren
         if self.tm.is_finished:
             self.start_button.config(text=f"Turnier beendet! Sieger: {self.tm.get_tournament_winner()}", state=tk.DISABLED)

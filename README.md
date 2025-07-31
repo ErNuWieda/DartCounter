@@ -10,24 +10,24 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 ## Features
 
 *   **Verschiedene Spielmodi:**
-    *   **Turnier-Modus:** Fordere deine Freunde heraus! Erstelle Turniere für bis zu 8 Spieler im K.o.-System und verfolge den Fortschritt in einem grafischen Turnierbaum.
-    *   **x01 Spiele:** 301, 501, 701 mit Optionen für:
+    *   **Turniermodus:** Erstelle K.o.-Turniere für bis zu 8 Spieler. Der Fortschritt wird in einem interaktiven, grafischen Turnierbaum visualisiert.
+    *   **X01-Spiele:** 301, 501, 701 mit flexiblen Regeln für:
         *   Opt-In: Single, Double, Masters
         *   Opt-Out: Single, Double, Masters
-    *   **Cricket:** Standard Cricket und Cut Throat Cricket
-    *   **Tactics:** Erweiterte Cricket-Variante (Ziele 10-20 und Bull).
-    *   **Around the Clock (ATC):** Mit Varianten für Single, Double, Triple als Ziel
-    *   **Micky Maus:** Treffen der Zahlen 20 bis 12 und Bullseye.
-    *   **Killer:** Jeder Spieler erhält ein Lebensfeld; Ziel ist es, "Killer" zu werden und andere Spieler zu eliminieren.
-    *   **Elimination:** Jeder Spieler spielt von 0 zu einem Zielscore (301, 501), trifft man exakt den Punktestand eines Gegners, wird dieser zurückgesetzt.
-    *   **Speichern & Laden:** Laufende Spiele und **Turniere** können gespeichert und später fortgesetzt werden.
-    *   **Shanghai:** Die Spieler müssen die Zahlen von 1 bis 20 (oder eine andere Rundenzahl) der Reihe nach treffen. Ein "Shanghai" (Single, Double und Triple der aktuellen Zielzahl in einer Runde) führt zum sofortigen Sieg.
+    *   **Cricket-Varianten:** Standard Cricket, Cut Throat und Tactics.
+    *   **Strategie- & Partyspiele:** Around the Clock (ATC), Micky Maus, Killer, Elimination und Shanghai.
+*   **Intelligente KI-Gegner:**
+    *   Spiele gegen KI-Gegner mit einstellbaren Schwierigkeitsgraden (von Anfänger bis Champion).
+    *   Die KI verfolgt eine menschliche Wurfstrategie, inklusive Power-Scoring und cleveren Setup-Würfen im Finish-Bereich.
 *   **Spieler-Profile & Statistiken:**
-    *   **Persistente Profile:** Erstelle Spielerprofile mit Namen, eigenem Avatar und einer wählbaren Farbe für die Darts auf dem Board.
-    *   **Erweiterte Statistiken:** Erfasst die Leistung jedes Spielers über die Zeit, visualisiert den Formverlauf in einem Diagramm und analysiert die Treffsicherheit mit einer Wurf-Heatmap.
-*   **Grafisches Dartboard:** Klickbares Dartboard zur Eingabe der Würfe.
-*   **Individuelle Scoreboards:** Jeder Spieler erhält ein eigenes Fenster zur Anzeige des Spielstands und der Wurfhistorie.
-*   **Visuelle Dart-Anzeige:** Getroffene Felder werden mit einem Dart-Symbol auf dem Board markiert.
+    *   **Persistente Profile:** Erstelle und verwalte Spielerprofile (Mensch & KI) mit Namen, Avatar und individueller Dart-Farbe.
+    *   **Detaillierte Statistiken:** Verfolge deine Leistung mit Statistiken wie 3-Dart-Average, MPR, Checkout-Quote und einem grafischen Formverlauf.
+    *   **Wurf-Analyse:** Visualisiere deine Treffsicherheit mit einer persönlichen Wurf-Heatmap.
+*   **Moderne Benutzeroberfläche:**
+    *   Interaktives, klickbares Dartboard zur einfachen Eingabe der Würfe.
+    *   Individuelle Scoreboards für jeden Spieler mit allen relevanten Informationen.
+    *   Helles und dunkles Design wählbar.
+*   **Speichern & Laden:** Laufende Spiele und Turniere können jederzeit gespeichert und später fortgesetzt werden.
 
 ![Turnier-Ansicht](./assets/screenshot_tournament.png "Turnierbaum für 8 Spieler")
 ![Spielerprofile verwalten](./assets/screenshot_profiles.png "Verwaltung der Spielerprofile mit Avataren und Farben")

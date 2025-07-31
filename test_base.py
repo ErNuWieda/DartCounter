@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 import tkinter as tk
+from core import ui_utils
 
 class GameLogicTestBase(unittest.TestCase):
     """
@@ -21,20 +22,10 @@ class GameLogicTestBase(unittest.TestCase):
         self.mock_game.db.root = tk.Tk() # Benötigt für Dialoge
         self.mock_game.db.root.withdraw() # Verhindert, dass ein leeres Fenster angezeigt wird
 
-        # Mock für die messagebox
-        self.mock_messagebox = MagicMock()
-
-        # Patche tkinter.messagebox, sodass wir es mocken können
-        self.messagebox_patcher = unittest.mock.patch(f'core.{self.logic_class_module}.messagebox', new=self.mock_messagebox)
-        self.messagebox_patcher.start()
-
     def tearDown(self):
         """
         Räumt nach jedem Test auf.
         """
-        # Stoppe den Patcher
-        self.messagebox_patcher.stop()
-
         if self.mock_game.db.root:
             try:
                 self.mock_game.db.root.destroy()

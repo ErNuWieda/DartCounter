@@ -1,147 +1,145 @@
-import unittest
-from unittest.mock import patch, MagicMock
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .test_base import GameLogicTestBase
+import pytest
+from unittest.mock import MagicMock
+
 # Klasse, die getestet wird
 from core.x01 import X01
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
-from core.scoreboard import ScoreBoard
 
-class TestX01(GameLogicTestBase):
-    """Testet die Spiellogik der X01-Klasse, insbesondere Opt-In/Out und Bust-Regeln."""
+# Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
-    def setUp(self):
-        """Setzt eine kontrollierte Testumgebung für jeden Test auf."""
-        self.logic_class_module = 'x01'
-        super().setUp()
+@pytest.fixture
+def x01_logic(mock_game):
+    """Erstellt eine Instanz der X01-Logik mit dem gemockten Spiel."""
+    # Spieloptionen vor der Instanziierung der Logik setzen
+    mock_game.name = "501"
+    mock_game.opt_in = "Double"
+    mock_game.opt_out = "Double"
+    return X01(mock_game)
 
-        self.mock_game.name = "501"
-        self.mock_game.opt_in = "Double"  # Standardwert
-        self.mock_game.opt_out = "Double" # Wichtig: Muss VOR der X01-Instanziierung gesetzt werden.
+@pytest.fixture
+def player(mock_game, x01_logic):
+    """Erstellt eine echte Player-Instanz, die für die Tests konfiguriert ist."""
+    p = Player(name="Tester", game=mock_game)
+    x01_logic.initialize_player_state(p)
+    p.sb = MagicMock()
+    # Standardwerte, die in Tests überschrieben werden können
+    p.score = 501
+    p.state['has_opened'] = True
+    return p
 
-        # Instanz der zu testenden Klasse
-        self.x01_logic = X01(self.mock_game)
-        # Weist die Logik-Instanz der Basisklassen-Variable zu, damit _create_player sie verwenden kann.
-        self.logic = self.x01_logic
+# --- Opt-In Tests ---
 
-    # --- Opt-In Tests ---
-    def test_opt_in_double_fails_on_single_throw(self):
-        """Testet, ob bei 'Double In' ein Single-Wurf ungültig ist."""
-        self.mock_game.opt_in = "Double"
-        player = self._create_player(score=501, state={'has_opened': False})
+def test_opt_in_double_fails_on_single_throw(x01_logic, player):
+    """Testet, ob bei 'Double In' ein Single-Wurf ungültig ist."""
+    player.game.opt_in = "Double"
+    player.score = 501
+    player.state['has_opened'] = False
 
-        self.x01_logic._handle_throw(player, "Single", 20, [])
+    status, message = x01_logic._handle_throw(player, "Single", 20, [])
 
-        # Der Punktestand wird nicht reduziert, da der Wurf ungültig ist.
-        self.assertEqual(player.score, 501, "Der Punktestand darf sich bei einem ungültigen 'In'-Wurf nicht ändern.")
-        self.assertFalse(player.state['has_opened'], "Der Spieler darf nach einem ungültigen 'In'-Wurf nicht als 'geöffnet' markiert sein.")
-        self.mock_messagebox.showerror.assert_called_once()
+    assert player.score == 501
+    assert not player.state['has_opened']
+    assert status == 'invalid_open'
+    assert message is not None
 
-    def test_opt_in_double_succeeds_on_double_throw(self):
-        """Testet, ob bei 'Double In' ein Double-Wurf gültig ist und das Spiel eröffnet."""
-        self.mock_game.opt_in = "Double"
-        player = self._create_player(score=501, state={'has_opened': False})
+def test_opt_in_double_succeeds_on_double_throw(x01_logic, player):
+    """Testet, ob bei 'Double In' ein Double-Wurf gültig ist und das Spiel eröffnet."""
+    player.game.opt_in = "Double"
+    player.score = 501
+    player.state['has_opened'] = False
 
-        self.x01_logic._handle_throw(player, "Double", 20, [])
+    status, _ = x01_logic._handle_throw(player, "Double", 20, [])
 
-        self.assertEqual(player.score, 461, "Der Punktestand sollte korrekt reduziert werden.")
-        self.assertTrue(player.state['has_opened'], "Der Spieler sollte nun als 'geöffnet' markiert sein.")
-        self.mock_messagebox.showerror.assert_not_called()
+    assert player.score == 461
+    assert player.state['has_opened']
+    assert status == 'ok'
 
-    # --- Bust Tests ---
-    def test_bust_if_score_goes_below_zero(self):
-        """Testet, ob ein Wurf, der den Score unter 0 bringen würde, ein 'Bust' ist."""
-        player = self._create_player(score=20, state={'has_opened': True})
+# --- Bust Tests ---
 
-        self.x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
+def test_bust_if_score_goes_below_zero(x01_logic, player):
+    """Testet, ob ein Wurf, der den Score unter 0 bringen würde, ein 'Bust' ist."""
+    player.score = 20
+    status, _ = x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
+    assert player.score == 20
+    assert player.turn_is_over
+    assert status == 'bust'
 
-        self.assertEqual(player.score, 20, "Der Punktestand sollte nach einem Bust unverändert sein.")
-        self.assertTrue(player.turn_is_over, "Der Zug sollte nach einem Bust beendet sein.")
-        self.mock_messagebox.showerror.assert_called_once()
+def test_opt_out_double_busts_if_score_is_one(x01_logic, player):
+    """Testet, ob bei 'Double Out' ein Rest von 1 ein 'Bust' ist."""
+    player.score = 21
+    status, _ = x01_logic._handle_throw(player, "Single", 20, []) # Bringt Score auf 1 -> Bust
+    assert player.score == 21
+    assert player.turn_is_over
+    assert status == 'bust'
 
-    def test_opt_out_double_busts_if_score_is_one(self):
-        """Testet, ob bei 'Double Out' ein Rest von 1 ein 'Bust' ist."""
-        player = self._create_player(score=21, state={'has_opened': True})
+def test_opt_out_double_busts_on_single_finish(x01_logic, player):
+    """Testet, ob bei 'Double Out' ein Finish mit einem Single-Wurf ein 'Bust' ist."""
+    player.score = 20
+    status, _ = x01_logic._handle_throw(player, "Single", 20, [])
+    assert player.score == 20
+    assert player.turn_is_over
+    assert status == 'bust'
 
-        self.x01_logic._handle_throw(player, "Single", 20, []) # Bringt Score auf 1 -> Bust
+# --- Gültiger Wurf & Gewinn Tests ---
 
-        self.assertEqual(player.score, 21, "Der Punktestand sollte nach einem Bust unverändert sein.")
-        self.assertTrue(player.turn_is_over, "Der Zug sollte nach einem Bust beendet sein.")
-        self.mock_messagebox.showerror.assert_called_once()
+def test_valid_throw_updates_score_and_stats(x01_logic, player):
+    """Testet, ob ein gültiger Wurf den Score und die Statistiken korrekt aktualisiert."""
+    player.score = 100
+    status, _ = x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
+    assert player.score == 40
+    assert player.stats['total_darts_thrown'] == 1
+    assert player.stats['total_score_thrown'] == 60
+    assert status == 'ok'
 
-    def test_opt_out_double_busts_on_single_finish(self):
-        """Testet, ob bei 'Double Out' ein Finish mit einem Single-Wurf ein 'Bust' ist."""
-        player = self._create_player(score=20, state={'has_opened': True})
+def test_win_on_double_out_updates_all_stats(x01_logic, player):
+    """Testet, ob ein Gewinnwurf bei 'Double Out' alle relevanten Daten korrekt aktualisiert."""
+    player.score = 40
+    result = x01_logic._handle_throw(player, "Double", 20, [])
+    assert player.score == 0
+    assert player.game.end is True
+    assert player.stats['checkout_opportunities'] == 1
+    assert player.stats['checkouts_successful'] == 1
+    assert player.stats['highest_finish'] == 40
+    assert isinstance(result, str) and "gewinnt" in result
 
-        self.x01_logic._handle_throw(player, "Single", 20, [])
+# --- Undo Tests ---
 
-        self.assertEqual(player.score, 20, "Der Punktestand sollte nach einem Bust unverändert sein.")
-        self.assertTrue(player.turn_is_over, "Der Zug sollte nach einem Bust beendet sein.")
-        self.mock_messagebox.showerror.assert_called_once()
+def test_undo_simple_throw_restores_state(x01_logic, player):
+    """Testet, ob das Rückgängigmachen eines Wurfs Score und Stats korrekt wiederherstellt."""
+    player.score = 100
+    x01_logic._handle_throw(player, "Triple", 20, [])
+    assert player.score == 40
 
-    # --- Gültiger Wurf & Gewinn Tests ---
-    def test_valid_throw_updates_score_and_stats(self):
-        """Testet, ob ein gültiger Wurf den Score und die Statistiken korrekt aktualisiert."""
-        player = self._create_player(score=100, state={'has_opened': True})
+    x01_logic._handle_throw_undo(player, "Triple", 20, [])
 
-        self.x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
+    assert player.score == 100
+    assert player.stats['total_darts_thrown'] == 0
+    assert player.stats['total_score_thrown'] == 0
 
-        self.assertEqual(player.score, 40)
-        self.assertEqual(player.stats['total_darts_thrown'], 1)
-        self.assertEqual(player.stats['total_score_thrown'], 60)
-        self.mock_messagebox.showerror.assert_not_called()
+def test_undo_winning_throw_restores_player_state(x01_logic, player):
+    """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spieler-Zustand wiederherstellt."""
+    player.score = 40
+    x01_logic._handle_throw(player, "Double", 20, [])
+    assert player.stats['checkouts_successful'] == 1
 
-    def test_win_on_double_out_updates_all_stats(self):
-        """Testet, ob ein Gewinnwurf bei 'Double Out' alle relevanten Daten korrekt aktualisiert."""
-        player = self._create_player(score=40, state={'has_opened': True})
+    x01_logic._handle_throw_undo(player, "Double", 20, [])
 
-        # Initialzustand der Statistiken
-        self.assertEqual(player.stats['checkout_opportunities'], 0)
-        self.assertEqual(player.stats['checkouts_successful'], 0)
-        self.assertEqual(player.stats['highest_finish'], 0)
-
-        result = self.x01_logic._handle_throw(player, "Double", 20, [])
-
-        # Überprüfen des Endzustands
-        self.assertEqual(player.score, 0)
-        self.assertTrue(self.mock_game.end)
-        # Ein robuster Test prüft auf das korrekte Verhalten, nicht auf ein fehlendes Feature.
-        self.assertEqual(player.stats['checkout_opportunities'], 1, "Es gab eine Checkout-Möglichkeit, die gezählt werden sollte.")
-        self.assertEqual(player.stats['checkouts_successful'], 1, "Der Checkout war erfolgreich.")
-        self.assertEqual(player.stats['highest_finish'], 40, "Das höchste Finish sollte der Anfangsscore sein.")
-        self.assertIn("gewinnt", result, "Eine Gewinnnachricht sollte zurückgegeben werden.")
-
-    # --- Undo Tests ---
-    def test_undo_simple_throw_restores_state(self):
-        """Testet, ob das Rückgängigmachen eines Wurfs Score und Stats korrekt wiederherstellt."""
-        player = self._create_player(score=100, state={'has_opened': True})
-        # Simuliere einen Wurf
-        self.x01_logic._handle_throw(player, "Triple", 20, [])
-        self.assertEqual(player.score, 40)
-        self.assertEqual(player.stats['total_darts_thrown'], 1)
-        self.assertEqual(player.stats['total_score_thrown'], 60)
-
-        # Mache den Wurf rückgängig
-        self.x01_logic._handle_throw_undo(player, "Triple", 20, [])
-
-        # Prüfe den wiederhergestellten Zustand
-        self.assertEqual(player.score, 100, "Der Score sollte wiederhergestellt sein.")
-        self.assertEqual(player.stats['total_darts_thrown'], 0, "Die Anzahl der Würfe sollte zurückgesetzt sein.")
-        self.assertEqual(player.stats['total_score_thrown'], 0, "Der Gesamtscore sollte zurückgesetzt sein.")
-
-    def test_undo_winning_throw_restores_player_state(self):
-        """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spieler-Zustand wiederherstellt."""
-        player = self._create_player(score=40, state={'has_opened': True})
-        # Simuliere einen Gewinnwurf
-        self.x01_logic._handle_throw(player, "Double", 20, [])
-        self.assertEqual(player.stats['checkouts_successful'], 1)
-
-        # Mache den Gewinnwurf rückgängig
-        self.x01_logic._handle_throw_undo(player, "Double", 20, [])
-
-        self.assertEqual(player.score, 40, "Der Score sollte wiederhergestellt sein.")
-        self.assertEqual(player.stats['checkouts_successful'], 0, "Erfolgreiche Checkouts sollten zurückgesetzt sein.")
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    assert player.score == 40
+    assert player.stats['checkouts_successful'] == 0

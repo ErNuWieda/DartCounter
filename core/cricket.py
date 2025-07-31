@@ -18,7 +18,6 @@
 Dieses Modul definiert die Hauptlogik für Cricket und Cut Throat.
 Es enthält die Cricket-Klasse, die den Spielablauf und Regeln der Cricket-Varianten verwaltet.
 """
-from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 # Cricket, Cut Throat 
@@ -195,12 +194,11 @@ class Cricket(GameLogicBase):
             player.stats['total_marks_scored'] += marks_scored
 
         if not target_hit or marks_scored == 0:
-            messagebox.showerror("Falsches Ziel", "Nur Treffer auf 15-20 oder Bull zählen.", parent=self.game.db.root)
             player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurf-Historie)
             if len(player.throws) == 3:
                 # Turn ends
-                return None
-            return None # Throw processed, continue turn
+                return ('invalid_target', "Nur Treffer auf 15-20 oder Bull zählen.\nLetzter Dart dieser Aufnahme.")
+            return ('invalid_target', "Nur Treffer auf 15-20 oder Bull zählen.")
 
         # --- Treffer auf Cricket-Ziel verarbeiten (optimierte Logik) ---
         marks_before_throw = player.state['hits'].get(target_hit, 0)
@@ -259,5 +257,5 @@ class Cricket(GameLogicBase):
         # --- Weiter / Nächster Spieler ---
         if len(player.throws) == 3:
             # Turn ends
-            return None
-        return None # Added to ensure a return path if not 3 throws and no win
+            return ('ok', None)
+        return ('ok', None)

@@ -34,8 +34,9 @@ class TestAIPlayer(unittest.TestCase):
         """Setzt eine Testumgebung mit einem Mock-Spiel und einem KI-Spieler auf."""
         # Mock für das Game-Objekt und seine Abhängigkeiten
         self.mock_game = Mock()
-        self.mock_game.db = Mock()
-        self.mock_game.db.root = Mock()
+        self.mock_game.ui = Mock()
+        self.mock_game.ui.db = Mock()
+        self.mock_game.ui.db.root = Mock()
         self.mock_game.game = Mock()  # Für spielspezifische Logik (z.B. Cricket-Ziele)
         self.mock_game.end = False
 
@@ -62,7 +63,7 @@ class TestAIPlayer(unittest.TestCase):
         self.assertEqual(self.ai_player.difficulty, 'Fortgeschritten')
         self.assertIn('radius', self.ai_player.settings)
         self.assertEqual(self.ai_player.settings['radius'], 60)
-        self.assertEqual(self.ai_player.settings['delay'], 600)
+        self.assertEqual(self.ai_player.settings['delay'], 800)
 
     def test_get_strategic_target_for_x01_high_score(self):
         """Testet die Zielauswahl für X01 bei hohem Punktestand (kein Finish)."""
@@ -154,18 +155,21 @@ class TestAIPlayer(unittest.TestCase):
         self.assertEqual(self.ai_player._parse_target_string("17"), ("Single", 17))
         self.assertEqual(self.ai_player._parse_target_string("INVALID"), ("Triple", 20))
 
+    @patch('core.ai_player.CheckoutCalculator.get_checkout_suggestion', return_value='-')
     @patch('core.ai_player.random.uniform')
     @patch('core.ai_player.math.cos')
     @patch('core.ai_player.math.sin')
-    def test_execute_throw_simulates_click(self, mock_sin, mock_cos, mock_uniform):
+    def test_execute_throw_simulates_click(self, mock_sin, mock_cos, mock_uniform, mock_get_suggestion):
         """Testet, ob _execute_throw einen Dartwurf korrekt simuliert."""
+        self.mock_game.name = "501" # Setze einen Spielmodus, um die Logik zu steuern
+
         # Konfiguriert die Mocks für vorhersagbare "Zufälligkeit"
         mock_uniform.side_effect = [1.5708, 10]  # Winkel = pi/2, Distanz = 10px
         mock_cos.return_value = 0  # cos(pi/2) ≈ 0
         mock_sin.return_value = 1  # sin(pi/2) = 1
 
         # Mock für die Dartboard-Interaktion
-        self.mock_game.db.get_coords_for_target.return_value = (300, 300)  # Zielmitte
+        self.mock_game.ui.db.get_coords_for_target.return_value = (300, 300)  # Zielmitte
         
         # Erwartete Wurfkoordinaten: x=300, y=310
         expected_x, expected_y = 300, 310
@@ -174,19 +178,19 @@ class TestAIPlayer(unittest.TestCase):
         self.ai_player._execute_throw(1)
 
         # Verifiziert, dass die Klick-Simulation des Dartboards mit den korrekten Koordinaten aufgerufen wurde
-        self.mock_game.db.on_click_simulated.assert_called_once_with(expected_x, expected_y)
+        self.mock_game.ui.db.on_click_simulated.assert_called_once_with(expected_x, expected_y)
 
     def test_execute_throw_stops_on_bust(self):
         """Testet, ob die KI aufhört zu werfen, wenn der Zug vorbei ist (z.B. Bust)."""
-        self.mock_game.db.get_coords_for_target.return_value = (300, 300)
+        self.mock_game.ui.db.get_coords_for_target.return_value = (300, 300)
         self.ai_player.turn_is_over = True  # Simuliert einen Bust
 
         self.ai_player._execute_throw(1)  # Versucht, den ersten Wurf auszuführen
 
         # Die KI sollte keinen Klick simulieren
-        self.mock_game.db.on_click_simulated.assert_not_called()
+        self.mock_game.ui.db.on_click_simulated.assert_not_called()
         # Die KI sollte sofort den nächsten Spieler aufrufen
-        self.mock_game.db.root.after.assert_called_once_with(
+        self.mock_game.ui.db.root.after.assert_called_once_with(
             self.ai_player.settings['delay'],
             self.mock_game.next_player
         )
@@ -195,7 +199,7 @@ class TestAIPlayer(unittest.TestCase):
         """Testet, ob take_turn die Wurfsequenz startet."""
         self.ai_player.take_turn()
         # Es sollte der erste Wurf geplant werden
-        self.mock_game.db.root.after.assert_called_once_with(
+        self.mock_game.ui.db.root.after.assert_called_once_with(
             self.ai_player.settings['delay'],
             self.ai_player._execute_throw,
             1

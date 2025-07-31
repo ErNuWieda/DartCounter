@@ -1,99 +1,138 @@
-import unittest
-from unittest.mock import patch, MagicMock
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .test_base import GameLogicTestBase
+import pytest
+from unittest.mock import MagicMock
+
 # Klasse, die getestet wird
 from core.micky import Micky
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
-from core.scoreboard import ScoreBoard
+from core.game import Game
 
-class TestMicky(GameLogicTestBase):
-    """Testet die Spiellogik der Micky-Klasse."""
 
-    def setUp(self):
-        """Setzt eine kontrollierte Testumgebung für jeden Test auf."""
-        self.logic_class_module = 'micky'
-        super().setUp()
-        self.mock_game.name = "Micky Mouse"
+@pytest.fixture
+def mock_game():
+    """Erstellt eine gemockte Game-Instanz mit den für die Micky-Logik benötigten Attributen."""
+    game = MagicMock(spec=Game)
+    game.name = "Micky Mouse"
+    game.round = 1 # Fehlte, wird für die Gewinnprüfung benötigt
+    game.end = False
+    game.winner = None
+    game.sound_manager = MagicMock()
+    game.highscore_manager = MagicMock()
 
-        self.micky_logic = Micky(self.mock_game)
-        self.mock_game.targets = self.micky_logic.get_targets()
+    # Die get_score Methode des Spiels simulieren
+    def mock_get_score(ring, segment):
+        if ring == "Single": return segment
+        if ring == "Double": return segment * 2
+        if ring == "Triple": return segment * 3
+        if ring == "Bull": return 25
+        if ring == "Bullseye": return 50
+        return 0
+    game.get_score.side_effect = mock_get_score
+    return game
 
-    def _create_player(self):
-        """Hilfsfunktion, um eine Player-Instanz für Tests zu erstellen."""
-        player = Player(name="Tester", game=self.mock_game)
-        self.micky_logic.initialize_player_state(player)
-        player.sb = MagicMock(spec=ScoreBoard)
-        return player
 
-    def test_initialization(self):
-        """Testet, ob ein Spieler korrekt für Micky Maus initialisiert wird."""
-        player = self._create_player()
-        self.assertEqual(player.score, 0)
-        self.assertEqual(player.next_target, "20")
-        self.assertEqual(player.hits.get("20"), 0)
+@pytest.fixture
+def micky_logic(mock_game):
+    """Erstellt eine Instanz der Micky-Logik mit dem gemockten Spiel."""
+    logic = Micky(mock_game)
+    # Wichtig, damit der Player korrekt initialisiert werden kann
+    mock_game.targets = logic.get_targets()
+    return logic
 
-    def test_correct_hit_increases_marks(self):
-        """Testet, ob ein Treffer auf das korrekte Ziel die Treffer erhöht."""
-        player = self._create_player()
-        player.next_target = "20"
-        
-        self.micky_logic._handle_throw(player, "Single", 20, [])
-        self.assertEqual(player.hits["20"], 1)
-        self.mock_messagebox.showerror.assert_not_called()
 
-    def test_incorrect_hit_shows_error(self):
-        """Testet, ob ein Treffer auf ein falsches Ziel einen Fehler anzeigt."""
-        player = self._create_player()
-        player.next_target = "20"
+@pytest.fixture
+def player(mock_game, micky_logic):
+    """Erstellt eine echte Player-Instanz, die für die Tests konfiguriert ist."""
+    p = Player(name="Tester", game=mock_game)
+    micky_logic.initialize_player_state(p)
+    p.sb = MagicMock()
+    return p
 
-        self.micky_logic._handle_throw(player, "Single", 19, [])
-        self.assertEqual(player.hits["20"], 0)
-        self.assertEqual(player.next_target, "20")
-        self.mock_messagebox.showerror.assert_called_once()
 
-    def test_closing_target_advances_to_next(self):
-        """Testet, ob das Schließen eines Ziels zum nächsten Ziel fortschreitet."""
-        player = self._create_player()
-        player.next_target = "20"
-        player.hits["20"] = 2 # Already 2 hits
+def test_initialization(player):
+    """Testet, ob ein Spieler korrekt für Micky Maus initialisiert wird."""
+    assert player.score == 0
+    assert player.state['next_target'] == "20"
+    assert player.state['hits'].get("20") == 0
 
-        self.micky_logic._handle_throw(player, "Single", 20, [])
-        self.assertEqual(player.hits["20"], 3)
-        self.assertEqual(player.next_target, "19")
 
-    def test_win_condition(self):
-        """Testet die Gewinnbedingung, wenn das letzte Ziel (Bull) geschlossen wird."""
-        player = self._create_player()
-        
-        # Alle Ziele außer Bull schließen
-        for target in self.micky_logic.get_targets():
-            if target != "Bull":
-                player.hits[target] = 3
-        
-        # Das nächste Ziel sollte Bull sein
-        player.next_target = "Bull"
-        player.hits["Bull"] = 2 # Zwei Treffer auf Bull
+def test_correct_hit_increases_marks(micky_logic, player):
+    """Testet, ob ein Treffer auf das korrekte Ziel die Treffer erhöht."""
+    player.state['next_target'] = "20"
+    
+    result = micky_logic._handle_throw(player, "Single", 20, [])
+    
+    assert player.state['hits']["20"] == 1
+    assert result is None
 
-        # Der letzte Wurf, der das Spiel gewinnt
-        result = self.micky_logic._handle_throw(player, "Bull", 25, [])
 
-        self.assertTrue(self.mock_game.end)
-        self.assertIn("gewinnt", result)
+def test_incorrect_hit_returns_error(micky_logic, player):
+    """Testet, ob ein Treffer auf ein falsches Ziel einen Fehler zurückgibt."""
+    player.state['next_target'] = "20"
 
-    def test_undo_restores_marks_and_target(self):
-        """Testet, ob Undo die Treffer und das nächste Ziel korrekt wiederherstellt."""
-        player = self._create_player()
-        
-        # Treffer auf 20, nächstes Ziel ist 19
-        self.micky_logic._handle_throw(player, "Triple", 20, [])
-        self.assertEqual(player.hits["20"], 3)
-        self.assertEqual(player.next_target, "19")
+    status, message = micky_logic._handle_throw(player, "Single", 19, [])
+    
+    assert player.state['hits']["20"] == 0
+    assert player.state['next_target'] == "20"
+    assert status == 'invalid_target'
+    assert message is not None
 
-        # Aktion: Rückgängig machen
-        self.micky_logic._handle_throw_undo(player, "Triple", 20, [])
 
-        # Überprüfung
-        self.assertEqual(player.hits["20"], 0)
-        self.assertEqual(player.next_target, "20")
+def test_closing_target_advances_to_next(micky_logic, player):
+    """Testet, ob das Schließen eines Ziels zum nächsten Ziel fortschreitet."""
+    player.state['next_target'] = "20"
+    player.state['hits']["20"] = 2 # Bereits 2 Treffer
+
+    micky_logic._handle_throw(player, "Single", 20, [])
+    
+    assert player.state['hits']["20"] == 3
+    assert player.state['next_target'] == "19"
+
+
+def test_win_condition(micky_logic, player):
+    """Testet die Gewinnbedingung, wenn das letzte Ziel (Bull) geschlossen wird."""
+    # Alle Ziele außer Bull schließen
+    for target in micky_logic.get_targets():
+        if target != "Bull":
+            player.state['hits'][target] = 3
+    
+    # Das nächste Ziel sollte Bull sein
+    player.state['next_target'] = "Bull"
+    player.state['hits']["Bull"] = 2 # Zwei Treffer auf Bull
+
+    # Der letzte Wurf, der das Spiel gewinnt
+    result = micky_logic._handle_throw(player, "Bull", 25, [])
+
+    assert player.game.end is True
+    assert isinstance(result, str) and "gewinnt" in result
+
+
+def test_undo_restores_marks_and_target(micky_logic, player):
+    """Testet, ob Undo die Treffer und das nächste Ziel korrekt wiederherstellt."""
+    # Treffer auf 20, nächstes Ziel ist 19
+    micky_logic._handle_throw(player, "Triple", 20, [])
+    assert player.state['hits']["20"] == 3
+    assert player.state['next_target'] == "19"
+
+    # Aktion: Rückgängig machen
+    micky_logic._handle_throw_undo(player, "Triple", 20, [])
+
+    # Überprüfung
+    assert player.state['hits']["20"] == 0
+    assert player.state['next_target'] == "20"

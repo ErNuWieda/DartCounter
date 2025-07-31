@@ -15,10 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, filedialog
 from .database_manager import DatabaseManager
 import csv
 from .settings_manager import get_app_data_dir
+from . import ui_utils
 import os
 
 
@@ -79,7 +80,7 @@ class HighscoreManager:
             parent (tk.Widget): Das übergeordnete Fenster für Dialoge.
         """
         if not self.db_manager.is_connected:
-            messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Datenbank möglich.", parent=parent)
+            ui_utils.show_message('warning', "Datenbankfehler", "Keine Verbindung zur Datenbank möglich.", parent=parent)
             return
 
         # Verzeichnis für CSV-Exporte definieren und bei Bedarf erstellen
@@ -109,7 +110,7 @@ class HighscoreManager:
                 })
 
         if not all_scores:
-            messagebox.showinfo("Export", "Keine Highscores zum Exportieren vorhanden.", parent=parent)
+            ui_utils.show_message('info', "Export", "Keine Highscores zum Exportieren vorhanden.", parent=parent)
             return
 
         try:
@@ -118,9 +119,9 @@ class HighscoreManager:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(all_scores)
-            messagebox.showinfo("Erfolg", f"Highscores erfolgreich exportiert nach:\n{filepath}", parent=parent)
+            ui_utils.show_message('info', "Erfolg", f"Highscores erfolgreich exportiert nach:\n{filepath}", parent=parent)
         except IOError as e:
-            messagebox.showerror("Exportfehler", f"Fehler beim Schreiben der CSV-Datei: {e}", parent=parent)
+            ui_utils.show_message('error', "Exportfehler", f"Fehler beim Schreiben der CSV-Datei: {e}", parent=parent)
 
     def _prompt_and_reset(self, highscore_win, notebook):
         """
@@ -156,11 +157,11 @@ class HighscoreManager:
             mode_name = current_game_mode if mode else "alle Spielmodi"
             confirm_msg = f"Bist du sicher, dass du die Highscores für '{mode_name}' unwiderruflich löschen möchtest?"
             
-            if not messagebox.askyesno("Bestätigung", confirm_msg, parent=reset_dialog):
+            if not ui_utils.ask_question('yesno', "Bestätigung", confirm_msg, parent=reset_dialog):
                 return
             
             self.db_manager.reset_scores(mode)
-            messagebox.showinfo("Erfolg", "Highscores wurden zurückgesetzt.", parent=reset_dialog)
+            ui_utils.show_message('info', "Erfolg", "Highscores wurden zurückgesetzt.", parent=reset_dialog)
             reset_dialog.destroy()
             highscore_win.destroy() # Schließt das Highscore-Fenster, um ein Neuladen zu erzwingen
 
@@ -182,7 +183,7 @@ class HighscoreManager:
             root (tk.Tk): Das Hauptfenster der Anwendung, das als Parent dient.
         """
         if not self.db_manager.is_connected:
-            messagebox.showwarning("Datenbankfehler", "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.", parent=root)
+            ui_utils.show_message('warning', "Datenbankfehler", "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.", parent=root)
             return
 
         win = tk.Toplevel(root)

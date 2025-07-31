@@ -19,7 +19,6 @@ Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 class Killer(GameLogicBase):
@@ -66,13 +65,13 @@ class Killer(GameLogicBase):
 		"""Macht das Setzen eines Lebensfeldes rückgängig."""
 		player = log_entry['player']
 		player.state['life_segment'] = None
-		messagebox.showinfo("Rückgängig", f"Lebensfeld für {player.name} zurückgesetzt.", parent=self.game.db.root)
+		return ('info', f"Lebensfeld für {player.name} zurückgesetzt.")
 
 	def _undo_become_killer(self, log_entry):
 		"""Macht das Werden zum Killer rückgängig."""
 		player = log_entry['player']
 		player.state['can_kill'] = False
-		messagebox.showinfo("Rückgängig", f"{player.name} ist kein Killer mehr.", parent=self.game.db.root)
+		return ('info', f"{player.name} ist kein Killer mehr.")
 
 	def _undo_take_life(self, log_entry):
 		"""Macht das Nehmen eines Lebens von einem Opfer (oder sich selbst) rückgängig."""
@@ -80,7 +79,8 @@ class Killer(GameLogicBase):
 		if victim.score < self.game.lifes:
 			victim.score += 1
 			victim.sb.set_score_value(victim.score)
-			messagebox.showinfo("Rückgängig", f"Leben für {victim.name} wiederhergestellt.", parent=self.game.db.root)
+			return ('info', f"Leben für {victim.name} wiederhergestellt.")
+		return ('ok', None)
 
 	def _handle_throw_undo(self, player, ring, segment, players):
 		"""
@@ -88,17 +88,17 @@ class Killer(GameLogicBase):
 		"""
 		if not self.turn_log:
 			player.sb.update_score(player.score)
-			return
+			return ('ok', None)
 
 		last_action = self.turn_log.pop()
 		action_type = last_action.get('action')
 
 		if action_type == 'set_life_segment':
-			self._undo_set_life_segment(last_action)
+			return self._undo_set_life_segment(last_action)
 		elif action_type == 'become_killer':
-			self._undo_become_killer(last_action)
+			return self._undo_become_killer(last_action)
 		elif action_type == 'take_life':
-			self._undo_take_life(last_action)
+			return self._undo_take_life(last_action)
 		
 		player.sb.update_score(player.score)
 
@@ -112,26 +112,23 @@ class Killer(GameLogicBase):
 		elif isinstance(segment, int) and 1 <= segment <= 20:
 			determined_segment = str(segment)
 		else:
-			messagebox.showwarning("Fehler", "Kein gültiges Segment für ein Lebensfeld getroffen.", parent=self.game.db.root)
-			return None
+			return ('warning', "Kein gültiges Segment für ein Lebensfeld getroffen.")
 
 		is_taken = any(p != player and p.state['life_segment'] == determined_segment for p in players)
 		if is_taken:
 			occupier = next(p.name for p in players if p.state['life_segment'] == determined_segment)
-			messagebox.showwarning("Segment vergeben", f"Das Segment '{determined_segment}' ist bereits an {occupier} vergeben.", parent=self.game.db.root)
-			return None
+			return ('warning', f"Das Segment '{determined_segment}' ist bereits an {occupier} vergeben.")
 		
 		player.state['life_segment'] = determined_segment
 		self.turn_log.append({'action': 'set_life_segment', 'player': player})
 		
 		determined_display = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
-		messagebox.showinfo("Lebensfeld festgelegt!", f"{player.name} hat Lebensfeld: {determined_display}", parent=self.game.db.root)
 		
 		# HINWEIS: Dieser direkte Aufruf von next_player() ist problematisch für ein sauberes Undo.
 		# Eine vollständige Korrektur würde eine Überarbeitung der Hauptspielschleife in core/game.py erfordern.
 		player.reset_turn()
 		self.game.next_player()
-		return None
+		return ('info', f"{player.name} hat Lebensfeld: {determined_display}")
 
 	def _handle_become_killer_phase(self, player, ring, segment):
 		"""Behandelt die Phase, in der ein Spieler versucht, Killer zu werden."""
@@ -141,13 +138,11 @@ class Killer(GameLogicBase):
 		if is_hit_on_own_life_segment:
 			player.state['can_kill'] = True
 			self.turn_log.append({'action': 'become_killer', 'player': player})
-			messagebox.showinfo("Killer Status!", f"{player.name} ist jetzt ein KILLER!", parent=self.game.db.root)
+			return ('info', f"{player.name} ist jetzt ein KILLER!")
 		else:
 			life_segment_display = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
-			messagebox.showinfo("Daneben", f"{player.name} muss das eigene Lebensfeld ({life_segment_display}) treffen.", parent=self.game.db.root)
-		
-		player.sb.update_score(player.score)
-		return None
+			player.sb.update_score(player.score)
+			return ('info', f"{player.name} muss das eigene Lebensfeld ({life_segment_display}) treffen.")
 
 	def _handle_killer_phase(self, player, ring, segment, players):
 		"""Behandelt die Phase, in der ein Spieler als Killer agiert."""
@@ -173,13 +168,13 @@ class Killer(GameLogicBase):
 				opp_name = "sich selbst"
 
 			if victim.score > 0:
-				messagebox.showinfo(title, f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.", parent=self.game.db.root)
+				return ('info', f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.")
 			else:
-				messagebox.showinfo("Eliminiert!", f"{player.name} hat {opp_name} eliminiert!", parent=self.game.db.root)
 				win_msg = self._check_and_handle_win_condition()
+				return ('info', f"{player.name} hat {opp_name} eliminiert!")
 
 		player.sb.update_score(player.score)
-		return win_msg
+		return ('win', win_msg) if win_msg else ('ok', None)
 
 	def _handle_throw(self, player, ring, segment, players):
 		"""

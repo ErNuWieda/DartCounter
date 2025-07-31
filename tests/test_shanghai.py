@@ -1,110 +1,112 @@
-import unittest
-from unittest.mock import patch, MagicMock
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .test_base import GameLogicTestBase
+import pytest
+from unittest.mock import MagicMock
+
 # Klasse, die getestet wird
 from core.shanghai import Shanghai
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
-from core.scoreboard import ScoreBoard
 
-class TestShanghai(GameLogicTestBase):
-    """Testet die Spiellogik der Shanghai-Klasse."""
+# Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
-    def setUp(self):
-        """Setzt eine kontrollierte Testumgebung für jeden Test auf."""
-        self.logic_class_module = 'shanghai'
-        super().setUp()
+@pytest.fixture
+def shanghai_logic(mock_game):
+    """Erstellt eine Instanz der Shanghai-Logik mit dem gemockten Spiel."""
+    mock_game.name = "Shanghai"
+    mock_game.rounds = 7
+    logic = Shanghai(mock_game)
+    mock_game.targets = logic.get_targets()
+    return logic
 
-        self.mock_game.name = "Shanghai"
-        self.mock_game.rounds = 7
+@pytest.fixture
+def players(mock_game, shanghai_logic):
+    """Erstellt eine Liste von zwei initialisierten Spielern."""
+    player_list = []
+    for i in range(2):
+        p = Player(name=f"Player {i+1}", game=mock_game)
+        shanghai_logic.initialize_player_state(p)
+        p.sb = MagicMock()
+        player_list.append(p)
+    return player_list
 
-        self.shanghai_logic = Shanghai(self.mock_game)
-        # Wichtig: get_targets() muss aufgerufen werden, damit self.targets in der Logik gesetzt wird
-        self.mock_game.targets = self.shanghai_logic.get_targets()
+def test_initialization(players, shanghai_logic):
+    """Testet, ob ein Spieler korrekt für Shanghai initialisiert wird."""
+    player1 = players[0]
+    assert player1.score == 0
+    assert player1.state['next_target'] == "1"
+    assert player1.state['hits'].get("1") == 0
+    assert "7" in shanghai_logic.get_targets()
+    assert "8" not in shanghai_logic.get_targets()
 
-    def _create_players(self, num_players=2):
-        """Hilfsfunktion, um eine Liste von Spielern für Tests zu erstellen."""
-        players = []
-        for i in range(num_players):
-            player = Player(name=f"Player {i+1}", game=self.mock_game)
-            self.shanghai_logic.initialize_player_state(player)
-            player.sb = MagicMock(spec=ScoreBoard)
-            players.append(player)
-        return players
+def test_correct_hit_scores_points(shanghai_logic, players, mock_game):
+    """Testet, ob ein Treffer auf das korrekte Ziel (der Runde) Punkte gibt."""
+    mock_game.round = 2
+    player1 = players[0]
+    
+    shanghai_logic._handle_throw(player1, "Triple", 2, [])
+    
+    assert player1.score == 6
+    assert player1.state['hits']["2"] == 1
 
-    def test_initialization(self):
-        """Testet, ob ein Spieler korrekt für Shanghai initialisiert wird."""
-        player = self._create_players(1)[0]
-        self.assertEqual(player.score, 0)
-        self.assertEqual(player.next_target, "1")
-        self.assertEqual(player.hits.get("1"), 0)
-        self.assertIn("7", self.shanghai_logic.get_targets())
-        self.assertNotIn("8", self.shanghai_logic.get_targets())
+def test_incorrect_hit_scores_no_points(shanghai_logic, players, mock_game):
+    """Testet, ob ein Treffer auf ein falsches Ziel keine Punkte gibt."""
+    mock_game.round = 3
+    player1 = players[0]
 
-    def test_correct_hit_scores_points(self):
-        """Testet, ob ein Treffer auf das korrekte Ziel (der Runde) Punkte gibt."""
-        self.mock_game.round = 2 # Wir sind in Runde 2, Ziel ist "2"
-        player = self._create_players(1)[0]
-        
-        self.shanghai_logic._handle_throw(player, "Triple", 2, [])
-        
-        self.assertEqual(player.score, 6)
-        self.assertEqual(player.hits["2"], 1)
+    shanghai_logic._handle_throw(player1, "Single", 4, [])
+    
+    assert player1.score == 0
+    assert player1.state['hits'].get("3") == 0
 
-    def test_incorrect_hit_scores_no_points(self):
-        """Testet, ob ein Treffer auf ein falsches Ziel keine Punkte gibt."""
-        self.mock_game.round = 3 # Ziel ist "3"
-        player = self._create_players(1)[0]
+def test_shanghai_win_condition(shanghai_logic, players, mock_game):
+    """Testet, ob ein Shanghai (S, D, T) zum sofortigen Sieg führt."""
+    mock_game.round = 5
+    player1 = players[0]
+    player1.throws = [("Single", 5, None), ("Double", 5, None), ("Triple", 5, None)]
+    
+    result = shanghai_logic._handle_throw(player1, "Triple", 5, [])
+    
+    assert mock_game.end is True
+    assert isinstance(result, str) and "Shanghai auf die 5" in result
 
-        self.shanghai_logic._handle_throw(player, "Single", 4, []) # Wurf auf die 4
-        
-        self.assertEqual(player.score, 0)
-        self.assertEqual(player.hits.get("3"), 0)
+def test_end_of_rounds_win_condition(shanghai_logic, players, mock_game):
+    """Testet, ob nach der letzten Runde der Spieler mit den meisten Punkten gewinnt."""
+    mock_game.rounds = 2
+    mock_game.round = 3
+    player1, player2 = players
+    player1.score = 100
+    player2.score = 50
+    
+    # Die Logik gibt bei Spielende nur einen String zurück, kein Tupel.
+    result = shanghai_logic._handle_throw(player2, "Miss", 0, players)
+    
+    assert mock_game.end is True
+    # Der Status ist implizit 'win', wir prüfen die Nachricht.
+    assert isinstance(result, str)
+    assert f"{player1.name} gewinnt mit 100 Punkten" in result
 
-    def test_shanghai_win_condition(self):
-        """Testet, ob ein Shanghai (S, D, T) zum sofortigen Sieg führt."""
-        self.mock_game.round = 5 # Ziel ist "5"
-        player = self._create_players(1)[0]
-        
-        # Simuliere die drei Würfe für ein Shanghai
-        player.throws = [("Single", 5, None), ("Double", 5, None), ("Triple", 5, None)]
-        
-        result = self.shanghai_logic._handle_throw(player, "Triple", 5, []) # Der letzte Wurf löst die Prüfung aus
-        
-        self.assertTrue(self.mock_game.end)
-        self.assertIn("Shanghai auf die 5", result)
-
-    def test_end_of_rounds_win_condition(self):
-        """Testet, ob nach der letzten Runde der Spieler mit den meisten Punkten gewinnt."""
-        self.mock_game.rounds = 2 # Kurzes Spiel mit 2 Runden
-        self.mock_game.round = 3 # Simuliert, dass das Spiel in die "Prüfungsphase" nach der letzten Runde geht
-        players = self._create_players(2)
-        player1, player2 = players
-        player1.score = 100
-        player2.score = 50
-        
-        # Der Wurf selbst ist irrelevant, er löst nur die Gewinnprüfung aus
-        result = self.shanghai_logic._handle_throw(player2, "Miss", 0, players)
-        
-        self.assertTrue(self.mock_game.end)
-        self.assertIn(f"{player1.name} gewinnt mit 100 Punkten", result)
-
-    def test_undo_restores_state(self):
-        """Testet, ob das Rückgängigmachen eines Wurfs Score und Treffer korrekt wiederherstellt."""
-        self.mock_game.round = 4 # Ziel ist "4"
-        player = self._create_players(1)[0]
-
-        # Aktion: Ein gültiger Wurf
-        self.shanghai_logic._handle_throw(player, "Double", 4, [])
-
-        # Überprüfung des Zustands nach dem Wurf
-        self.assertEqual(player.score, 8)
-        self.assertEqual(player.hits.get("4"), 1)
-
-        # Aktion: Rückgängig machen
-        self.shanghai_logic._handle_throw_undo(player, "Double", 4, [])
-
-        # Überprüfung des wiederhergestellten Zustands
-        self.assertEqual(player.score, 0, "Der Punktestand sollte zurückgesetzt sein.")
-        self.assertEqual(player.hits.get("4"), 0, "Die Treffer sollten ebenfalls zurückgesetzt sein.")
+def test_undo_restores_state(shanghai_logic, players, mock_game):
+    """Testet, ob das Rückgängigmachen eines Wurfs Score und Treffer korrekt wiederherstellt."""
+    mock_game.round = 4
+    player1 = players[0]
+    shanghai_logic._handle_throw(player1, "Double", 4, [])
+    assert player1.score == 8
+    assert player1.state['hits'].get("4") == 1
+    shanghai_logic._handle_throw_undo(player1, "Double", 4, [])
+    assert player1.score == 0
+    assert player1.state['hits'].get("4") == 0

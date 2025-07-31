@@ -20,7 +20,7 @@ Dieses Modul enthält die AIPlayer-Klasse, die einen computergesteuerten Gegner 
 import random
 import math
 from .player import Player
-from .checkout_calculator import CheckoutCalculator
+from .checkout_calculator import CheckoutCalculator, CHECKOUT_PATHS
 
 class AIPlayer(Player):
     """
@@ -31,9 +31,11 @@ class AIPlayer(Player):
     # Definiert die Streuung für jeden Schwierigkeitsgrad.
     # Der Wert ist der maximale Radius (in Pixeln) vom Zielpunkt.
     DIFFICULTY_SETTINGS = {
-        'Anfänger': {'radius': 150, 'delay': 1000},
-        'Fortgeschritten': {'radius': 60, 'delay': 600},
-        'Profi': {'radius': 25, 'delay': 300}
+        'Anfänger':       {'radius': 150, 'delay': 800}, # Easiest
+        'Fortgeschritten':{'radius': 60,  'delay': 800},
+        'Amateur':        {'radius': 40,  'delay': 800}, # Between Fortgeschritten and Profi
+        'Profi':          {'radius': 25,  'delay': 800},
+        'Champion':       {'radius': 10,  'delay': 800}  # Hardest
     }
 
     def __init__(self, name, game, profile=None):
@@ -54,7 +56,7 @@ class AIPlayer(Player):
         Die Würfe werden nacheinander mit einer Verzögerung ausgeführt.
         """
         # Der erste Wurf wird nach einer kurzen initialen Verzögerung ausgeführt.
-        self.game.db.root.after(self.settings['delay'], self._execute_throw, 1)
+        self.game.ui.db.root.after(self.settings['delay'], self._execute_throw, 1)
 
     def _parse_target_string(self, target_str: str) -> tuple[str, int]:
         """
@@ -84,36 +86,68 @@ class AIPlayer(Player):
         # Finaler Fallback, wenn nichts passt
         return "Triple", 20
 
+    def _get_setup_throw(self, score: int, darts_left: int) -> tuple[str, int]:
+        """
+        Berechnet den besten Setup-Wurf, wenn kein direkter Checkout verfügbar ist.
+        Die Logik priorisiert das Hinterlassen eines idealen Rests für die nächste Runde.
+        Diese Methode wird typischerweise für Scores <= 100 aufgerufen.
+
+        Args:
+            score (int): Der aktuelle Punktestand.
+            darts_left (int): Die Anzahl der verbleibenden Darts in dieser Runde.
+
+        Returns:
+            tuple[str, int]: Ein Tupel aus (Ring, Segment) für das beste Setup-Ziel.
+        """
+        # Ideale Restpunktzahlen, geordnet nach Präferenz (D20, D16, D18, etc.)
+        IDEAL_LEAVES = [40, 32, 36, 50, 24, 16, 8, 4, 2]
+
+        # --- Strategie 1: Versuche, einen idealen Rest durch einen SINGLE-Wurf zu erreichen ---
+        # Dies ist die sicherste und häufigste Setup-Strategie.
+        for leave in IDEAL_LEAVES:
+            score_to_hit = score - leave
+            # Können wir diesen Score mit einem einzelnen Dart treffen (1-20 oder 25)?
+            if 1 <= score_to_hit <= 20:
+                return "Single", score_to_hit
+            if score_to_hit == 25:
+                return "Bull", 25
+
+        # --- Strategie 2: Wenn kein idealer Rest funktioniert, versuche, irgendeinen geraden Rest zu hinterlassen ---
+        # Dies ist der Fallback für ungünstige Punktestände.
+        # Wir versuchen, das höchstmögliche Single zu treffen, das ein Doppel übrig lässt.
+        for s in range(20, 0, -1):
+            # Der Rest muss mindestens 2 sein (für D1) und gerade.
+            if score - s >= 2 and (score - s) % 2 == 0:
+                return "Single", s
+
+        # Absoluter Notfall-Fallback (sollte praktisch nie erreicht werden)
+        return "Single", 1
+
     def _get_strategic_target(self, throw_number: int) -> tuple[str, int]:
         """
         Ermittelt das beste strategische Ziel basierend auf dem Spielmodus und -stand.
-        Berücksichtigt jetzt den Wurf innerhalb der Runde für Checkout-Pfade.
-
-        Args:
-            throw_number (int): Die Nummer des Wurfs in der aktuellen Runde (1, 2 oder 3).
-
-        Returns:
-            tuple[str, int]: Ein Tupel aus (Ring, Segment), z.B. ("Triple", 20).
         """
         game_name = self.game.name
 
         if game_name in ("301", "501", "701"):
             score = self.score
-            darts_left = 4 - throw_number # 1. Wurf -> 3 Darts, 2. Wurf -> 2, 3. Wurf -> 1
+            darts_left = 4 - throw_number
 
-            # Checkout-Pfad nur im Finish-Bereich suchen (<= 170)
-            if score <= 170:
-                checkout_path_str = CheckoutCalculator.get_checkout_suggestion(score, self.game.opt_out, darts_left)
+            # 1. Prüfen, ob ein direkter Checkout-Pfad existiert
+            checkout_path_str = CheckoutCalculator.get_checkout_suggestion(score, self.game.opt_out, darts_left)
+            if checkout_path_str and checkout_path_str != "-":
+                targets = checkout_path_str.split(', ')
+                current_target_str = targets[0]
+                return self._parse_target_string(current_target_str)
+            
+            # 2. Kein direkter Checkout. Unterscheide zwischen Power-Scoring und Setup-Wurf.
+            # Wenn der Score hoch ist (z.B. > 100), wird auf maximale Punkte gezielt.
+            # Darunter wird ein intelligenter Setup-Wurf versucht.
+            if score > 100:
+                return "Triple", 20
 
-                if checkout_path_str and "Kein Finish" not in checkout_path_str:
-                    # Wir haben einen gültigen Checkout-Pfad, z.B. "T20, T19, D12"
-                    targets = checkout_path_str.split(', ')
-                    # Das erste Element des Pfades ist immer das nächste Ziel für den aktuellen Zustand
-                    current_target_str = targets[0]
-                    return self._parse_target_string(current_target_str)
-
-            # Kein Checkout-Pfad verfügbar oder Score zu hoch: Standardstrategie -> T20
-            return "Triple", 20
+            # 3. Score ist in einem Bereich, wo ein Setup-Wurf sinnvoll ist.
+            return self._get_setup_throw(score, darts_left)
 
         elif game_name in ("Cricket", "Cut Throat", "Tactics"):
             # Finde das wertvollste, noch nicht geschlossene Ziel.
@@ -146,18 +180,18 @@ class AIPlayer(Player):
         if self.game.end or self.turn_is_over:
             # Wenn das Spiel während der KI-Würfe beendet wurde oder der Zug
             # durch einen Bust vorzeitig beendet wurde, wird der Zug beendet.
-            self.game.db.root.after(self.settings['delay'], self.game.next_player)
+            self.game.ui.db.root.after(self.settings['delay'], self.game.next_player)
             return
 
         # --- Strategische Ziel-Logik ---
         ring, segment = self._get_strategic_target(throw_number)
-        target_coords = self.game.db.get_coords_for_target(ring, segment)
+        target_coords = self.game.ui.db.get_coords_for_target(ring, segment)
 
         if target_coords:
             target_x, target_y = target_coords
         else:
             # Fallback, wenn kein Ziel gefunden wurde (sollte nicht passieren)
-            target_x, target_y = self.game.db.center_x, self.game.db.center_y
+            target_x, target_y = self.game.ui.db.center_x, self.game.ui.db.center_y
 
         # --- Wurf-Simulation basierend auf Schwierigkeit ---
         radius = self.settings['radius']
@@ -171,12 +205,18 @@ class AIPlayer(Player):
         throw_y = int(target_y + offset_y)
 
         # --- Wurf an die Game-Logik übergeben, indem ein Klick simuliert wird ---
-        self.game.db.on_click_simulated(throw_x, throw_y)
+        self.game.ui.db.on_click_simulated(throw_x, throw_y)
+
+        # WICHTIG: Erneut prüfen, ob der gerade simulierte Wurf zu einem Bust oder Spielende geführt hat.
+        # Dies verhindert, dass die KI nach einem Bust weiterwirft.
+        if self.game.end or self.turn_is_over:
+            self.game.ui.db.root.after(self.settings['delay'], self.game.next_player)
+            return
 
         # --- Nächsten Wurf planen oder Zug beenden ---
         if throw_number < 3:
             # Planen des nächsten Wurfs nach der Verzögerung
-            self.game.db.root.after(self.settings['delay'], self._execute_throw, throw_number + 1)
+            self.game.ui.db.root.after(self.settings['delay'], self._execute_throw, throw_number + 1)
         else:
             # Nach dem dritten Wurf den Zug an den nächsten Spieler übergeben
-            self.game.db.root.after(self.settings['delay'], self.game.next_player)
+            self.game.ui.db.root.after(self.settings['delay'], self.game.next_player)

@@ -20,7 +20,6 @@ Es enthält die x01 Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
 import tkinter as tk 
-from tkinter import ttk, messagebox
 from . import player 
 from .player import Player
 from . import scoreboard
@@ -163,18 +162,17 @@ class X01(GameLogicBase):
         if opened_successfully:
             player.state['has_opened'] = True
             return True
-        else:
-            # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
-            player.sb.update_score(player.score)  # Update display for throw history (now in Game.throw)
-            option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
-            msg_base = f"{player.name} braucht ein {option_text} zum Start!"
-            
-            remaining_darts = 3 - len(player.throws)
-            if len(player.throws) == 3:
-                messagebox.showerror("Ungültiger Wurf", msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.", parent=self.game.db.root)
-            else:
-                messagebox.showerror("Ungültiger Wurf", msg_base + f"\nNoch {remaining_darts} Darts.", parent=self.game.db.root)
-            return False
+        
+        # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
+        player.sb.update_score(player.score)  # Update display for throw history (now in Game.throw)
+        option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
+        msg_base = f"{player.name} braucht ein {option_text} zum Start!"
+        
+        remaining_darts = 3 - len(player.throws)
+        if len(player.throws) == 3:
+            return ('invalid_open', msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.")
+        
+        return ('invalid_open', msg_base + f"\nNoch {remaining_darts} Darts.")
 
     def _check_for_bust(self, new_score, ring):
         """
@@ -284,7 +282,7 @@ class X01(GameLogicBase):
         if ring == "Miss":
             # No messagebox for simple miss, score is 0.
             # player.update_score_value(score, subtract=True) # score is 0, so no change.
-            player.sb.update_score(player.score) # Nur Wurfhistorie und Stats aktualisieren
+            player.sb.update_score(player.score)
             
             # Finish-Vorschlag für die verbleibenden Darts aktualisieren
             darts_remaining = 3 - len(player.throws)
@@ -293,12 +291,13 @@ class X01(GameLogicBase):
 
             if len(player.throws) == 3:
                 # Turn ends, user clicks "Weiter"
-                return None
-            return None # Throw processed
+                return ('ok', None)
+            return ('ok', None) # Throw processed
 
         # --- Opt-In-Validierung ---
-        if not self._validate_opt_in(player, ring, segment):
-            return None  # Wurf war ungültig, Verarbeitung abbrechen
+        opt_in_result = self._validate_opt_in(player, ring, segment)
+        if opt_in_result is not True:
+            return opt_in_result # Gibt das ('invalid_open', 'message') Tupel zurück
 
         # --- Bust-Prüfung ---
         new_score = player.score - score
@@ -306,9 +305,8 @@ class X01(GameLogicBase):
             if self.game.sound_manager:
                 self.game.sound_manager.play_bust()
             player.turn_is_over = True
-            player.sb.update_score(player.score) # Update display
-            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.", parent=self.game.db.root)
-            return None # Turn ends due to bust.
+            player.sb.update_score(player.score)
+            return ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
 
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
         # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.
@@ -328,6 +326,6 @@ class X01(GameLogicBase):
 
         if len(player.throws) == 3:
             # Turn ends, user clicks "Weiter"
-            return None
+            return ('ok', None)
 
-        return None
+        return ('ok', None)

@@ -17,7 +17,6 @@
 """
 Dieses Modul definiert die Hauptlogik für das Spiel "Micky Maus".
 """
-from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 # Micky Mouse Targets, Spielreihenfolge
@@ -124,10 +123,9 @@ class Micky(GameLogicBase):
 			msg_base = f"{player.name} muss {current_target} noch {needed_hits}x treffen!"
 			remaining_darts = 3 - len(player.throws)
 			if remaining_darts > 0:
-				messagebox.showerror("Falsches Ziel", msg_base + f"\n{remaining_darts} verbleibende Darts.", parent=self.game.db.root)
+				return ('invalid_target', msg_base + f"\n{remaining_darts} verbleibende Darts.")
 			else:            
-				messagebox.showerror("Falsches Ziel", msg_base + "\nLetzter Dart dieser Aufnahme.", parent=self.game.db.root)
-			return None # End processing for this throw
+				return ('invalid_target', msg_base + "\nLetzter Dart dieser Aufnahme.")
 
 		# Gültiger Treffer: Trefferzahl aktualisieren (maximal 3)
 		current_hits = player.hits.get(current_target, 0)

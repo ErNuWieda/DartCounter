@@ -19,7 +19,6 @@ Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 ATC_TARGET_VALUES = {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12, "13": 13, "14": 14, "15": 15, "16": 16, "17": 17, "18": 18, "19": 19, "20": 20, "Bull": 25}
@@ -107,10 +106,9 @@ class AtC(GameLogicBase):
             
 			remaining_darts = 3 - len(player.throws)
 			if remaining_darts > 0:
-				messagebox.showerror("Ungültiger Wurf", base_msg + f"\nNoch {remaining_darts} verbleibende Darts.", parent=self.game.db.root)
+				return ('invalid_target', base_msg + f"\nNoch {remaining_darts} verbleibende Darts.")
 			else: # Last dart of the turn
-				messagebox.showerror("Ungültiger Wurf", base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.", parent=self.game.db.root)
-			return None # End processing for this throw
+				return ('invalid_target', base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.")
 
 		# --- Treffer auf AtC-Ziel verarbeiten ---
 		player.hits[player.next_target] = 1
@@ -135,6 +133,6 @@ class AtC(GameLogicBase):
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
             # Turn ends
-			return None
+			return ('ok', None)
         
-		return None # Throw processed, turn continues
+		return ('ok', None) # Throw processed, turn continues

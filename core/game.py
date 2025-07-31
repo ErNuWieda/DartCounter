@@ -18,12 +18,11 @@
 Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
 """
-import tkinter as tk 
-from tkinter import ttk, messagebox
+import tkinter as tk
+from . import ui_utils
+from .game_ui import GameUI
 from .player import Player
 from .ai_player import AIPlayer
-from .dartboard import DartBoard
-from .scoreboard import ScoreBoard
 from .x01 import X01
 from .cricket import Cricket
 from .atc import AtC
@@ -32,6 +31,7 @@ from .micky import Micky
 from .killer import Killer
 from .shanghai import Shanghai
 
+#
 # Zentrale Zuordnung von Spielnamen zu den entsprechenden Logik-Klassen.
 # Dies ersetzt die dynamischen Imports in der get_game_logic-Methode.
 GAME_LOGIC_MAP = {
@@ -119,71 +119,15 @@ class Game:
             self.game.set_players(self.players)
             
         # --- UI-Setup ---
-        # Die Game-Klasse ist jetzt selbst für die Erstellung ihrer UI verantwortlich.
-        self.db = DartBoard(self)
-        self.setup_scoreboards()
+        # Die Game-Klasse delegiert die Erstellung ihrer UI an den GameUI-Manager.
+        self.ui = GameUI(self)
 
     def destroy(self):
         """Zerstört alle UI-Elemente, die zu diesem Spiel gehören, sicher."""
-        if self.db and self.db.root:
-            try:
-                # Zerstört das Dartboard-Fenster
-                self.db.root.destroy()
-            except tk.TclError:
-                # Fängt den Fehler ab, falls das Fenster bereits geschlossen wurde
-                pass
-        
-        for player in self.players:
-            if player.sb and player.sb.score_window and player.sb.score_window.winfo_exists():
-                try:
-                    # Zerstört das Scoreboard-Fenster des Spielers
-                    player.sb.score_window.destroy()
-                except tk.TclError:
-                    pass
-        
+        if self.ui:
+            self.ui.destroy()
         # Setzt die Referenzen zurück, um Memory-Leaks zu vermeiden
-        self.db = None
-
-    def setup_scoreboards(self):
-        """
-        Erstellt und positioniert die Scoreboards für alle Spieler.
-
-        Die Positionierung erfolgt dynamisch relativ zum zentrierten
-        Dartboard-Fenster, um eine aufgeräumte und überlappungsfreie
-        Anzeige auf verschiedenen Bildschirmgrößen zu gewährleisten.
-        """
-        if not self.db or not self.db.root.winfo_exists():
-            return
-
-        self.db.root.update_idletasks()
-
-        db_x = self.db.root.winfo_x()
-        db_y = self.db.root.winfo_y()
-        db_width = self.db.root.winfo_width()
-        
-        scoreboard_width = 340
-        # Die Höhe ist jetzt dynamisch und wird für die Positionierung benötigt.
-        scoreboard_height = self.game.get_scoreboard_height()
-        gap = 10
-
-        # Positionen berechnen (links vom Board, dann rechts vom Board)
-        pos_left_x = db_x - scoreboard_width - gap
-        pos_right_x = db_x + db_width + gap
-        
-        pos_top_y = db_y
-        pos_bottom_y = db_y + scoreboard_height + gap
-
-        positions = [
-            (pos_left_x, pos_top_y),      # Player 1
-            (pos_left_x, pos_bottom_y),   # Player 2
-            (pos_right_x, pos_top_y),     # Player 3
-            (pos_right_x, pos_bottom_y),  # Player 4
-        ]
-
-        for i, player in enumerate(self.players):
-            if i < len(positions):
-                pos_x, pos_y = positions[i]
-                player.sb = ScoreBoard(self.root, player, self, pos_x, pos_y, scoreboard_width, scoreboard_height, profile=player.profile)
+        self.ui = None
     
     def leave(self, player_id):
         """
@@ -230,7 +174,7 @@ class Game:
 
         # Fall 1: Keine Spieler mehr übrig
         if not self.players:
-            messagebox.showinfo("Spielende", "Alle Spieler haben das Spiel verlassen.", parent=self.root)
+            ui_utils.show_message('info', "Spielende", "Alle Spieler haben das Spiel verlassen.", parent=self.root)
             self.end = True
             self.destroy()  # Beendet das Spiel und schließt alle Fenster
             return
@@ -266,9 +210,9 @@ class Game:
         if player and player.throws:
             popped_throw = player.throws.pop() # This is now a 3-tuple (ring, segment, coords)
             self.game._handle_throw_undo(player, popped_throw[0], popped_throw[1], self.players)
-        self.db.clear_last_dart_image_from_canvas()
+        self.ui.db.clear_last_dart_image_from_canvas()
         # Nach dem Undo die Button-Zustände aktualisieren
-        self.db.update_button_states()
+        self.ui.db.update_button_states()
         return 
             
     def current_player(self):
@@ -294,25 +238,11 @@ class Game:
         if not player:
             return
 
-        # Dart-Farbe für den aktuellen Spieler setzen
-        if self.db:
-            dart_color = "#ff0000"  # Fallback-Farbe
-            if player.profile and player.profile.dart_color:
-                dart_color = player.profile.dart_color
-            self.db.update_dart_image(dart_color)
-            self.db.clear_dart_images_from_canvas()
-
-        # Sicherstellen, dass Scoreboard existiert und fokussiert werden kann
-        if hasattr(player, 'sb') and player.sb and hasattr(player.sb, 'score_window') and player.sb.score_window.winfo_exists():
-            player.sb.score_window.lift()
-            player.sb.score_window.focus_force()
-            # Aktiviere die visuelle Hervorhebung für den neuen Spieler
-            player.sb.set_active(True)
-
-        # Button-Zustände für den neuen Zug initialisieren (sollte beide deaktivieren)
-        self.db.update_button_states()
+        # UI-Aktionen an den UI-Manager delegieren
+        self.ui.announce_turn(player)
 
         # --- Unterscheidung zwischen Mensch und KI ---
+        # Diese Logik verbleibt im Controller
         if player.is_ai():
             # Für einen KI-Spieler wird der automatische Zug direkt gestartet.
             # Die take_turn Methode ist asynchron und verwendet root.after().
@@ -320,23 +250,21 @@ class Game:
         else:
             # Für einen menschlichen Spieler wird eine blockierende MessageBox angezeigt.
             # Spezielle Nachricht für den allerersten Wurf des Spiels
-            if self.current == 0 and self.round == 1 and not player.throws:
-                messagebox.showinfo("Spielstart", f"{player.name} beginnt!", parent=self.db.root)
+            if self.current == 0 and self.round == 1 and not player.throws and self.ui and self.ui.db:
+                ui_utils.show_message('info', "Spielstart", f"{player.name} beginnt!", parent=self.ui.db.root)
             
             # Spezifische Nachricht für Killer-Modus
             if self.name == "Killer":
-                if not player.state['life_segment']:
-                    messagebox.showinfo("Lebensfeld ermitteln",
+                if not player.state.get('life_segment'): # Prompt to determine life segment
+                    ui_utils.show_message('info', "Lebensfeld ermitteln",
                                         f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
                                         f"Wirf mit deiner NICHT-dominanten Hand.\n"
                                         "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                                        "Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.",
-                                        parent=self.db.root)
-                elif player.state['life_segment'] and not player.state['can_kill']:
+                                        "Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.", parent=self.ui.db.root)
+                elif player.state['life_segment'] and not player.state['can_kill']: # Prompt to become killer
                     segment_str = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
-                    messagebox.showinfo("Zum Killer werden",
-                                        f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.",
-                                        parent=self.db.root)
+                    ui_utils.show_message('info', "Zum Killer werden",
+                                        f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.", parent=self.ui.db.root)
 
     def next_player(self):
         """
@@ -488,38 +416,53 @@ class Game:
             player.throws.append((ring, segment, coords))
 
             # Delegiere die Verarbeitung an die spezifische Spiellogik (z.B. X01, Cricket)
-            win_msg = self.game._handle_throw(player, ring, segment, self.players)
+            # Die Logik gibt jetzt ein Tupel (status, message) zurück
+            throw_result = self.game._handle_throw(player, ring, segment, self.players)
+            
+            # Entpacke das Ergebnis, wenn es ein Tupel ist, sonst behandle es als Nachricht
+            if isinstance(throw_result, tuple):
+                status, message = throw_result
+            else: # Für ältere Logik-Klassen, die nur eine Nachricht zurückgeben
+                status, message = ('win' if throw_result else 'ok', throw_result)
             
             # --- Sound für Rundenende prüfen ---
             if len(player.throws) == 3:
                 self._play_round_end_sound(player)
 
             # Button-Zustände nach jedem Wurf aktualisieren
-            self.db.update_button_states()
+            self.ui.db.update_button_states()
             
-            # Prüfe, ob die Spiellogik einen Sieg gemeldet hat.
-            if win_msg and "🏆" in win_msg:
+            # --- Event-Verarbeitung ---
+            if status == 'win':
                 # Füge einen eventuellen "Shanghai"-Prefix hinzu
                 if self.shanghai_finish:
-                    win_msg = "SHANGHAI-FINISH!\n" + win_msg
+                    message = "SHANGHAI-FINISH!\n" + message
 
                 # Finalisiere die Statistiken für das Spiel, bevor die UI blockiert wird
                 self._finalize_and_record_stats(winner=player)
 
                 def play_win_and_show_message():
-                    """Spielt den Gewinn-Sound und zeigt dann die blockierende Nachricht."""
+                    """Spielt den Gewinn-Sound und zeigt dann die Nachricht."""
                     if self.sound_manager:
                         if self.shanghai_finish:
                             self.sound_manager.play_shanghai()
                         else:
                             self.sound_manager.play_win()
-                    
-                    # Zeige die finale Gewinn-Nachricht an
-                    messagebox.showinfo("Spielende", win_msg, parent=self.db.root)
+                    ui_utils.show_message('info', "Spielende", message, parent=self.ui.db.root)
 
                 # Verzögere den Gewinn-Sound und die Nachricht um 500ms,
                 # damit der Treffer-Sound ausklingen kann und sich die Effekte nicht überlagern.
                 self.root.after(500, play_win_and_show_message)
+            elif status in ('info', 'warning', 'error', 'bust', 'invalid_open', 'invalid_target'):
+                title_map = {
+                    'info': 'Info', 'warning': 'Warnung', 'error': 'Fehler',
+                    'bust': 'Bust', 'invalid_open': 'Ungültiger Wurf',
+                    'invalid_target': 'Falsches Ziel'
+                }
+                msg_type = 'error' if status in ('bust', 'invalid_open', 'invalid_target', 'error') else status
+                title = title_map.get(status, 'Info')
+                if message:
+                    ui_utils.show_message(msg_type, title, message, parent=self.ui.db.root)
         else:
-            messagebox.showinfo("Zuviel Würfe", "Bitte 'Weiter' klicken!", parent=self.db.root)
-            return self.db.clear_last_dart_image_from_canvas()
+            ui_utils.show_message('info', "Zuviel Würfe", "Bitte 'Weiter' klicken!", parent=self.ui.db.root)
+            return self.ui.db.clear_last_dart_image_from_canvas()

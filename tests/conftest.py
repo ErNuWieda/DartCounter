@@ -1,7 +1,26 @@
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import sys
 import logging
-
+import pytest
+from unittest.mock import MagicMock
+# Wichtig: Wir müssen die zu testenden Klassen importieren.
+from core.game import Game
 # --- One-time setup for all tests, executed by pytest before test collection ---
 
 # Workaround for TclError on Windows in venv
@@ -39,3 +58,34 @@ def pytest_configure(config):
     # Füge einen NullHandler hinzu. Dieser "schluckt" alle Log-Nachrichten,
     # ohne sie auszugeben. Dies verhindert, dass Anwendungs-Logs die Testausgabe stören.
     root_logger.addHandler(logging.NullHandler())
+
+@pytest.fixture
+def mock_game():
+    """
+    Eine Fixture, die eine generische, gemockte Game-Instanz bereitstellt.
+    Ersetzt die setUp-Logik aus der alten GameLogicTestBase.
+    """
+    game = MagicMock(spec=Game)
+    game.round = 1
+    game.end = False
+    game.highscore_manager = MagicMock()
+    game.sound_manager = MagicMock()
+    game.targets = [] # Standard-Fallback
+
+    def _get_score_side_effect(ring, segment):
+        """Simuliert die get_score Methode der Game-Klasse für die Tests."""
+        if ring == "Bullseye": return 50
+        if ring == "Bull": return 25
+
+        try:
+            segment_val = int(segment)
+        except (ValueError, TypeError):
+            return 0 # Ungültiges Segment wie 'Miss'
+
+        if ring == "Triple": return segment * 3
+        if ring == "Double": return segment * 2
+        if ring == "Single": return segment
+        return 0
+
+    game.get_score.side_effect = _get_score_side_effect
+    return game

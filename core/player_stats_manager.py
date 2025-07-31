@@ -257,7 +257,13 @@ class PlayerStatsManager:
             messagebox.showinfo("Keine Daten", f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.", parent=parent)
             return
 
-        heatmap_img = HeatmapGenerator.create_heatmap(all_coords)
+        # Skalierungslogik analog zur DartBoard-Klasse, um eine konsistente Größe zu gewährleisten.
+        screen_height = parent.winfo_screenheight()
+        # Das Dartboard-Bild ist quadratisch, daher reicht die Höhe zur Skalierung.
+        target_height = int(screen_height * 0.90)
+        target_size = (target_height, target_height)
+
+        heatmap_img = HeatmapGenerator.create_heatmap(all_coords, target_size)
         if not heatmap_img:
             messagebox.showerror("Fehler", "Die Heatmap konnte nicht erstellt werden.", parent=parent)
             return

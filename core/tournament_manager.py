@@ -18,6 +18,8 @@
 Dieses Modul enthält den TournamentManager, der die Logik für den
 Turniermodus steuert.
 """
+import random
+from tkinter import messagebox
 
 class TournamentManager:
     """
@@ -44,7 +46,7 @@ class TournamentManager:
         self.player_names = player_names
         self.game_mode = game_mode
         self.game_options = game_options or {}
-        self.bracket = self._create_bracket(player_names)
+        self.bracket = self._create_bracket(player_names, shuffle=True)
         self.winner = None
 
     @property
@@ -105,30 +107,61 @@ class TournamentManager:
 
     def advance_to_next_round(self):
         """
-        Erstellt die nächste Runde aus den Gewinnern der vorherigen Runde.
-
-        Prüft, ob die letzte Runde vollständig ist. Wenn ja, werden die Gewinner
-        gesammelt und zu neuen Matches für die nächste Runde gepaart.
+        Erstellt oder aktualisiert die nächste Runde basierend auf den Gewinnern der vorherigen Runde.
+        Diese Methode durchläuft den gesamten Turnierbaum und stellt sicher, dass alle Gewinner
+        korrekt in die Folgerunden vorrücken. Sie wird nach jedem abgeschlossenen Match aufgerufen.
         """
+        # Wenn das Turnier bereits einen Sieger hat, gibt es nichts mehr zu tun.
+        if self.is_finished:
+            return
+
         if not self.bracket.get('rounds'):
             return
 
+        # NEU: Prüfen, ob das Turnier gerade beendet wurde, BEVOR die Runden neu berechnet werden.
+        # Dies verhindert, dass der Gewinner des Finales überschrieben wird.
         last_round = self.bracket['rounds'][-1]
-
-        # Prüfen, ob die letzte Runde vollständig ist (jedes Match hat einen Gewinner)
-        if any(match.get('winner') is None for match in last_round):
-            return  # Runde ist noch nicht beendet, nichts tun
-
-        winners = [match['winner'] for match in last_round]
-
-        if len(winners) == 1:
-            self.winner = winners[0]
+        if len(last_round) == 1 and last_round[0].get('winner'):
+            self.winner = last_round[0]['winner']
             return
 
-        # Erstelle die neue Runde aus den Gewinnern, indem wir _create_bracket wiederverwenden.
-        new_round_bracket = self._create_bracket(winners)
-        if new_round_bracket.get('rounds'):
-            self.bracket['rounds'].append(new_round_bracket['rounds'][0])
+        # Wir durchlaufen alle Runden, um Gewinner vorrücken zu lassen.
+        # Die Schleife geht bis zur vorletzten Runde, da nur diese eine Folgerunde haben kann.
+        for round_idx in range(len(self.bracket['rounds'])):
+            current_round = self.bracket['rounds'][round_idx]
+
+            # Verhindere, dass aus einer Finalrunde (die nur ein Match hat)
+            # eine neue Runde generiert wird.
+            if len(current_round) == 1:
+                continue
+
+            # Sammle die Gewinner der aktuellen Runde (einige können None sein)
+            winners = [match.get('winner') for match in current_round]
+
+            # Erstelle die Paarungen für die nächste Runde
+            next_round_matches = []
+            for i in range(0, len(winners), 2):
+                p1 = winners[i]
+                p2 = winners[i+1] if (i + 1) < len(winners) else 'BYE'
+                winner = p1 if p2 == 'BYE' and p1 is not None else None
+                next_round_matches.append({'player1': p1, 'player2': p2, 'winner': winner})
+
+            if not next_round_matches:
+                continue
+
+            next_round_index = round_idx + 1
+            if len(self.bracket['rounds']) == next_round_index:
+                self.bracket['rounds'].append(next_round_matches)
+            else:
+                # Die nächste Runde existiert bereits. Wir aktualisieren sie sorgfältig,
+                # um bereits gespielte Ergebnisse nicht zu überschreiben.
+                existing_next_round = self.bracket['rounds'][next_round_index]
+                for i, generated_match in enumerate(next_round_matches):
+                    if i < len(existing_next_round):
+                        existing_match = existing_next_round[i]
+                        # Aktualisiere die Spieler, behalte aber einen eventuell vorhandenen Gewinner bei.
+                        existing_match['player1'] = generated_match['player1']
+                        existing_match['player2'] = generated_match['player2']
 
     def to_dict(self) -> dict:
         """Serialisiert den Zustand des Managers in ein Dictionary für das Speichern."""
@@ -148,42 +181,45 @@ class TournamentManager:
         # Erstelle die Instanz mit den Basis-Argumenten
         instance = cls(
             player_names=data['player_names'],
-            game_mode=data['game_mode'],
-            game_options=data.get('game_options', {}) # Fallback für ältere Speicherstände
+            game_mode=data['game_mode'],            game_options=data.get('game_options', {}) # Fallback für ältere Speicherstände
         )
         # Überschreibe den Zustand mit den geladenen Daten
         instance.bracket = data['bracket']
         instance.winner = data.get('winner')
         return instance
 
-    def _create_bracket(self, players: list[str]) -> dict:
+    def _create_bracket(self, players: list[str], shuffle: bool = True) -> dict:
         """
         Erstellt die initiale Turnierstruktur.
         Für den Anfang implementieren wir ein einfaches K.o.-System.
         
         Diese Methode wird per TDD (Test-Driven Development) entwickelt.
         """
-        # Erste Runde erstellen, indem Spieler deterministisch in Paare aufgeteilt werden.
-        # Der Test erwartet eine feste Reihenfolge, daher wird hier nicht gemischt.
+        # Mische die Spielerliste für die erste Runde, um zufällige Paarungen zu erstellen.
+        # Es wird eine Kopie erstellt, um die ursprüngliche Reihenfolge in self.player_names nicht zu verändern.
+        players_to_pair = list(players)
+        if shuffle:
+            random.shuffle(players_to_pair)
+
         round1_matches = []
         
         # Anzahl der Spieler, die in regulären Matches gepaart werden
-        num_to_pair = len(players)
-        if len(players) % 2 != 0:
+        num_to_pair = len(players_to_pair)
+        if len(players_to_pair) % 2 != 0:
             num_to_pair -= 1 # Den letzten Spieler für das Freilos übrig lassen
 
         # Wir iterieren über die Spielerliste in 2er-Schritten.
         for i in range(0, num_to_pair, 2):
             match = {
-                'player1': players[i],
-                'player2': players[i+1],
+                'player1': players_to_pair[i],
+                'player2': players_to_pair[i+1],
                 'winner': None
             }
             round1_matches.append(match)
 
         # Wenn die Spieleranzahl ungerade ist, erhält der letzte Spieler ein Freilos.
-        if len(players) % 2 != 0:
-            last_player = players[-1]
+        if len(players_to_pair) % 2 != 0:
+            last_player = players_to_pair[-1]
             bye_match = {'player1': last_player, 'player2': 'BYE', 'winner': last_player}
             round1_matches.append(bye_match)
 

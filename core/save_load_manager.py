@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 import os
 from .settings_manager import get_app_data_dir
+from . import ui_utils
 
 class SaveLoadManager:
     SAVE_FORMAT_VERSION = 2
@@ -122,10 +123,10 @@ class SaveLoadManager:
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4)
-            messagebox.showinfo("Erfolg", f"Daten erfolgreich gespeichert unter:\n{filepath}", parent=parent)
+            ui_utils.show_message('info', "Erfolg", f"Daten erfolgreich gespeichert unter:\n{filepath}", parent=parent)
             return True
         except IOError as e:
-            messagebox.showerror("Fehler beim Speichern", f"Die Daten konnten nicht gespeichert werden.\nFehler: {e}", parent=parent)
+            ui_utils.show_message('error', "Fehler beim Speichern", f"Die Daten konnten nicht gespeichert werden.\nFehler: {e}", parent=parent)
             return False
 
     @staticmethod
@@ -159,15 +160,15 @@ class SaveLoadManager:
             file_type = data.get(SaveLoadManager.SAVE_TYPE_KEY)
 
             if file_version is None or file_type != expected_type:
-                messagebox.showerror("Inkompatible Datei", f"Dies ist keine gültige '{expected_type}'-Speicherdatei.", parent=parent)
+                ui_utils.show_message('error', "Inkompatible Datei", f"Dies ist keine gültige '{expected_type}'-Speicherdatei.", parent=parent)
                 return None
             if file_version != SaveLoadManager.SAVE_FORMAT_VERSION:
-                messagebox.showerror("Inkompatibler Spielstand", f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.", parent=parent)
+                ui_utils.show_message('error', "Inkompatibler Spielstand", f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.", parent=parent)
                 return None
 
             return data
         except (IOError, json.JSONDecodeError) as e:
-            messagebox.showerror("Fehler beim Laden", f"Die Datei konnte nicht geladen werden.\nFehler: {e}", parent=parent)
+            ui_utils.show_message('error', "Fehler beim Laden", f"Die Datei konnte nicht geladen werden.\nFehler: {e}", parent=parent)
             return None
 
     @staticmethod
@@ -175,7 +176,7 @@ class SaveLoadManager:
         """Sammelt Spieldaten und speichert sie über die generische Methode."""
         game_data = SaveLoadManager._collect_game_data(game)
         if not game_data:
-            messagebox.showerror("Fehler", "Keine Spieldaten zum Speichern.", parent=parent)
+            ui_utils.show_message('error', "Fehler", "Keine Spieldaten zum Speichern.", parent=parent)
             return False
 
         return SaveLoadManager._save_data(

@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 
 # Import the class to be tested
 from core.game import Game
@@ -18,10 +18,9 @@ class TestGame(unittest.TestCase):
         - Mockt die spezifische Spiellogik (z.B. X01).
         - Erstellt eine Game-Instanz mit gemockten Spielern.
         """
-        # Patch, um UI-Elemente und externe Abhängigkeiten zu neutralisieren
-        patcher_messagebox = patch('core.game.messagebox')
-        patcher_scoreboard = patch('core.game.ScoreBoard') # Wird in Game.setup_scoreboards verwendet
-        patcher_dartboard = patch('core.game.DartBoard') # Wird jetzt in Game.__init__ verwendet
+        # Patches, um UI-Elemente und externe Abhängigkeiten zu neutralisieren
+        patcher_ui_utils = patch('core.game.ui_utils')
+        patcher_game_ui = patch('core.game.GameUI')
 
         # Erstelle einen Mock für die X01-Klasse. Dieser wird in die Map injiziert.
         self.mock_x01_class = MagicMock()
@@ -30,15 +29,13 @@ class TestGame(unittest.TestCase):
         # Dies stellt sicher, dass get_game_logic bei der Suche nach "301" unseren Mock erhält.
         patcher_logic_map = patch.dict('core.game.GAME_LOGIC_MAP', {'301': self.mock_x01_class})
 
-        self.mock_messagebox = patcher_messagebox.start()
-        self.mock_scoreboard_class = patcher_scoreboard.start()
-        self.mock_dartboard = patcher_dartboard.start()
+        self.mock_ui_utils = patcher_ui_utils.start()
+        self.mock_game_ui = patcher_game_ui.start()
         patcher_logic_map.start()
 
         # Sicherstellen, dass die Mocks nach jedem Test gestoppt werden
-        self.addCleanup(patcher_messagebox.stop)
-        self.addCleanup(patcher_scoreboard.stop)
-        self.addCleanup(patcher_dartboard.stop)
+        self.addCleanup(patcher_ui_utils.stop)
+        self.addCleanup(patcher_game_ui.stop)
         self.addCleanup(patcher_logic_map.stop)
 
         # Konfiguration für das Spiel
@@ -90,9 +87,8 @@ class TestGame(unittest.TestCase):
         self.assertFalse(self.game.end)
         # Prüfen, ob die Spiellogik-Klasse (X01) instanziiert wurde
         self.mock_x01_class.assert_called_once_with(self.game)
-        # Prüfen, ob die UI-Komponenten (Dartboard, Scoreboards) im Konstruktor erstellt wurden
-        self.mock_dartboard.assert_called_once_with(self.game)
-        self.mock_scoreboard_class.assert_called()
+        # Prüfen, ob die GameUI-Klasse instanziiert wurde
+        self.mock_game_ui.assert_called_once_with(self.game)
 
 
     def test_current_player_returns_correct_player(self):
@@ -168,5 +164,7 @@ class TestGame(unittest.TestCase):
 
         self.assertEqual(len(self.game.players), 0)
         self.assertTrue(self.game.end, "Die 'end'-Flagge sollte auf True gesetzt werden.")
-        self.mock_messagebox.showinfo.assert_called_once()
+        self.mock_ui_utils.show_message.assert_called_once_with(
+            'info', "Spielende", "Alle Spieler haben das Spiel verlassen.", parent=ANY
+        )
         self.game.destroy.assert_called_once()

@@ -31,11 +31,16 @@ class ProfileManagerDialog(tk.Toplevel):
         self.color_images = [] # Wichtig: Referenzen auf die Bilder halten
 
         self.title("Spielerprofile verwalten")
-        self.geometry("600x375")
-        self.grab_set()
+        self.resizable(False, False)
 
         self._setup_widgets()
         self._populate_profile_list()
+
+        # UI aktualisieren, damit Tkinter die benötigte Breite berechnen kann
+        self.update_idletasks()
+        # Die berechnete Breite verwenden und eine feste Höhe beibehalten
+        self.geometry(f"{self.winfo_reqwidth()}x375")
+        self.grab_set()
 
     def _setup_widgets(self):
         main_frame = ttk.Frame(self, padding=10)
@@ -45,15 +50,18 @@ class ProfileManagerDialog(tk.Toplevel):
         list_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
         # Die erste Spalte (#0) wird für das Farbsymbol, die weiteren für Daten verwendet.
-        self.tree = ttk.Treeview(list_frame, columns=("Name", "Spielertyp"), show="tree headings")
+        self.tree = ttk.Treeview(list_frame, columns=("Name", "Spielertyp", "Schwierigkeit"), show="tree headings")
         # Konfiguriere die Symbolspalte für das Farbfeld
         self.tree.column("#0", width=40, stretch=tk.NO, anchor="center")
         # Konfiguriere die Namensspalte
         self.tree.heading("Name", text="Name")
         self.tree.column("Name", width=200)
-        # Konfiguriere die Spielertyp-Spalte
+        # Konfiguriere die weiteren Spalten
         self.tree.heading("Spielertyp", text="Spielertyp")
         self.tree.column("Spielertyp", width=100, anchor="center")
+        self.tree.heading("Schwierigkeit", text="Schwierigkeit")
+        self.tree.column("Schwierigkeit", width=120, anchor="center")
+
         self.tree.bind("<Double-1>", lambda e: self._edit_selected_profile())
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -74,14 +82,38 @@ class ProfileManagerDialog(tk.Toplevel):
         self.tree.delete(*self.tree.get_children())
         self.color_images.clear()
 
-        profiles = sorted(self.profile_manager.get_profiles(), key=lambda p: p.name)
-        for profile in profiles:
-            # Erstelle ein kleines, farbiges Bild für die Vorschau
-            img = Image.new('RGB', (16, 16), profile.dart_color)
-            photo_img = ImageTk.PhotoImage(img)
-            self.color_images.append(photo_img) # Referenz speichern!
-            player_type = "KI" if profile.is_ai else "Mensch"
-            self.tree.insert("", "end", image=photo_img, values=(profile.name, player_type))
+        # 1. Profile abrufen und in Gruppen aufteilen
+        all_profiles = self.profile_manager.get_profiles()
+        ai_profiles = [p for p in all_profiles if p.is_ai]
+        human_profiles = [p for p in all_profiles if not p.is_ai]
+ 
+        # 2. Gruppen sortieren
+        # KI-Spieler nach Schwierigkeit sortieren
+        difficulty_order = ['Anfänger', 'Fortgeschritten', 'Amateur', 'Profi', 'Champion']
+        ai_profiles.sort(key=lambda p: difficulty_order.index(p.difficulty) if p.difficulty in difficulty_order else 99)
+        # Menschliche Spieler alphabetisch sortieren
+        human_profiles.sort(key=lambda p: p.name)
+ 
+        # 3. Kombinierte und sortierte Liste erstellen (Menschen zuerst)
+        sorted_profiles = human_profiles + ai_profiles
+ 
+        # 4. Sortierte Profile in den Treeview einfügen
+        for profile in sorted_profiles:
+            self._insert_profile_item("", profile)
+
+    def _insert_profile_item(self, parent_id: str, profile: PlayerProfile):
+        """
+        Fügt ein einzelnes Profil-Item in den Treeview unter einem bestimmten Parent ein.
+        Diese Hilfsmethode vermeidet Code-Duplizierung.
+        """
+        # Erstelle ein kleines, farbiges Bild für die Vorschau
+        img = Image.new('RGB', (16, 16), profile.dart_color)
+        photo_img = ImageTk.PhotoImage(img)
+        self.color_images.append(photo_img) # Referenz speichern!
+
+        player_type = "KI" if profile.is_ai else "Mensch"
+        difficulty = profile.difficulty if profile.is_ai else "-"
+        self.tree.insert(parent_id, "end", image=photo_img, values=(profile.name, player_type, difficulty))
 
     def _add_new_profile(self):
         dialog = EditProfileDialog(self, self.profile_manager)
@@ -92,6 +124,11 @@ class ProfileManagerDialog(tk.Toplevel):
         selected_item = self.tree.focus()
         if not selected_item:
             messagebox.showwarning("Keine Auswahl", "Bitte wählen Sie zuerst ein Profil aus der Liste aus.", parent=self)
+            return
+
+        # Verhindere Bearbeitung von Gruppen-Headern (obwohl keine mehr da sind, ist das gute Praxis)
+        item_data = self.tree.item(selected_item)
+        if not item_data.get('values'):
             return
         
         profile_name = self.tree.item(selected_item)['values'][0]
@@ -105,6 +142,11 @@ class ProfileManagerDialog(tk.Toplevel):
         selected_item = self.tree.focus()
         if not selected_item:
             messagebox.showwarning("Keine Auswahl", "Bitte wählen Sie zuerst ein Profil aus der Liste aus.", parent=self)
+            return
+
+        # Verhindere Löschen von Gruppen-Headern
+        item_data = self.tree.item(selected_item)
+        if not item_data.get('values'):
             return
 
         profile_name = self.tree.item(selected_item)['values'][0]

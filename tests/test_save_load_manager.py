@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock, mock_open, ANY
 import json
 
 # Klasse, die getestet wird
@@ -50,9 +50,9 @@ class TestSaveLoadManager(unittest.TestCase):
         self.mock_parent = MagicMock()
 
         # Patch für messagebox, um UI-Popups zu verhindern
-        patcher = patch('core.save_load_manager.messagebox')
-        self.mock_messagebox = patcher.start()
-        self.addCleanup(patcher.stop)
+        patcher_ui = patch('core.save_load_manager.ui_utils')
+        self.mock_ui_utils = patcher_ui.start()
+        self.addCleanup(patcher_ui.stop)
 
     @patch('core.save_load_manager.filedialog.asksaveasfilename', return_value="/dummy/path/save.json")
     @patch('builtins.open', new_callable=mock_open)
@@ -77,7 +77,7 @@ class TestSaveLoadManager(unittest.TestCase):
         self.assertEqual(saved_data['players'][0]['state'], {'has_opened': True})
         self.assertEqual(saved_data['save_format_version'], SaveLoadManager.SAVE_FORMAT_VERSION)
 
-        self.mock_messagebox.showinfo.assert_called_once()
+        self.mock_ui_utils.show_message.assert_called_once_with('info', ANY, ANY, parent=self.mock_parent)
 
     @patch('core.save_load_manager.filedialog.asksaveasfilename', return_value="")
     def test_save_game_state_cancelled(self, mock_asksaveasfilename):
@@ -85,7 +85,7 @@ class TestSaveLoadManager(unittest.TestCase):
         result = SaveLoadManager.save_game_state(self.mock_game, self.mock_parent)
         self.assertFalse(result)
         mock_asksaveasfilename.assert_called_once()
-        self.mock_messagebox.showinfo.assert_not_called()
+        self.mock_ui_utils.show_message.assert_not_called()
 
     @patch('core.save_load_manager.filedialog.askopenfilename', return_value="/dummy/path/load.json")
     @patch('builtins.open')
@@ -107,7 +107,7 @@ class TestSaveLoadManager(unittest.TestCase):
         mock_askopenfilename.assert_called_once()
         mock_file_open.assert_called_once_with("/dummy/path/load.json", 'r', encoding='utf-8')
         mock_json_load.assert_called_once()
-        self.mock_messagebox.showerror.assert_not_called()
+        self.mock_ui_utils.show_message.assert_not_called()
 
     @patch('core.save_load_manager.filedialog.askopenfilename', return_value="/dummy/path/load.json")
     @patch('builtins.open')
@@ -120,7 +120,7 @@ class TestSaveLoadManager(unittest.TestCase):
         result = SaveLoadManager.load_game_data(self.mock_parent)
 
         self.assertIsNone(result)
-        self.mock_messagebox.showerror.assert_called_once()
+        self.mock_ui_utils.show_message.assert_called_once_with('error', ANY, ANY, parent=self.mock_parent)
 
     def test_restore_game_state(self):
         """Testet, ob der Spielzustand korrekt aus den geladenen Daten wiederhergestellt wird."""

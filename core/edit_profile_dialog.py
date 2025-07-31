@@ -132,7 +132,7 @@ class EditProfileDialog(tk.Toplevel):
         self.difficulty_combo = ttk.Combobox(
             self.ai_settings_frame,
             textvariable=self.difficulty_var,
-            values=['Anfänger', 'Fortgeschritten', 'Profi'],
+            values=['Anfänger', 'Fortgeschritten', 'Amateur', 'Profi', 'Champion'],
             state="readonly"
         )
         self.difficulty_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)

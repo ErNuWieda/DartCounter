@@ -1,4 +1,4 @@
- # Release Checklist für Dartcounter v1.2.0
+ # Release Checklist für Dartcounter v1.3.0
 
 Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-Prozess sicher.
 
@@ -6,11 +6,10 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
 
 ## 1. Code Freeze & Finale Überprüfung
 
-- [x] **Feature Freeze:** Bestätigen, dass keine neuen Features mehr für diese Version hinzugefügt werden. Nur noch Bugfixes sind erlaubt.
-- [x] **Code-Überprüfung:** Eine letzte Überprüfung aller kürzlichen Änderungen und Bugfixes durchführen.
-- [x] **Linting:** Einen Linter (z.B. `pylint`, `flake8`) über die gesamte Codebasis laufen lassen, um Stilprobleme oder potenzielle Fehler zu finden.
-- [x] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle 160 Tests erfolgreich sind.
-- [x] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle 166 Tests erfolgreich sind.
+- [ ] **Feature Freeze:** Bestätigen, dass keine neuen Features mehr für diese Version hinzugefügt werden. Nur noch Bugfixes sind erlaubt.
+- [ ] **Code-Überprüfung:** Eine letzte Überprüfung aller kürzlichen Änderungen und Bugfixes durchführen.
+- [ ] **Linting:** Einen Linter (z.B. `pylint`, `flake8`) über die gesamte Codebasis laufen lassen, um Stilprobleme oder potenzielle Fehler zu finden.
+- [ ] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle Tests erfolgreich sind.
   ```bash
   python3 -m pytest
   ```

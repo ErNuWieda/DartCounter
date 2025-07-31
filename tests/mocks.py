@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 from core.atc import ATC_TARGET_VALUES
+from core import ui_utils
+
 
 class MockPlayer:
 
@@ -104,6 +106,7 @@ class MockGame:
         self.next_player = MagicMock()
         self.sound_manager = MagicMock()
         self.highscore_manager = MagicMock()
+        self.ui_utils = MagicMock()
         self.targets = []
         
         # Setzt alle übergebenen Keyword-Argumente als Attribute

@@ -1,95 +1,103 @@
-import unittest
-from unittest.mock import patch, MagicMock
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .test_base import GameLogicTestBase
+import pytest
+from unittest.mock import MagicMock
+
 # Klasse, die getestet wird
 from core.atc import AtC
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
-from core.scoreboard import ScoreBoard
 
-class TestAtC(GameLogicTestBase):
-    """Testet die Spiellogik der AtC (Around the Clock) Klasse."""
+# Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
-    def setUp(self):
-        """Setzt eine kontrollierte Testumgebung für jeden Test auf."""
-        self.logic_class_module = 'atc'
-        super().setUp()
-        self.mock_game.name = "Around the Clock"
-        self.mock_game.opt_atc = "Single"  # Standardwert
+@pytest.fixture
+def atc_logic(mock_game):
+    """Erstellt eine Instanz der AtC-Logik mit dem gemockten Spiel."""
+    mock_game.name = "Around the Clock"
+    mock_game.opt_atc = "Single"  # Standard für die meisten Tests
+    logic = AtC(mock_game)
+    mock_game.targets = logic.get_targets()
+    return logic
 
-        # Instanz der zu testenden Klasse
-        self.atc_logic = AtC(self.mock_game)
-        self.mock_game.targets = self.atc_logic.get_targets()
+@pytest.fixture
+def player(mock_game, atc_logic):
+    """Erstellt eine echte Player-Instanz, die für ATC-Tests konfiguriert ist."""
+    p = Player(name="Tester", game=mock_game)
+    atc_logic.initialize_player_state(p)
+    p.sb = MagicMock()
+    return p
 
-    def _create_player(self):
-        """
-        Hilfsfunktion, um eine echte Player-Instanz für ATC-Tests zu erstellen.
-        """
-        # Erstelle eine echte Player-Instanz mit dem gemockten Spiel
-        player = Player(name="Tester", game=self.mock_game)
-        # Initialisiere den Spieler-Zustand für ATC
-        self.atc_logic.initialize_player_state(player)
-        # Mock für das ScoreBoard
-        player.sb = MagicMock(spec=ScoreBoard)
-        return player
+def test_initialization(player):
+    """Testet, ob ein Spieler korrekt für ATC initialisiert wird."""
+    assert player.score == 0
+    assert player.state['next_target'] == "1"
+    assert player.state['hits'].get("1") == 0
+    assert "20" in player.state['hits']
 
-    def test_initialization(self):
-        """Testet, ob ein Spieler korrekt für ATC initialisiert wird."""
-        player = self._create_player()
-        self.assertEqual(player.score, 0)
-        self.assertEqual(player.state['next_target'], "1")
-        self.assertEqual(player.state['hits'].get("1"), 0)
-        self.assertIn("20", player.state['hits']) # Prüfen, ob alle Ziele initialisiert sind
+def test_valid_hit_advances_target(atc_logic, player):
+    """Testet, ob ein gültiger Treffer das nächste Ziel korrekt setzt."""
+    status, _ = atc_logic._handle_throw(player, "Single", 1, [])
+    assert player.state['hits']["1"] == 1
+    assert player.state['next_target'] == "2"
+    assert status == 'ok'
 
-    def test_valid_hit_advances_target(self):
-        """Testet, ob ein gültiger Treffer das nächste Ziel korrekt setzt."""
-        player = self._create_player()
-        self.atc_logic._handle_throw(player, "Single", 1, [])
-        self.assertEqual(player.state['hits']["1"], 1, "Ziel 1 sollte als getroffen markiert sein.")
-        self.assertEqual(player.state['next_target'], "2", "Das nächste Ziel sollte 2 sein.")
-        self.mock_messagebox.showerror.assert_not_called()
+def test_invalid_hit_returns_error(atc_logic, player):
+    """Testet, ob ein Wurf auf das falsche Ziel einen Fehler zurückgibt."""
+    status, message = atc_logic._handle_throw(player, "Single", 5, [])
+    assert player.state['hits']["1"] == 0
+    assert player.state['next_target'] == "1"
+    assert status == 'invalid_target'
+    assert message is not None
 
-    def test_invalid_hit_shows_error(self):
-        """Testet, ob ein Wurf auf das falsche Ziel eine Fehlermeldung auslöst."""
-        player = self._create_player()
-        self.atc_logic._handle_throw(player, "Single", 5, []) # Falsches Ziel
-        self.assertEqual(player.state['hits']["1"], 0, "Ziel 1 sollte unberührt bleiben.")
-        self.assertEqual(player.state['next_target'], "1", "Das Ziel sollte 1 bleiben.")
-        self.mock_messagebox.showerror.assert_called_once()
+def test_valid_hit_with_double_option(mock_game):
+    """Testet einen gültigen Treffer, wenn die Option 'Double' aktiv ist."""
+    # Für diesen Test müssen Spiel und Logik manuell konfiguriert werden.
+    mock_game.name = "Around the Clock"
+    mock_game.opt_atc = "Double"
+    atc_logic = AtC(mock_game)
+    mock_game.targets = atc_logic.get_targets()
+    player = Player(name="Tester", game=mock_game)
+    atc_logic.initialize_player_state(player)
+    player.sb = MagicMock()
 
-    def test_valid_hit_with_double_option(self):
-        """Testet einen gültigen Treffer, wenn die Option 'Double' aktiv ist."""
-        self.mock_game.opt_atc = "Double"
-        self.atc_logic = AtC(self.mock_game) # Logik mit neuer Option neu initialisieren
-        player = self._create_player()
+    status, _ = atc_logic._handle_throw(player, "Double", 1, [])
+    assert player.state['hits']["1"] == 1
+    assert player.state['next_target'] == "2"
+    assert status == 'ok'
 
-        self.atc_logic._handle_throw(player, "Double", 1, [])
-        self.assertEqual(player.state['hits']["1"], 1)
-        self.assertEqual(player.state['next_target'], "2")
-        self.mock_messagebox.showerror.assert_not_called()
+def test_win_condition(atc_logic, player):
+    """Testet, ob das Spiel endet, wenn alle Ziele getroffen wurden."""
+    # Alle Ziele von 1 bis 20 treffen
+    for i in range(1, 21):
+        atc_logic._handle_throw(player, "Single", i, [])
+    
+    # Den letzten Wurf auf Bull machen
+    result = atc_logic._handle_throw(player, "Bull", 25, [])
 
-    def test_win_condition(self):
-        """Testet, ob das Spiel endet, wenn alle Ziele getroffen wurden."""
-        player = self._create_player()
-        
-        # Alle Ziele von 1 bis 20 treffen
-        for i in range(1, 21):
-            self.atc_logic._handle_throw(player, "Single", i, [])
-        
-        # Den letzten Wurf auf Bull machen
-        result = self.atc_logic._handle_throw(player, "Bull", 25, [])
+    assert player.game.end is True
+    assert isinstance(result, str)
+    assert "gewinnt" in result
 
-        self.assertTrue(self.mock_game.end, "Das Spiel sollte als beendet markiert sein.")
-        self.assertIn("gewinnt", result, "Eine Gewinnnachricht sollte zurückgegeben werden.")
+def test_undo_restores_target(atc_logic, player):
+    """Testet, ob die Undo-Funktion den Zustand korrekt wiederherstellt."""
+    atc_logic._handle_throw(player, "Single", 1, [])
+    assert player.state['next_target'] == "2"
 
-    def test_undo_restores_target(self):
-        """Testet, ob die Undo-Funktion den Zustand korrekt wiederherstellt."""
-        player = self._create_player()
-        self.atc_logic._handle_throw(player, "Single", 1, [])
-        self.assertEqual(player.state['next_target'], "2")
-
-        self.atc_logic._handle_throw_undo(player, "Single", 1, [])
-        
-        self.assertEqual(player.state['next_target'], "1", "Das Ziel sollte auf 1 zurückgesetzt werden.")
-        self.assertEqual(player.state['hits']["1"], 0, "Die Treffer auf Ziel 1 sollten zurückgesetzt werden.")
+    atc_logic._handle_throw_undo(player, "Single", 1, [])
+    
+    assert player.state['next_target'] == "1"
+    assert player.state['hits']["1"] == 0

@@ -1,45 +1,43 @@
-# Projekt-Roadmap für Dartcounter
+# Projekt-Roadmap für Dartcounter Deluxe
 
-Dieses Dokument skizziert geplante Features und Verbesserungen für zukünftige Versionen des Dartcounters.
-
----
-
-## Version 1.2.0 - "The Tournament Edition" (Veröffentlicht)
-
-Dieses Release hat den Dartcounter zu einer vollwertigen, kompetitiven Anwendung gemacht. Der Fokus lag auf der Einführung von Mehrspieler-Turnieren, personalisierbaren Spielerprofilen und erweiterten Statistiken.
-
-- **Implementiert:**
-  - **Turnier-Modus:** K.o.-Turniere für bis zu 8 Spieler mit grafischem Turnierbaum.
-  - **Spieler-Profile:** Persistente Profile mit Namen, anpassbaren Avataren und Dart-Farben.
-  - **Erweiterte Statistiken:** Detaillierte Spiel-Historie pro Spieler, Formkurven-Diagramm und Wurf-Heatmap.
-  - **Umfassende Spielmodi:** X01, Cricket, Killer, Shanghai, etc.
-  - **Speichern & Laden:** Spiele und Turniere können gespeichert und fortgesetzt werden.
-  - **Highscores & Theming:** Optionale Highscore-Datenbank und wählbares helles/dunkles Design.
-- **Technisch:** MVC-Architektur, Test-Suite (>160 Tests), professionelles Build-System.
+Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplanten zukünftigen Features für den Dartcounter.
 
 ---
 
-## Version 1.3.0 - "The Online Challenge" (In Planung)
+## ✅ Abgeschlossene Meilensteine
 
-Der Fokus für v1.3.0 liegt darauf, den Dartcounter netzwerkfähig zu machen und das Spielen gegen KI-Gegner zu ermöglichen.
+### Version 1.0: Grundgerüst & Kernfunktionalität
+- Implementierung der Basis-Spielmodi (301, 501).
+- Klickbares Dartboard zur Wurfeingabe.
+- Grundlegende Scoreboards für die Spieler.
 
-### ✨ Geplante Haupt-Features
+### Version 1.1: Erweiterung der Spielmodi & Profile
+- Hinzufügen weiterer Spielmodi (Cricket, Micky Maus, etc.).
+- Einführung von persistenten Spielerprofilen mit Namen und Farbe.
+- Erste Version einer KI mit einfacher Wurflogik.
 
-- **[ ] Online-Mehrspielermodus (Peer-to-Peer):**
-  - **[ ] Netzwerk-Schicht:** Implementierung einer robusten Netzwerkkommunikation (z.B. mit Sockets oder einer Bibliothek wie `Twisted`), um Spiel-Events (Wurf, Undo, nächster Spieler) zu serialisieren und zwischen Clients zu synchronisieren.
-  - **[ ] UI:** Dialoge zum Hosten eines Spiels und zum Beitreten eines Spiels über eine IP-Adresse.
-  - **[ ] Logik:** Anpassung der `Game`-Klasse, um zwischen lokalen und Netzwerk-Inputs zu unterscheiden.
-  - **[ ] Fehlerbehandlung:** Graceful Handling von Verbindungsabbrüchen.
+### Version 1.2: Professionalisierung & Features
+- **Turniermodus:** Implementierung eines K.o.-Turniersystems mit grafischem Turnierbaum.
+- **Statistiken & Highscores:** Einführung einer Datenbank zur Speicherung von Spielerstatistiken (Average, MPR) und Highscores.
+- **UI-Verbesserungen:** Hinzufügen eines dunklen Themes, Soundeffekten und einer überarbeiteten Spielerverwaltung.
+- **Speichern & Laden:** Möglichkeit, laufende Spiele und Turniere zu speichern und fortzusetzen.
+- **Qualitätssicherung:** Aufbau einer umfassenden Test-Suite mit `pytest`.
 
-- **[ ] KI-Gegner:**
-  - **[ ] Logik:** Implementierung einer `AIPlayer`-Klasse, die von `Player` erbt.
-  - **[ ] Wurf-Simulation:** Entwicklung einer Logik, die Würfe simuliert, indem sie auf ein Ziel auf dem Board "zielt" und eine Abweichung (Streuung) basierend auf dem Schwierigkeitsgrad anwendet.
-  - **[ ] Checkout-Strategie:** Implementierung einer Logik, die es der KI ermöglicht, auf Checkout-Wege zu zielen, wenn sie sich im Finish-Bereich befindet.
-  - **[ ] Schwierigkeitsgrade:** Verschiedene Stufen für die KI (Anfänger, Fortgeschritten, Profi), die die Treffsicherheit und die Checkout-Intelligenz beeinflussen.
-  - **[ ] UI:** Möglichkeit, im Spiel-Setup einen oder mehrere KI-Gegner hinzuzufügen.
+### Aktueller Stand (Post-1.2)
+- **Intelligente KI:** Die KI-Logik wurde grundlegend überarbeitet und agiert nun strategisch im Finish-Bereich.
+- **Stabiler Turniermodus:** Kritische Fehler in der Turnierlogik wurden behoben, was einen reibungslosen Ablauf von Anfang bis Ende sicherstellt.
+- **Poliertes UI:** Dialoge und Ansichten (Profil-Manager, Turnierbaum) wurden verfeinert für eine bessere Benutzererfahrung.
 
-### 🔧 Kleinere Verbesserungen (Quality of Life)
+---
 
-- **[ ] UI:** Überarbeitung des `GameSettingsDialog`, um die Auswahl der Spieloptionen intuitiver zu gestalten.
-- **[ ] Sound:** Hinzufügen von mehr Soundvarianten für verschiedene Ereignisse (z.B. High-Scores wie 140, 177).
-- **[ ] Statistiken:** Erweiterung der Statistik-Ansicht um Filter- und Sortieroptionen.
+## 🚀 Zukünftige Pläne (Version 1.3 und darüber hinaus)
+
+### Kurzfristige Ziele
+- **Strategische KI-Positionierung:** Die KI soll lernen, auf "sichere" Bereiche eines Segments zu zielen (z.B. die Innenseite der T20, um die 5 und 1 zu vermeiden).
+- **Weitere Spielmodi:** Implementierung von "Legs" und "Sets" innerhalb von X01-Spielen.
+
+### Langfristige Vision
+- **Online-Modus:** Entwicklung einer Client-Server-Architektur, um Online-Spiele gegen andere zu ermöglichen.
+- **Erweiterte Statistiken:** Detailliertere Analyse von Trefferquoten auf einzelne Felder (Doubles, Triples).
+- **Barrierefreiheit:** Verbesserung der UI für bessere Lesbarkeit und Bedienbarkeit.
+- **Lokalisierung:** Unterstützung für weitere Sprachen (z.B. Englisch).

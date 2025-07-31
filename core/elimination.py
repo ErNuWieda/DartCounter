@@ -18,7 +18,6 @@
 Dieses Modul definiert die Hauptlogik für das Spiel "Elimination".
 Es enthält die Elimination-Klasse, die den Spielablauf und die Regeln verwaltet.
 """
-from tkinter import messagebox
 from .game_logic_base import GameLogicBase
 
 class Elimination(GameLogicBase):
@@ -75,6 +74,7 @@ class Elimination(GameLogicBase):
 
     def _handle_throw(self, player, ring, segment, players):
         score = self.game.get_score(ring, segment)
+        result_event = ('ok', None) # Standard-Rückgabewert
 
         if ring == "Miss":
             # No messagebox for simple miss, score is 0.
@@ -82,8 +82,8 @@ class Elimination(GameLogicBase):
             player.sb.update_score(player.score) # Update display for throw history
             if len(player.throws) == 3:
                 # Turn ends, user clicks "Weiter"
-                return None
-            return None # Throw processed
+                return result_event
+            return result_event # Throw processed
 
 
         new_score = player.score + score
@@ -99,9 +99,7 @@ class Elimination(GameLogicBase):
             player.turn_is_over = True
             # The score will be as it was BEFORE this busting throw.
             player.sb.update_score(player.score) # Update display
-
-            messagebox.showerror("Bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.", parent=self.game.db.root)
-            return None # Turn ends due to bust. Player clicks "Weiter".
+            return ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
 
         player.update_score_value(score, subtract=False)
 
@@ -120,7 +118,7 @@ class Elimination(GameLogicBase):
                 # Eliminiere das Opfer
                 opp.score = 0
                 opp.sb.set_score_value(opp.score)
-                messagebox.showinfo("Rauswurf", f"{player.name} schickt {opp.name} zurück an den Start!", parent=self.game.db.root)
+                result_event = ('info', f"{player.name} schickt {opp.name} zurück an den Start!")
                 break # Es kann nur ein Gegner pro Wurf eliminiert werden
 
         if player.score == self.count_to:            
@@ -130,6 +128,6 @@ class Elimination(GameLogicBase):
 
         if len(player.throws) == 3:
             # Turn ends, user clicks "Weiter"
-            return None
+            return result_event
 
-        return None
+        return result_event

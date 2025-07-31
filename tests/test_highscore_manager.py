@@ -1,7 +1,7 @@
 import unittest
 import tkinter as tk
 from tkinter import ttk
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch, call, ANY
 import sys
 import os
 from datetime import date
@@ -49,10 +49,10 @@ class TestHighscoreManager(unittest.TestCase):
         self.patcher_toplevel.start()
         self.addCleanup(self.patcher_toplevel.stop)
 
-        # Patch für messagebox, um UI-Popups zu verhindern
-        patcher_msgbox = patch('core.highscore_manager.messagebox')
-        self.mock_messagebox = patcher_msgbox.start()
-        self.addCleanup(patcher_msgbox.stop)
+        # Patch für die neuen UI-Utilities
+        patcher_ui_utils = patch('core.highscore_manager.ui_utils')
+        self.mock_ui_utils = patcher_ui_utils.start()
+        self.addCleanup(patcher_ui_utils.stop)
 
         # Patch für die DatabaseManager-Abhängigkeit
         patcher_db = patch('core.highscore_manager.DatabaseManager')
@@ -93,7 +93,7 @@ class TestHighscoreManager(unittest.TestCase):
         self.mock_db_instance.is_connected = False
         window = self.highscore_manager.show_highscores_window(self.root)
         self.assertIsNone(window, "Es sollte kein Fenster erstellt werden.")
-        self.mock_messagebox.showwarning.assert_called_once()
+        self.mock_ui_utils.show_message.assert_called_once_with('warning', ANY, ANY, parent=self.root)
 
     def test_show_highscores_window_successful(self):
         """Testet die korrekte Erstellung des Highscore-Fensters und die Datenanzeige."""
@@ -147,7 +147,7 @@ class TestHighscoreManager(unittest.TestCase):
     def test_prompt_and_reset_single_mode_confirmed(self):
         """Testet das Zurücksetzen eines einzelnen Modus nach Bestätigung."""
         # Simuliere "Ja" im finalen Bestätigungsdialog
-        self.mock_messagebox.askyesno.return_value = True
+        self.mock_ui_utils.ask_question.return_value = True
 
         # Öffne das Highscore-Fenster
         window = self.highscore_manager.show_highscores_window(self.root)
@@ -174,15 +174,15 @@ class TestHighscoreManager(unittest.TestCase):
         single_reset_button.invoke()
 
         # Überprüfe die Ergebnisse
-        self.mock_messagebox.askyesno.assert_called_once()
+        self.mock_ui_utils.ask_question.assert_called_once()
         self.mock_db_instance.reset_scores.assert_called_once_with("501")
-        self.mock_messagebox.showinfo.assert_called_once()
+        self.mock_ui_utils.show_message.assert_called_once()
         self.assertFalse(window.winfo_exists(), "Das Highscore-Fenster sollte nach dem Reset geschlossen sein.")
         self.assertFalse(reset_dialog.winfo_exists(), "Der Reset-Dialog sollte nach dem Reset geschlossen sein.")
 
     def test_prompt_and_reset_all_modes_confirmed(self):
         """Testet das Zurücksetzen aller Modi nach Bestätigung."""
-        self.mock_messagebox.askyesno.return_value = True
+        self.mock_ui_utils.ask_question.return_value = True
         window = self.highscore_manager.show_highscores_window(self.root)
         self.windows_to_destroy.append(window)
         window.update()
@@ -202,7 +202,7 @@ class TestHighscoreManager(unittest.TestCase):
         all_reset_button.invoke()
 
         self.mock_db_instance.reset_scores.assert_called_once_with(None)
-        self.mock_messagebox.showinfo.assert_called_once()
+        self.mock_ui_utils.show_message.assert_called_once()
         self.assertFalse(window.winfo_exists())
         self.assertFalse(reset_dialog.winfo_exists())
 
@@ -227,7 +227,7 @@ class TestHighscoreManager(unittest.TestCase):
         cancel_button.invoke()
 
         self.mock_db_instance.reset_scores.assert_not_called()
-        self.mock_messagebox.showinfo.assert_not_called()
+        self.mock_ui_utils.show_message.assert_not_called()
         self.assertTrue(window.winfo_exists(), "Das Highscore-Fenster sollte nach dem Abbrechen geöffnet bleiben.")
         self.assertFalse(reset_dialog.winfo_exists(), "Der Reset-Dialog sollte nach dem Abbrechen geschlossen sein.")
 

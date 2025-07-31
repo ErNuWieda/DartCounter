@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import tkinter as tk 
-from tkinter import ttk, messagebox
+import tkinter as tk
+from tkinter import ttk
 from PIL import Image, ImageTk, ImageColor
 import math
 import pathlib
 import os
 from .save_load_manager import SaveLoadManager
+from . import ui_utils
 
 
 class DartBoard:
@@ -170,46 +171,24 @@ class DartBoard:
     def quit_game(self):
         """
         Zeigt einen Dialog mit den Optionen Speichern, Beenden oder Abbrechen.
+        Nutzt die zentrale `question_box`-Methode der GameUI.
         """
-        # Erstellt einen benutzerdefinierten Toplevel-Dialog
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Spiel beenden")
-        dialog.transient(self.root)
-        dialog.grab_set()
-        dialog.resizable(False, False)
+        # 'askyesnocancel' gibt True für Ja, False für Nein und None für Abbrechen zurück.
+        response = ui_utils.ask_question( # Diese Funktion existiert nicht, sollte aber ask_question sein
+            'yesnocancel',
+            "Spiel beenden", 
+            "Möchtest du den aktuellen Spielstand speichern, bevor du beendest?"
+        )
 
-        # Dialog zentrieren
-        self.root.update_idletasks()
-        parent_x = self.root.winfo_x()
-        parent_y = self.root.winfo_y()
-        parent_w = self.root.winfo_width()
-        parent_h = self.root.winfo_height()
-        dialog_w, dialog_h = 400, 120
-        dialog.geometry(f"{dialog_w}x{dialog_h}+{parent_x + (parent_w - dialog_w)//2}+{parent_y + (parent_h - dialog_h)//2}")
-
-        def _cleanup_and_quit():
-            dialog.destroy()
-            self.spiel.destroy() # This already destroys self.root (the dartboard window)
-
-        def save_and_quit():
-            # Die save_game_state Methode gibt jetzt True bei Erfolg zurück.
-            # Als Parent wird der Dialog selbst übergeben, damit Meldungen darüber erscheinen.
-            was_saved = SaveLoadManager.save_game_state(self.spiel, dialog)
+        if response is True: # Yes -> Save & Quit
+            was_saved = SaveLoadManager.save_game_state(self.spiel, self.root)
             if was_saved:
-                _cleanup_and_quit()
+                self.spiel.destroy() # Schließt alle Spielfenster
+        elif response is False: # No -> Quit without saving
+            self.spiel.destroy()
+        # if response is None (Cancel), do nothing.
 
-        def quit_without_saving():
-            _cleanup_and_quit()
-
-        label = ttk.Label(dialog, text="Möchtest du den aktuellen Spielstand speichern, bevor du beendest?", wraplength=360, justify="center")
-        label.pack(pady=15)
-
-        button_frame = ttk.Frame(dialog)
-        ttk.Button(button_frame, text="Speichern & Beenden", command=save_and_quit).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Beenden", command=quit_without_saving).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Abbrechen", command=dialog.destroy).pack(side="left", padx=5)
-        button_frame.pack(pady=10)
-
+        
     # POLARER WINKEL + DISTANZ
     def polar_angle(self, x, y):
         """
