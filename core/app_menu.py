@@ -49,5 +49,7 @@ class AppMenu:
         about_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Über", menu=about_menu)
         about_menu.add_command(label="Über Dartcounter", command=self.controller.about)
+        about_menu.add_separator()
+        about_menu.add_command(label="Entwicklung unterstützen...", command=self.controller.open_donate_link)
 
         self.root.config(menu=menu_bar)

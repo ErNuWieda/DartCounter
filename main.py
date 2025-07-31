@@ -20,6 +20,7 @@
 import tkinter as tk 
 from core._version import __version__
 from tkinter import ttk
+import webbrowser
 from PIL import Image, ImageTk
 import sys
 import sv_ttk
@@ -382,6 +383,22 @@ class App:
             f"© 2025 Martin Hehl"
         )
         ui_utils.show_message('info', f"Dartcounter {self.version}", about_text, parent=self.root)
+
+    def open_donate_link(self):
+        """Öffnet den Spenden-Link im Standard-Webbrowser des Benutzers."""
+        # --- WICHTIG: Bitte diese URL durch deinen persönlichen Spenden-Link ersetzen ---
+        DONATE_URL = '<form action="https://www.paypal.com/donate" method="post" target="_top"><input type="hidden" name="hosted_button_id" value="WEB2YBZ48JQ2N" /><input type="image" src="https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Spenden mit dem PayPal-Button" /><img alt="" border="0" src="https://www.paypal.com/de_DE/i/scr/pixel.gif" width="1" height="1" /></form>'
+        
+        ui_utils.show_message(
+            'info',
+            "Browser wird geöffnet",
+            "Vielen Dank für deine Unterstützung!\n\nDein Standard-Browser wird jetzt geöffnet, um die Spendenseite zu laden.",
+            parent=self.root
+        )
+        try:
+            webbrowser.open_new_tab(DONATE_URL)
+        except Exception as e:
+            ui_utils.show_message('error', "Fehler", f"Der Browser konnte nicht geöffnet werden: {e}", parent=self.root)
 
 if __name__ == "__main__":
     root = tk.Tk()

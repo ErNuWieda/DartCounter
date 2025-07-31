@@ -203,13 +203,19 @@ Dieses Projekt lebt von der Community. Beiträge sind herzlich willkommen!
 *   **Fehler melden & Wünsche äußern:** Erstelle einfach ein [Issue](https://github.com/ErNuWieda/DartCounter/issues).
 *   **Code beitragen:** Forke das Repository und erstelle einen [Pull Request](https://github.com/ErNuWieda/DartCounter/pulls).
 
-Wenn dir dieses Projekt gefällt und du die Weiterentwicklung unterstützen möchtest, kannst du dem Entwickler einen Kaffee spendieren. Jede Unterstützung wird sehr geschätzt!
+Wenn dir dieses Projekt gefällt und du die Weiterentwicklung unterstützen möchtest, kannst du dem Entwickler einen Kaffee spendieren. Jede Unterstützung wird sehr geschätzt und hilft, das Projekt am Leben zu erhalten!
 
-*(Platzhalter für einen zukünftigen "Donate"-Button)*
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+<input type="hidden" name="hosted_button_id" value="WEB2YBZ48JQ2N" />
+<input type="image" src="https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Spenden mit dem PayPal-Button" />
+<img alt="" border="0" src="https://www.paypal.com/de_DE/i/scr/pixel.gif" width="1" height="1" />
+</form>
 
 ---
 
 ## Danksagung
+
+An alle Kaffeetassen, die während der Entwicklung geleert wurden.
 
 Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Code-Strukturierung und der Erstellung der Dokumentation von unschätzbarem Wert. Zahlreiche Implementierungen und Verbesserungen konnten durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ aufgewertet werden.
 
