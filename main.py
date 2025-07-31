@@ -387,7 +387,7 @@ class App:
     def open_donate_link(self):
         """Öffnet den Spenden-Link im Standard-Webbrowser des Benutzers."""
         # --- WICHTIG: Bitte diese URL durch deinen persönlichen Spenden-Link ersetzen ---
-        DONATE_URL = '<form action="https://www.paypal.com/donate" method="post" target="_top"><input type="hidden" name="hosted_button_id" value="WEB2YBZ48JQ2N" /><input type="image" src="https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Spenden mit dem PayPal-Button" /><img alt="" border="0" src="https://www.paypal.com/de_DE/i/scr/pixel.gif" width="1" height="1" /></form>'
+        DONATE_URL = "https://paypal.me/ernuwieda"
         
         ui_utils.show_message(
             'info',
