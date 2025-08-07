@@ -20,16 +20,20 @@ Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
 """
 import tkinter as tk
 from . import ui_utils
-from .game_ui import GameUI
+from .game_options import GameOptions
 from .player import Player
 from .ai_player import AIPlayer
 from .x01 import X01
+from .throw_result import ThrowResult
+from .save_load_manager import SaveLoadManager
 from .cricket import Cricket
 from .atc import AtC
 from .elimination import Elimination
 from .micky import Micky
 from .killer import Killer
 from .shanghai import Shanghai
+from .dartboard import DartBoard
+from .scoreboard import setup_scoreboards
 
 #
 # Zentrale Zuordnung von Spielnamen zu den entsprechenden Logik-Klassen.
@@ -67,7 +71,7 @@ class Game:
       Delegation an die zuständigen Methoden oder Logik-Handler.
     - Bereinigung aller Ressourcen nach Spielende.
     """
-    def __init__(self, root, game_options, player_names, sound_manager=None, highscore_manager=None, player_stats_manager=None, profile_manager=None):
+    def __init__(self, root, game_options: GameOptions, player_names, on_throw_processed_callback, highscore_manager=None, player_stats_manager=None, profile_manager=None, is_tournament_match=False):
         """
         Initialisiert eine neue Spielinstanz.
 
@@ -75,26 +79,22 @@ class Game:
             root (tk.Tk): Das Hauptfenster der Anwendung, das als Parent dient.
             game_options (dict): Ein Dictionary mit allen Spieloptionen.
             player_names (list): Eine Liste der Namen der teilnehmenden Spieler.
-            sound_manager (SoundManager, optional): Instanz zur Soundwiedergabe.
+            on_throw_processed_callback (callable): Callback-Funktion, die nach einem Wurf aufgerufen wird.
             highscore_manager (HighscoreManager, optional): Instanz zur Verwaltung von Highscores.
             player_stats_manager (PlayerStatsManager, optional): Instanz zur Verwaltung von Spielerstatistiken.
             profile_manager (PlayerProfileManager, optional): Instanz zur Verwaltung von Spielerprofilen.
+            is_tournament_match (bool): True, wenn das Spiel Teil eines Turniers ist.
         """
         self.root = root
-        self.sound_manager = sound_manager
+        self.on_throw_processed = on_throw_processed_callback
         self.highscore_manager = highscore_manager
         self.player_stats_manager = player_stats_manager
         self.profile_manager = profile_manager
-        self.name = game_options['name']
-        self.opt_in = game_options['opt_in']
-        self.opt_out = game_options['opt_out']
-        self.opt_atc = game_options['opt_atc']
-        self.count_to = int(game_options['count_to'])
-        self.lifes = int(game_options['lifes'])
-        self.rounds = int(game_options['rounds'])
+        self.options = game_options
         self.current = 0
         self.round = 1
         self.shanghai_finish = False
+        self.is_tournament_match = is_tournament_match
         self.end = False
         self.winner = None
         self.game = self.get_game_logic()
@@ -115,40 +115,36 @@ class Game:
             self.game.initialize_player_state(player)
 
         # Spezifische Initialisierung für Killer nach Erstellung der Spieler
-        if self.name == "Killer" and hasattr(self.game, 'set_players'):
+        if self.options.name == "Killer" and hasattr(self.game, 'set_players'):
             self.game.set_players(self.players)
             
-        # --- UI-Setup ---
-        # Die Game-Klasse delegiert die Erstellung ihrer UI an den GameUI-Manager.
-        self.ui = GameUI(self)
+        # --- UI-Setup: Die Game-Klasse erstellt und verwaltet ihre UI-Komponenten direkt ---
+        self.dartboard = DartBoard(self)
+        # Die Erstellung und Positionierung der Scoreboards wird an eine Hilfsfunktion ausgelagert.
+        self.scoreboards = setup_scoreboards(self)
 
     def destroy(self):
         """Zerstört alle UI-Elemente, die zu diesem Spiel gehören, sicher."""
-        if self.ui:
-            self.ui.destroy()
-        # Setzt die Referenzen zurück, um Memory-Leaks zu vermeiden
-        self.ui = None
+        # Das Zerstören des Dartboard-Fensters zerstört automatisch alle untergeordneten
+        # Scoreboard-Fenster.
+        if self.dartboard and self.dartboard.root and self.dartboard.root.winfo_exists():
+            self.dartboard.root.destroy()
+        # Setzt die Referenzen zurück, um Speicherlecks zu vermeiden.
+        self.dartboard = None
+        self.scoreboards = []
     
-    def leave(self, player_id):
+    def leave(self, player_to_remove: Player):
         """
         Entfernt einen Spieler aus dem laufenden Spiel.
         
         Behandelt verschiedene Szenarien, z.B. wenn der aktuell spielende
         Spieler entfernt wird oder wenn der letzte verbleibende Spieler das
         Spiel verlässt, was zum Spielende führt.
-
-        Args:
-            player_id (int): Die eindeutige ID des zu entfernenden Spielers.
         """
-        player_to_remove = None
-        player_to_remove_index = -1
-
-        # Finde den Spieler und seinen Index basierend auf der ID
-        for i, p in enumerate(self.players):
-            if p.id == player_id:
-                player_to_remove = p
-                player_to_remove_index = i
-                break
+        try:
+            player_to_remove_index = self.players.index(player_to_remove)
+        except ValueError:
+            return # Spieler wurde nicht in der Liste gefunden, nichts zu tun.
 
         if not player_to_remove:
             return  # Spieler nicht gefunden
@@ -210,9 +206,9 @@ class Game:
         if player and player.throws:
             popped_throw = player.throws.pop() # This is now a 3-tuple (ring, segment, coords)
             self.game._handle_throw_undo(player, popped_throw[0], popped_throw[1], self.players)
-        self.ui.db.clear_last_dart_image_from_canvas()
+        self.dartboard.clear_last_dart_image_from_canvas()
         # Nach dem Undo die Button-Zustände aktualisieren
-        self.ui.db.update_button_states()
+        self.dartboard.update_button_states()
         return 
             
     def current_player(self):
@@ -228,43 +224,57 @@ class Game:
         # self.current sollte durch Initialisierung und next_player immer im gültigen Bereich sein
         return self.players[self.current]
 
+    def _update_ui_for_new_turn(self, player: Player):
+        """
+        Aktualisiert alle UI-Komponenten, um den Beginn eines neuen Zugs widerzuspiegeln.
+        Kapselt die direkte UI-Manipulation.
+        """
+        if not player:
+            return
+
+        # Dart-Farbe und Buttons auf dem Dartboard aktualisieren
+        if self.dartboard:
+            dart_color = player.profile.dart_color if player.profile else "#ff0000"
+            self.dartboard.update_dart_image(dart_color)
+            self.dartboard.clear_dart_images_from_canvas()
+            self.dartboard.update_button_states()
+
+        # Scoreboards aktualisieren (aktiven Spieler hervorheben)
+        for p in self.players:
+            if p.sb and hasattr(p.sb, 'set_active'):
+                is_active = p.id == player.id
+                p.sb.set_active(is_active)
+                if is_active and p.sb.score_window.winfo_exists():
+                    p.sb.score_window.lift()
+                    p.sb.score_window.focus_force()
+
     def announce_current_player_turn(self):
         """
         Kündigt den Zug des aktuellen Spielers an.
-        Für menschliche Spieler wird eine MessageBox angezeigt.
-        Für KI-Spieler wird der automatische Zug gestartet.
+        Aktualisiert die UI und startet dann entweder den KI-Zug oder zeigt
+        eine Nachricht für einen menschlichen Spieler an.
         """
         player = self.current_player()
         if not player:
             return
 
-        # UI-Aktionen an den UI-Manager delegieren
-        self.ui.announce_turn(player)
+        # Schritt 1: UI für den neuen Zug aktualisieren
+        self._update_ui_for_new_turn(player)
 
-        # --- Unterscheidung zwischen Mensch und KI ---
-        # Diese Logik verbleibt im Controller
+        # Schritt 2: Den eigentlichen Zug starten (Mensch vs. KI)
         if player.is_ai():
             # Für einen KI-Spieler wird der automatische Zug direkt gestartet.
-            # Die take_turn Methode ist asynchron und verwendet root.after().
             player.take_turn()
         else:
             # Für einen menschlichen Spieler wird eine blockierende MessageBox angezeigt.
-            # Spezielle Nachricht für den allerersten Wurf des Spiels
-            if self.current == 0 and self.round == 1 and not player.throws and self.ui and self.ui.db:
-                ui_utils.show_message('info', "Spielstart", f"{player.name} beginnt!", parent=self.ui.db.root)
+            if self.current == 0 and self.round == 1 and not player.throws and self.dartboard:
+                ui_utils.show_message('info', "Spielstart", f"{player.name} beginnt!", parent=self.dartboard.root)
             
-            # Spezifische Nachricht für Killer-Modus
-            if self.name == "Killer":
-                if not player.state.get('life_segment'): # Prompt to determine life segment
-                    ui_utils.show_message('info', "Lebensfeld ermitteln",
-                                        f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                                        f"Wirf mit deiner NICHT-dominanten Hand.\n"
-                                        "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                                        "Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.", parent=self.ui.db.root)
-                elif player.state['life_segment'] and not player.state['can_kill']: # Prompt to become killer
-                    segment_str = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
-                    ui_utils.show_message('info', "Zum Killer werden",
-                                        f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.", parent=self.ui.db.root)
+            # Hole eine spielspezifische Nachricht vom Logik-Handler
+            turn_message_data = self.game.get_turn_start_message(player) # type: ignore
+            if turn_message_data and self.dartboard:
+                msg_type, title, message = turn_message_data
+                ui_utils.show_message(msg_type, title, message, parent=self.dartboard.root)
 
     def next_player(self):
         """
@@ -284,9 +294,6 @@ class Game:
 
         current_p = self.current_player()
         if current_p:
-            # Deaktiviere die Hervorhebung für den Spieler, der gerade fertig ist
-            if hasattr(current_p, 'sb') and current_p.sb:
-                current_p.sb.set_active(False)
             current_p.reset_turn() # Reset throws for the player whose turn just ended
 
         self.current = (self.current + 1) % len(self.players)
@@ -304,15 +311,16 @@ class Game:
         ausgewählt und instanziiert. Dies vermeidet dynamische Imports und
         macht die Abhängigkeiten der Klasse explizit.
         """
-        logic_class = GAME_LOGIC_MAP.get(self.name)
+        logic_class = GAME_LOGIC_MAP.get(self.options.name)
         if logic_class:
             return logic_class(self)
         else:
             # Fallback oder Fehlerbehandlung, falls ein unbekannter Spielname übergeben wird
-            raise ValueError(f"Unbekannter oder nicht implementierter Spielmodus: {self.name}")
+            raise ValueError(f"Unbekannter oder nicht implementierter Spielmodus: {self.options.name}")
 
 
-    def get_score(self, ring, segment):
+    @staticmethod
+    def get_score(ring, segment):
         """
         Berechnet den Punktwert eines Wurfs basierend auf Ring und Segment.
 
@@ -337,27 +345,29 @@ class Game:
             case _:  # Default case for "Miss" or any other unexpected ring type
                 return 0
 
-    def _play_round_end_sound(self, player):
-        """Spielt am Ende einer Runde einen speziellen Sound für hohe Scores."""
-        if not self.sound_manager or len(player.throws) != 3:
-            return
+    def _determine_sound_for_throw(self, result: "ThrowResult", player: Player, ring: str) -> str | None:
+        """
+        Bestimmt den passenden Sound für das Ergebnis eines Wurfs.
+        Kapselt die Sound-Auswahl-Logik.
+        """
+        if result.status == 'win':
+            return 'shanghai' if self.shanghai_finish else 'win'
+        if result.status == 'bust':
+            return 'bust'
+        
+        # Sound für Rundenende (nur bei X01)
+        if len(player.throws) == 3 and self.options.name in ('301', '501', '701'):
+            # Unpack the 3-tuple, ignoring coords
+            round_score = sum(Game.get_score(r, s) for r, s, _ in player.throws)
+            score_sounds = {180: "score_180", 160: "score_160", 140: "score_140", 120: "score_120", 100: "score_100"}
+            if sound := score_sounds.get(round_score):
+                return sound
 
-        # Nur für X01-Spiele relevant
-        if self.name not in ('301', '501', '701'):
-            return
+        # Standard-Treffer-Sound
+        hit_sounds = {"Bullseye": "bullseye", "Bull": "bull", "Miss": "miss"}
+        return hit_sounds.get(ring, "hit")
 
-        # Berechne den Score dieser Runde
-        round_score = 0
-        for r, s, _ in player.throws: # Unpack the 3-tuple, ignoring coords
-            round_score += self.get_score(r, s)
-
-        # Spiele den passenden Sound
-        if round_score == 180:
-            self.sound_manager.play_score_180()
-        elif round_score == 100:
-            self.sound_manager.play_score_100()
-
-    def _finalize_and_record_stats(self, winner):
+    def _finalize_and_record_stats(self, winner: Player):
         """
         Finalisiert und speichert die Statistiken für alle Spieler am Ende des Spiels.
         """
@@ -369,29 +379,36 @@ class Game:
             all_coords = [coords for _, _, coords in p.all_game_throws if coords is not None]
 
             stats_data = {
-                'game_mode': self.name,
+                'game_mode': self.options.name,
                 'win': (p == winner),
                 'all_throws_coords': all_coords
             }
-            if self.name in ('301', '501', '701'):
+            if self.options.name in ('301', '501', '701'):
                 stats_data['average'] = p.get_average()
                 stats_data['checkout_percentage'] = p.get_checkout_percentage()
                 stats_data['highest_finish'] = p.stats.get('highest_finish', 0)
             
-            elif self.name in ('Cricket', 'Cut Throat', 'Tactics'):
+            elif self.options.name in ('Cricket', 'Cut Throat', 'Tactics'):
                 stats_data['mpr'] = p.get_mpr()
 
             self.player_stats_manager.add_game_record(p.name, stats_data)
+        
+        # Highscore-Logik hier zentralisieren
+        if self.highscore_manager:
+            # Für X01 ist die Metrik die Anzahl der Darts
+            if self.options.name in ('301', '501', '701'):
+                total_darts = winner.get_total_darts_in_game()
+                self.highscore_manager.add_score(self.options.name, winner.name, total_darts)
+            # Für Cricket ist die Metrik die MPR
+            elif self.options.name in ('Cricket', 'Cut Throat', 'Tactics'):
+                mpr = winner.get_mpr()
+                self.highscore_manager.add_score(self.options.name, winner.name, mpr)
 
     def throw(self, ring, segment, coords=None):
         """
         Verarbeitet einen Wurf eines Spielers.
-        
-        Dies ist der Haupteinstiegspunkt von der UI (`DartBoard`) in die
-        Spiellogik. Die Methode prüft, ob der Spieler noch Würfe in seiner
-        Runde übrig hat, und delegiert dann die Verarbeitung an die
-        `_handle_throw`-Methode der zuständigen Spiellogik-Instanz. Löst bei
-        Erfolg auch Soundeffekte aus.
+        Fokussiert sich auf die Aktualisierung des Spielzustands und delegiert
+        die Logik und das Feedback an spezialisierte Methoden.
 
         Args:
             ring (str): Der getroffene Ring (z.B. "Single", "Double").
@@ -399,70 +416,76 @@ class Game:
             coords (tuple, optional): Die (x, y)-Koordinaten des Wurfs für die Heatmap.
         """
         player = self.current_player()
-        if len(player.throws) < 3:
-            # --- Sofortiges akustisches Feedback für den Wurf ---
-            if self.sound_manager:
-                if ring == "Bullseye":
-                    self.sound_manager.play_bullseye()
-                elif ring == "Bull":
-                    self.sound_manager.play_bull()
-                elif ring == "Miss":
-                    self.sound_manager.play_miss()
-                elif ring != "Miss": # Für alle anderen Treffer
-                    self.sound_manager.play_hit()
+        if not player: return
 
-            # Wurf immer protokollieren, da jeder Klick ein Wurf ist.
-            # Die Spiellogik entscheidet, was mit dem Wurf passiert.
-            player.throws.append((ring, segment, coords))
+        if len(player.throws) >= 3:
+            ui_utils.show_message('info', "Zuviel Würfe", "Bitte 'Weiter' klicken!", parent=self.dartboard.root)
+            # Verhindert, dass ein Dart-Bild für einen ungültigen Wurf gezeichnet wird.
+            if self.dartboard:
+                self.dartboard.clear_last_dart_image_from_canvas()
+            return
+        
+        # Wurf protokollieren
+        player.throws.append((ring, segment, coords))
 
-            # Delegiere die Verarbeitung an die spezifische Spiellogik (z.B. X01, Cricket)
-            # Die Logik gibt jetzt ein Tupel (status, message) zurück
-            throw_result = self.game._handle_throw(player, ring, segment, self.players)
-            
-            # Entpacke das Ergebnis, wenn es ein Tupel ist, sonst behandle es als Nachricht
-            if isinstance(throw_result, tuple):
-                status, message = throw_result
-            else: # Für ältere Logik-Klassen, die nur eine Nachricht zurückgeben
-                status, message = ('win' if throw_result else 'ok', throw_result)
-            
-            # --- Sound für Rundenende prüfen ---
-            if len(player.throws) == 3:
-                self._play_round_end_sound(player)
+        # Verarbeitung an die spezifische Spiellogik delegieren
+        throw_result = self.game._handle_throw(player, ring, segment, self.players)
 
-            # Button-Zustände nach jedem Wurf aktualisieren
-            self.ui.db.update_button_states()
-            
-            # --- Event-Verarbeitung ---
-            if status == 'win':
-                # Füge einen eventuellen "Shanghai"-Prefix hinzu
-                if self.shanghai_finish:
-                    message = "SHANGHAI-FINISH!\n" + message
+        # Ergebnis entpacken
+        if isinstance(throw_result, tuple):
+            status, message = throw_result
+        else: # Fallback für ältere Logik, die nur einen String zurückgibt
+            status, message = ('win' if throw_result else 'ok', throw_result)
 
-                # Finalisiere die Statistiken für das Spiel, bevor die UI blockiert wird
-                self._finalize_and_record_stats(winner=player)
+        # Erstelle ein strukturiertes Ergebnisobjekt
+        result = ThrowResult(status=status, message=message)
 
-                def play_win_and_show_message():
-                    """Spielt den Gewinn-Sound und zeigt dann die Nachricht."""
-                    if self.sound_manager:
-                        if self.shanghai_finish:
-                            self.sound_manager.play_shanghai()
-                        else:
-                            self.sound_manager.play_win()
-                    ui_utils.show_message('info', "Spielende", message, parent=self.ui.db.root)
+        # Sound bestimmen und dem Ergebnisobjekt hinzufügen
+        result.sound = self._determine_sound_for_throw(result, player, ring)
 
-                # Verzögere den Gewinn-Sound und die Nachricht um 500ms,
-                # damit der Treffer-Sound ausklingen kann und sich die Effekte nicht überlagern.
-                self.root.after(500, play_win_and_show_message)
-            elif status in ('info', 'warning', 'error', 'bust', 'invalid_open', 'invalid_target'):
-                title_map = {
-                    'info': 'Info', 'warning': 'Warnung', 'error': 'Fehler',
-                    'bust': 'Bust', 'invalid_open': 'Ungültiger Wurf',
-                    'invalid_target': 'Falsches Ziel'
-                }
-                msg_type = 'error' if status in ('bust', 'invalid_open', 'invalid_target', 'error') else status
-                title = title_map.get(status, 'Info')
-                if message:
-                    ui_utils.show_message(msg_type, title, message, parent=self.ui.db.root)
-        else:
-            ui_utils.show_message('info', "Zuviel Würfe", "Bitte 'Weiter' klicken!", parent=self.ui.db.root)
-            return self.ui.db.clear_last_dart_image_from_canvas()
+        # Finalisiere Statistiken und Highscores bei einem Sieg
+        if status == 'win':
+            self._finalize_and_record_stats(winner=player)
+
+        # Rufe den Callback auf, um das UI-Feedback zu verarbeiten
+        self.on_throw_processed(result, player)
+
+        # Button-Zustände nach jedem Wurf aktualisieren
+        if self.dartboard:
+            self.dartboard.update_button_states()
+
+    def to_dict(self) -> dict:
+        """
+        Serialisiert den kompletten Spielzustand in ein Dictionary.
+        Implementiert einen Teil der Speicher-Schnittstelle.
+        """
+        players_data = []
+        for p in self.players:
+            player_dict = {
+                'name': p.name,
+                'id': p.id,
+                'score': p.score,
+                'throws': p.throws,
+                'stats': p.stats,
+                'state': p.state,
+            }
+            players_data.append(player_dict)
+
+        return {
+            **self.options.to_dict(),
+            'current_player_index': self.current,
+            'round': self.round,
+            'players': players_data,
+        }
+
+    def get_save_meta(self) -> dict:
+        """
+        Gibt die Metadaten für den Speicherdialog zurück.
+        Implementiert den zweiten Teil der Speicher-Schnittstelle.
+        """
+        return {
+            'title': "Spiel speichern unter...",
+            'filetypes': SaveLoadManager.GAME_FILE_TYPES,
+            'defaultextension': ".json",
+            'save_type': SaveLoadManager.GAME_SAVE_TYPE
+        }

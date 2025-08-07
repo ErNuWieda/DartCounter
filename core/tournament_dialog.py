@@ -33,9 +33,11 @@ class TournamentSettingsDialog(tk.Toplevel):
         # --- Zustandvariablen ---
         self.player_count_var = tk.StringVar(value="4")
         self.game_mode_var = tk.StringVar(value="501")
+        self.system_var = tk.StringVar(value="Doppel-K.o.")
         self.player_name_entries = []
         self.cancelled = True
         self.player_names = []
+        self.tournament_system = "Doppel-K.o."
         self.game_mode = "501" # Wird bei Erfolg gefüllt
 
         self._setup_widgets()
@@ -44,7 +46,6 @@ class TournamentSettingsDialog(tk.Toplevel):
         self.resizable(False, False)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
-        self.wait_window(self)
 
     def _setup_widgets(self):
         main_frame = ttk.Frame(self, padding=10)
@@ -76,6 +77,16 @@ class TournamentSettingsDialog(tk.Toplevel):
         mode_frame.pack(fill="x", padx=10, pady=5)
         game_mode_combo = ttk.Combobox(mode_frame, textvariable=self.game_mode_var, values=["301", "501", "701"], state="readonly")
         game_mode_combo.pack()
+
+        # Turniersystem-Auswahl
+        system_frame = ttk.LabelFrame(main_frame, text="Turniersystem", padding=10)
+        system_frame.pack(fill="x", padx=10, pady=5)
+        ttk.Radiobutton(
+            system_frame, text="Doppel-K.o.-System", variable=self.system_var, value="Doppel-K.o."
+        ).pack(anchor="w")
+        ttk.Radiobutton(
+            system_frame, text="Einfaches K.o.-System", variable=self.system_var, value="K.o."
+        ).pack(anchor="w")
 
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -144,6 +155,7 @@ class TournamentSettingsDialog(tk.Toplevel):
             self.settings_manager.set('last_tournament_players', self.player_names)
 
         self.game_mode = self.game_mode_var.get()
+        self.tournament_system = self.system_var.get()
         self.cancelled = False
         self.destroy()
 

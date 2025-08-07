@@ -58,13 +58,20 @@ class GameLogicBase:
         Kann von Unterklassen für spezielle Fälle (z.B. X01) überschrieben werden.
         """
         if self.targets:
-            base_height = 220
+            base_height = 240
             num_rows = (len(self.targets) + 1) // 2
             targets_height = 25 + num_rows * 32
             return base_height + targets_height
 
         # Fallback-Höhe, falls keine Ziele definiert sind und nichts überschrieben wurde.
         return 380
+
+    def get_turn_start_message(self, player):
+        """
+        Gibt eine spielspezifische Nachricht zurück, die zu Beginn eines Zugs angezeigt wird.
+        Gibt standardmäßig None zurück. Kann von Unterklassen überschrieben werden.
+        """
+        return None
 
     def _handle_throw(self, player, ring, segment, players):
         """

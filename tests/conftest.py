@@ -71,6 +71,18 @@ def mock_game():
     game.highscore_manager = MagicMock()
     game.sound_manager = MagicMock()
     game.targets = [] # Standard-Fallback
+    # Füge das gemockte options-Objekt hinzu, das nach dem Refactoring erforderlich ist.
+    # Wichtig: Die Attribute müssen konkrete Werte haben, um TypeErrors zu vermeiden.
+    game.options = MagicMock()
+    game.options.name = "Test Game"
+    game.options.lifes = 3
+    game.options.rounds = 7
+    game.options.count_to = 301
+    game.options.opt_in = "Single"
+    game.options.opt_out = "Single"
+    # Füge ein gemocktes Logik-Objekt hinzu, das von UI-Komponenten erwartet wird
+    game.game = MagicMock()
+    game.game.get_scoreboard_height.return_value = 400
 
     def _get_score_side_effect(ring, segment):
         """Simuliert die get_score Methode der Game-Klasse für die Tests."""

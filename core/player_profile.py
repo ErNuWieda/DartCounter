@@ -22,7 +22,7 @@ class PlayerProfile:
     """
     Repräsentiert ein persistentes Spielerprofil mit Namen und Avatar.
     """
-    def __init__(self, name: str, avatar_path: str = None, dart_color: str = "#ff0000", is_ai: bool = False, difficulty: str = None, profile_id: int = None):
+    def __init__(self, name: str, avatar_path: str = None, dart_color: str = "#ff0000", is_ai: bool = False, difficulty: str = None, profile_id: int = None, preferred_double: int = None, accuracy_model: dict | None = None):
         """
         Initialisiert ein neues Spielerprofil.
 
@@ -30,7 +30,11 @@ class PlayerProfile:
             name (str): Der eindeutige Name des Spielers.
             avatar_path (str, optional): Der Dateipfad zum Avatarbild. Defaults to None.
             dart_color (str, optional): Die Hex-Farbe für die Dart-Grafik. Defaults to "#ff0000" (rot).
+            is_ai (bool, optional): Gibt an, ob das Profil für eine KI ist. Defaults to False.
+            difficulty (str, optional): Die Schwierigkeitsstufe der KI. Defaults to None.
             profile_id (int, optional): Die ID aus der Datenbank. Defaults to None.
+            preferred_double (int, optional): Das bevorzugte Double-Out-Feld (1-20 oder 25 für Bull). Defaults to None.
+            accuracy_model (dict, optional): Das statistische Wurfmodell. Defaults to None.
         """
         self.name = name
         self.avatar_path = avatar_path
@@ -38,10 +42,12 @@ class PlayerProfile:
         self.is_ai = is_ai
         self.difficulty = difficulty
         self.id = profile_id
+        self.preferred_double = preferred_double
+        self.accuracy_model = accuracy_model
 
     def to_dict(self) -> dict:
         """Serialisiert das Profil in ein Dictionary."""
-        return {'id': self.id, 'name': self.name, 'avatar_path': self.avatar_path, 'dart_color': self.dart_color, 'is_ai': self.is_ai, 'difficulty': self.difficulty}
+        return {'id': self.id, 'name': self.name, 'avatar_path': self.avatar_path, 'dart_color': self.dart_color, 'is_ai': self.is_ai, 'difficulty': self.difficulty, 'preferred_double': self.preferred_double, 'accuracy_model': self.accuracy_model}
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -52,5 +58,7 @@ class PlayerProfile:
             avatar_path=data.get('avatar_path'),
             dart_color=data.get('dart_color', "#ff0000"), # Fallback für alte Profile
             is_ai=data.get('is_ai', False),
-            difficulty=data.get('difficulty', None)
+            difficulty=data.get('difficulty', None),
+            preferred_double=data.get('preferred_double', None),
+            accuracy_model=data.get('accuracy_model', None)
         )

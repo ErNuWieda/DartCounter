@@ -32,6 +32,22 @@ class DartboardGeometry:
     SEGMENTS = [6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10]
 
     @staticmethod
+    def get_segment_from_coords(x: float, y: float) -> int:
+        """
+        Ermittelt das getroffene Segment basierend auf unskalierten Koordinaten.
+        Dies ist die UI-unabhängige Kernlogik von DartBoard.get_ring_segment.
+
+        Args:
+            x (float): Die x-Koordinate auf dem Original-Board.
+            y (float): Die y-Koordinate auf dem Original-Board.
+
+        Returns:
+            int: Der Zahlenwert des getroffenen Segments.
+        """
+        angle = (math.degrees(math.atan2(DartboardGeometry.CENTER - y, x - DartboardGeometry.CENTER)) + 360) % 360
+        idx = int((angle + 9) // 18) % 20
+        return DartboardGeometry.SEGMENTS[idx]
+    @staticmethod
     def get_target_coords(target_name: str) -> tuple[int, int]:
         """
         Berechnet die Mittelpunkt-Koordinaten für ein gegebenes Ziel (z.B. "T20", "D18", "BE").

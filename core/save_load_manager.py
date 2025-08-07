@@ -14,14 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
 from tkinter import filedialog
+import hashlib
+import json
+from pathlib import Path
 import os
 from .settings_manager import get_app_data_dir
 from . import ui_utils
+from .json_io_handler import JsonIOHandler
 
 class SaveLoadManager:
-    SAVE_FORMAT_VERSION = 2
+    SAVE_FORMAT_VERSION = 3 # Version erhöht wegen Checksum-Implementierung
     SAVE_TYPE_KEY = "save_type"
     GAME_SAVE_TYPE = "game"
     TOURNAMENT_SAVE_TYPE = "tournament"
@@ -49,51 +52,19 @@ class SaveLoadManager:
         return save_dir
 
     @staticmethod
-    def _collect_game_data(game):
+    def _calculate_checksum(data: dict) -> str:
         """
-        Sammelt den kompletten Spielzustand und packt ihn in ein Dictionary.
-
-        Diese private Hilfsmethode durchläuft das `game`-Objekt und alle
-        zugehörigen `player`-Objekte, um einen serialisierbaren "Schnappschuss"
-        des Spiels zu erstellen.
+        Berechnet einen SHA-256-Checksum für ein Dictionary, um die Integrität
+        der Speicherdatei zu gewährleisten.
 
         Args:
-            game (Game): Die aktive Spielinstanz, die gespeichert werden soll.
+            data (dict): Die Daten, für die der Checksum berechnet werden soll.
 
         Returns:
-            dict or None: Ein Dictionary, das den gesamten Spielzustand repräsentiert,
-                          oder None, wenn kein Spiel übergeben wurde.
+            str: Der hexadezimale Checksum-String.
         """
-        if not game:
-            return None
-
-        players_data = []
-        for p in game.players:
-            player_dict = {
-                'name': p.name,
-                'id': p.id,
-                'score': p.score,
-                'throws': p.throws,
-                'stats': p.stats,
-                'state': p.state, # Kapselt alle spielspezifischen Daten
-            }
-            players_data.append(player_dict)
-
-        game_data = {
-            'save_format_version': SaveLoadManager.SAVE_FORMAT_VERSION,
-            'save_type': SaveLoadManager.GAME_SAVE_TYPE,
-            'game_name': game.name,
-            'opt_in': game.opt_in,
-            'opt_out': game.opt_out,
-            'opt_atc': game.opt_atc,
-            'count_to': game.count_to,
-            'lifes': game.lifes,
-            'rounds': game.rounds,
-            'current_player_index': game.current,
-            'round': game.round,
-            'players': players_data,
-        }
-        return game_data
+        canonical_string = json.dumps(data, sort_keys=True, separators=(',', ':')).encode('utf-8')
+        return hashlib.sha256(canonical_string).hexdigest()
 
     @staticmethod
     def _save_data(data, parent, title, filetypes, defaultextension):
@@ -116,18 +87,18 @@ class SaveLoadManager:
             defaultextension=defaultextension,
             filetypes=filetypes
         )
-
         if not filepath:
             return False  # User cancelled
 
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4)
-            ui_utils.show_message('info', "Erfolg", f"Daten erfolgreich gespeichert unter:\n{filepath}", parent=parent)
-            return True
-        except IOError as e:
-            ui_utils.show_message('error', "Fehler beim Speichern", f"Die Daten konnten nicht gespeichert werden.\nFehler: {e}", parent=parent)
-            return False
+        # Füge einen Checksum hinzu, um manuelle Änderungen zu erkennen
+        data['checksum'] = SaveLoadManager._calculate_checksum(data)
+        
+        return JsonIOHandler.write_json(
+            filepath=Path(filepath),
+            data=data,
+            parent_for_dialog=parent,
+            show_success=True # Zeige eine Erfolgsmeldung an
+        )
 
     @staticmethod
     def _load_data(parent, title, filetypes, expected_type):
@@ -151,55 +122,59 @@ class SaveLoadManager:
         if not filepath:
             return None  # User cancelled
 
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+        data = JsonIOHandler.read_json(Path(filepath), parent_for_dialog=parent)
+        if not data:
+            return None # Fehler wurde bereits vom Handler angezeigt
 
-            # --- Validierung ---
-            file_version = data.get('save_format_version')
-            file_type = data.get(SaveLoadManager.SAVE_TYPE_KEY)
+        # --- Validierung ---
+        file_version = data.get('save_format_version')
+        file_type = data.get(SaveLoadManager.SAVE_TYPE_KEY)
+        stored_checksum = data.pop('checksum', None)
 
-            if file_version is None or file_type != expected_type:
-                ui_utils.show_message('error', "Inkompatible Datei", f"Dies ist keine gültige '{expected_type}'-Speicherdatei.", parent=parent)
-                return None
-            if file_version != SaveLoadManager.SAVE_FORMAT_VERSION:
-                ui_utils.show_message('error', "Inkompatibler Spielstand", f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.", parent=parent)
-                return None
-
-            return data
-        except (IOError, json.JSONDecodeError) as e:
-            ui_utils.show_message('error', "Fehler beim Laden", f"Die Datei konnte nicht geladen werden.\nFehler: {e}", parent=parent)
+        if file_version is None or file_type != expected_type:
+            ui_utils.show_message('error', "Inkompatible Datei", f"Dies ist keine gültige '{expected_type}'-Speicherdatei.", parent=parent)
             return None
 
+        # Checksum-Validierung (ab Version 3)
+        if file_version >= 3:
+            if not stored_checksum:
+                ui_utils.show_message('error', "Fehler beim Laden", "Die Speicherdatei enthält keinen Integritäts-Checksum und kann nicht geladen werden.", parent=parent)
+                return None
+            
+            calculated_checksum = SaveLoadManager._calculate_checksum(data)
+            if stored_checksum != calculated_checksum:
+                ui_utils.show_message('error', "Fehler beim Laden", "Die Speicherdatei ist korrupt oder wurde manuell verändert. Der Ladevorgang wird abgebrochen.", parent=parent)
+                return None
+
+        if file_version > SaveLoadManager.SAVE_FORMAT_VERSION:
+            ui_utils.show_message('error', "Inkompatibler Spielstand", f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.", parent=parent)
+            return None
+
+        return data
+
     @staticmethod
-    def save_game_state(game, parent):
-        """Sammelt Spieldaten und speichert sie über die generische Methode."""
-        game_data = SaveLoadManager._collect_game_data(game)
-        if not game_data:
-            ui_utils.show_message('error', "Fehler", "Keine Spieldaten zum Speichern.", parent=parent)
+    def save_state(savable_object, parent):
+        """
+        Speichert den Zustand eines beliebigen Objekts, das die Speicher-Schnittstelle
+        (`to_dict` und `get_save_meta`) implementiert.
+        """
+        if not hasattr(savable_object, 'to_dict') or not hasattr(savable_object, 'get_save_meta'):
+            ui_utils.show_message('error', "Speicherfehler", "Das Objekt kann nicht gespeichert werden, da es die Speicherschnittstelle nicht implementiert.", parent=parent)
             return False
 
-        return SaveLoadManager._save_data(
-            data=game_data,
-            parent=parent,
-            title="Spiel speichern unter...",
-            filetypes=SaveLoadManager.GAME_FILE_TYPES,
-            defaultextension=".json"
-        )
+        data = savable_object.to_dict()
+        meta = savable_object.get_save_meta()
 
-    @staticmethod
-    def save_tournament_state(tournament_manager, parent):
-        """Sammelt Turnierdaten und speichert sie über die generische Methode."""
-        tournament_data = tournament_manager.to_dict()
-        tournament_data[SaveLoadManager.SAVE_TYPE_KEY] = SaveLoadManager.TOURNAMENT_SAVE_TYPE
-        tournament_data['save_format_version'] = SaveLoadManager.SAVE_FORMAT_VERSION
+        # Füge Metadaten hinzu, die für alle Speicherstände gelten
+        data[SaveLoadManager.SAVE_TYPE_KEY] = meta['save_type']
+        data['save_format_version'] = SaveLoadManager.SAVE_FORMAT_VERSION
 
         return SaveLoadManager._save_data(
-            data=tournament_data,
+            data=data,
             parent=parent,
-            title="Turnier speichern unter...",
-            filetypes=SaveLoadManager.TOURNAMENT_FILE_TYPES,
-            defaultextension=".tourn.json"
+            title=meta['title'],
+            filetypes=meta['filetypes'],
+            defaultextension=meta['defaultextension']
         )
 
     @staticmethod
@@ -252,9 +227,13 @@ class SaveLoadManager:
 
         # --- UI-Zustand nach dem Laden wiederherstellen ---
         for player in game.players:
-            if player.sb:  # Sicherstellen, dass das Scoreboard existiert
-                # Aktualisiert die Hauptanzeige (Punkte, Leben, nächstes Ziel etc.)
-                player.sb.update_score(player.score)
-                # Aktualisiert spezifische Anzeigen wie Cricket-Treffer
+            if player.sb and player.sb.score_window.winfo_exists():
+                # Für zielbasierte Spiele (Cricket, Micky, etc.) ruft update_display
+                # intern update_score auf und aktualisiert zusätzlich die Treffer-Anzeige.
                 if hasattr(player.sb, 'update_display'):
-                    player.sb.update_display(player.state['hits'], player.score)
+                    # Stelle sicher, dass 'hits' im state-Dictionary existiert
+                    hits_data = player.state.get('hits', {})
+                    player.sb.update_display(hits_data, player.score)
+                else:
+                    # Für andere Spiele (X01, Killer) reicht ein einfaches Update des Scores.
+                    player.sb.update_score(player.score)

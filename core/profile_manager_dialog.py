@@ -24,10 +24,11 @@ class ProfileManagerDialog(tk.Toplevel):
     """
     Ein Dialog zur Verwaltung von Spielerprofilen (Erstellen, Löschen).
     """
-    def __init__(self, parent, profile_manager):
+    def __init__(self, parent, profile_manager, player_stats_manager=None):
         super().__init__(parent)
         self.transient(parent)
         self.profile_manager = profile_manager
+        self.player_stats_manager = player_stats_manager
         self.color_images = [] # Wichtig: Referenzen auf die Bilder halten
 
         self.title("Spielerprofile verwalten")
@@ -75,6 +76,12 @@ class ProfileManagerDialog(tk.Toplevel):
         ttk.Button(button_frame, text="Neues Profil", command=self._add_new_profile).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Profil bearbeiten", command=self._edit_selected_profile).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Profil löschen", command=self._delete_selected_profile).pack(side=tk.LEFT, padx=5)
+        
+        recalc_button = ttk.Button(button_frame, text="Genauigkeitsmodell neu berechnen", command=self._recalculate_accuracy)
+        recalc_button.pack(side=tk.LEFT, padx=5)
+        if not self.player_stats_manager:
+            recalc_button.config(state="disabled")
+
         ttk.Button(button_frame, text="Schließen", command=self.destroy).pack(side=tk.RIGHT, padx=5)
 
     def _populate_profile_list(self):
@@ -153,3 +160,28 @@ class ProfileManagerDialog(tk.Toplevel):
         if messagebox.askyesno("Profil löschen", f"Möchten Sie das Profil '{profile_name}' wirklich löschen?", parent=self):
             if self.profile_manager.delete_profile(profile_name):
                 self._populate_profile_list()
+
+    def _recalculate_accuracy(self):
+        """Löst die Neuberechnung des Genauigkeitsmodells für das ausgewählte Profil aus."""
+        selected_item = self.tree.focus()
+        if not selected_item:
+            messagebox.showwarning("Keine Auswahl", "Bitte wählen Sie zuerst ein Profil aus der Liste aus.", parent=self)
+            return
+
+        item_data = self.tree.item(selected_item)
+        if not item_data.get('values'):
+            return # Gruppen-Header wurde geklickt
+
+        profile_name = self.tree.item(selected_item)['values'][0]
+        player_type = self.tree.item(selected_item)['values'][1]
+
+        if player_type == "KI":
+            messagebox.showwarning("Falscher Spielertyp", "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus deren Spieldaten berechnet werden.", parent=self)
+            return
+
+        if not self.player_stats_manager:
+            messagebox.showerror("Fehler", "Der Statistik-Manager ist nicht verfügbar.", parent=self)
+            return
+
+        if messagebox.askyesno("Bestätigung", f"Möchten Sie das Genauigkeitsmodell für '{profile_name}' jetzt neu berechnen?\n\nDieser Vorgang analysiert alle gespeicherten Würfe und kann einen Moment dauern.", parent=self):
+            self.player_stats_manager.update_accuracy_model(profile_name, parent_window=self)

@@ -79,26 +79,25 @@ def test_shanghai_win_condition(shanghai_logic, players, mock_game):
     player1 = players[0]
     player1.throws = [("Single", 5, None), ("Double", 5, None), ("Triple", 5, None)]
     
-    result = shanghai_logic._handle_throw(player1, "Triple", 5, [])
+    status, message = shanghai_logic._handle_throw(player1, "Triple", 5, [])
     
     assert mock_game.end is True
-    assert isinstance(result, str) and "Shanghai auf die 5" in result
+    assert status == 'win' and "Shanghai auf die 5" in message
 
 def test_end_of_rounds_win_condition(shanghai_logic, players, mock_game):
     """Testet, ob nach der letzten Runde der Spieler mit den meisten Punkten gewinnt."""
-    mock_game.rounds = 2
+    mock_game.options.rounds = 2 # Korrekt das options-Objekt anpassen
     mock_game.round = 3
     player1, player2 = players
     player1.score = 100
     player2.score = 50
     
     # Die Logik gibt bei Spielende nur einen String zurück, kein Tupel.
-    result = shanghai_logic._handle_throw(player2, "Miss", 0, players)
+    status, message = shanghai_logic._handle_throw(player2, "Miss", 0, players)
     
     assert mock_game.end is True
-    # Der Status ist implizit 'win', wir prüfen die Nachricht.
-    assert isinstance(result, str)
-    assert f"{player1.name} gewinnt mit 100 Punkten" in result
+    assert status == 'win'
+    assert f"{player1.name} gewinnt mit 100 Punkten" in message
 
 def test_undo_restores_state(shanghai_logic, players, mock_game):
     """Testet, ob das Rückgängigmachen eines Wurfs Score und Treffer korrekt wiederherstellt."""

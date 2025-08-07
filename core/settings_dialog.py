@@ -40,21 +40,21 @@ class AppSettingsDialog(tk.Toplevel):
 
     def _create_sound_settings(self, parent):
         self.sound_enabled_var = tk.BooleanVar(value=self.sound_manager.sounds_enabled)
-        self.sound_check = ttk.Checkbutton(parent, text="Soundeffekte aktivieren", variable=self.sound_enabled_var, command=lambda: self.sound_manager.toggle_sounds(self.sound_enabled_var.get()))
-        self.sound_check.pack(pady=10, padx=20, anchor="w")
+        self.sound_checkbutton = ttk.Checkbutton(parent, text="Soundeffekte aktivieren", variable=self.sound_enabled_var, command=lambda: self.sound_manager.toggle_sounds(self.sound_enabled_var.get()))
+        self.sound_checkbutton.pack(pady=10, padx=20, anchor="w")
 
     def _create_theme_settings(self, parent):
         theme_frame = ttk.LabelFrame(parent, text="Design")
         theme_frame.pack(fill="x", padx=15, pady=10)
 
-        theme_select = ttk.Combobox(theme_frame, values=["Light", "Dark"], state="readonly")
-        theme_select.pack(pady=10, padx=10, fill='x')
+        self.theme_combo = ttk.Combobox(theme_frame, values=["Light", "Dark"], state="readonly")
+        self.theme_combo.pack(pady=10, padx=10, fill='x')
         current_theme = self.settings_manager.get('theme', 'light')
-        theme_select.set(current_theme.capitalize())
+        self.theme_combo.set(current_theme.capitalize())
 
         def _set_theme_and_save(event):
-            selected_theme = theme_select.get().lower()
+            selected_theme = self.theme_combo.get().lower()
             self.settings_manager.set('theme', selected_theme)
             sv_ttk.set_theme(selected_theme)
 
-        theme_select.bind("<<ComboboxSelected>>", _set_theme_and_save)
+        self.theme_combo.bind("<<ComboboxSelected>>", _set_theme_and_save)

@@ -47,8 +47,8 @@ class X01(GameLogicBase):
                          und den allgemeinen Zustand bietet.
         """
         super().__init__(game)
-        self.opt_in = game.opt_in
-        self.opt_out = game.opt_out
+        self.opt_in = game.options.opt_in
+        self.opt_out = game.options.opt_out
         # self.targets bleibt None aus der Basisklasse
 
     def get_targets(self):
@@ -62,7 +62,7 @@ class X01(GameLogicBase):
         """
         Setzt den Anfangs-Score für X01-Spiele und initialisiert den 'opened'-Status.
         """
-        player.score = int(self.game.name)
+        player.score = int(self.game.options.name)
         # 'has_opened' wird im state-Dictionary des Spielers gespeichert,
         # das bereits in der Player-Klasse initialisiert wird.
         player.has_opened = False
@@ -101,8 +101,9 @@ class X01(GameLogicBase):
         throw_score = self.game.get_score(ring, segment)
         if throw_score == 0: # Miss-Wurf, nichts zu tun außer UI-Update
             # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
+            preferred_double = player.profile.preferred_double if player.profile else None
             darts_remaining = 3 - len(player.throws)
-            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
             player.sb.update_checkout_suggestion(suggestion)
             player.sb.update_score(player.score)
             return
@@ -128,7 +129,7 @@ class X01(GameLogicBase):
         # 3. Spieler-Zustand (Score und 'has_opened') wiederherstellen
         was_opening_throw = (
             player.has_opened and
-            score_before_throw == int(player.game_name) and
+            score_before_throw == int(player.game.options.name) and
             self._is_valid_opening_throw(ring)
         )
         if was_opening_throw:
@@ -136,8 +137,9 @@ class X01(GameLogicBase):
         player.score = score_before_throw
 
         # 4. UI aktualisieren
+        preferred_double = player.profile.preferred_double if player.profile else None
         darts_remaining = 3 - len(player.throws)
-        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
         player.sb.update_checkout_suggestion(suggestion)
         player.sb.update_score(player.score)
 
@@ -240,7 +242,7 @@ class X01(GameLogicBase):
         
         # Zum Highscore hinzufügen, falls Manager vorhanden
         if self.game.highscore_manager:
-            self.game.highscore_manager.add_score(self.game.name, player.name, total_darts)
+            self.game.highscore_manager.add_score(self.game.options.name, player.name, total_darts)
 
         # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
         # wenn self.game.shanghai_finish True ist.
@@ -284,9 +286,10 @@ class X01(GameLogicBase):
             # player.update_score_value(score, subtract=True) # score is 0, so no change.
             player.sb.update_score(player.score)
             
+            preferred_double = player.profile.preferred_double if player.profile else None
             # Finish-Vorschlag für die verbleibenden Darts aktualisieren
             darts_remaining = 3 - len(player.throws)
-            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
             player.sb.update_checkout_suggestion(suggestion)
 
             if len(player.throws) == 3:
@@ -302,8 +305,6 @@ class X01(GameLogicBase):
         # --- Bust-Prüfung ---
         new_score = player.score - score
         if self._check_for_bust(new_score, ring):
-            if self.game.sound_manager:
-                self.game.sound_manager.play_bust()
             player.turn_is_over = True
             player.sb.update_score(player.score)
             return ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
@@ -316,9 +317,10 @@ class X01(GameLogicBase):
 
         player.update_score_value(score, subtract=True)
 
+        preferred_double = player.profile.preferred_double if player.profile else None
         # Finish-Vorschlag für den neuen Punktestand mit den verbleibenden Darts berechnen und anzeigen
         darts_remaining = 3 - len(player.throws)
-        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining)
+        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
         player.sb.update_checkout_suggestion(suggestion)
 
         if player.score == 0: # Gilt nur für x01

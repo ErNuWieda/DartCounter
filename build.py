@@ -127,7 +127,7 @@ def main():
     # Das macht das Hinzufügen neuer Dateien übersichtlicher.
     data_to_add = [
         (ASSETS_DIR, ASSETS_DIR),
-        (pathlib.Path("core/game_config.json"), pathlib.Path("core")),
+        (pathlib.Path("game_config.json"), pathlib.Path(".")),
         (pathlib.Path("core/checkout_paths.json"), pathlib.Path("core")),
         (pathlib.Path("config.ini.example"), pathlib.Path(".")),
         (pathlib.Path("README.md"), pathlib.Path(".")),

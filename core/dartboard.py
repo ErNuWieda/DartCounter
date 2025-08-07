@@ -22,6 +22,7 @@ import pathlib
 import os
 from .save_load_manager import SaveLoadManager
 from . import ui_utils
+from .dartboard_geometry import DartboardGeometry
 
 
 class DartBoard:
@@ -33,15 +34,14 @@ class DartBoard:
     an die zentrale `Game`-Instanz. Sie berechnet anhand von polaren Koordinaten,
     welcher Ring und welches Segment getroffen wurde.
 
-    Class Constants:
-        ASSETS_BASE_DIR (pathlib.Path): Der Basispfad zum 'assets'-Verzeichnis.
-        DARTBOARD_PATH (pathlib.Path): Pfad zum Dartboard-Bild.
-        DART_PATH (pathlib.Path): Pfad zum Dart-Symbolbild.
-        ORIGINAL_SIZE (int): Die Kantenlänge des quadratischen Originalbildes in Pixel.
-        RADIEN (dict): Ein Dictionary mit den Radien der verschiedenen Ringe
-                       im Originalbild.
-        SEGMENTS (list[int]): Eine Liste der Zahlenwerte der Segmente, geordnet
-                              nach ihrem Winkel auf dem Board.
+    Class Constants (Refactored):
+        RING_DEFINITIONS (list[tuple]): Eine datengesteuerte Definition der Ringe.
+                                        Jedes Tupel enthält:
+                                        (Ring-Name, innerer Radius-Key, äußerer Radius-Key)
+                                        Dies ersetzt die harte Verdrahtung von Radien in der Logik
+                                        und macht die `get_ring_segment`-Methode wartbarer.
+                                        Die Reihenfolge (von innen nach außen) ist wichtig für die
+                                        korrekte Erkennung.
 
     Attributes:
         spiel (Game): Eine Referenz auf die übergeordnete Spielinstanz.
@@ -51,20 +51,18 @@ class DartBoard:
     ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets"    
     DARTBOARD_PATH = ASSETS_BASE_DIR / "dartboard.png"
     DART_PATH = ASSETS_BASE_DIR / "dart_mask.png" # Geändert auf die Maske
-    ORIGINAL_SIZE = 2200  # Originalbildgröße in px
-    RADIEN = {
-        "bullseye": 30,
-        "bull": 80,
-        "triple_inner": 470,
-        "triple_outer": 520,
-        "double_inner": 785,
-        "double_outer": 835,
-        "außen": 836
-    }
-    SEGMENTS = [6, 13, 4, 18, 1,
-                20, 5, 12, 9, 14,
-                11, 8, 16, 7, 19,
-                3, 17, 2, 15, 10][::1]
+
+    RING_DEFINITIONS = [
+        # (Ring-Name, innerer Radius-Key, äußerer Radius-Key)
+        # Die Reihenfolge von innen nach außen ist wichtig.
+        ("Bullseye", None, "bullseye"),
+        ("Bull", "bullseye", "bull"),
+        ("Single", "bull", "triple_inner"), # Inneres Single-Feld
+        ("Triple", "triple_inner", "triple_outer"),
+        ("Single", "triple_outer", "double_inner"), # Äußeres Single-Feld
+        ("Double", "double_inner", "double_outer"),
+        ("Miss", "double_outer", None) # Alles außerhalb ist ein Miss
+    ]
 
     def __init__(self, spiel):
         """
@@ -77,9 +75,6 @@ class DartBoard:
             spiel (Game): Die Instanz des laufenden Spiels.
         """
         self.spiel = spiel
-        self.radien = DartBoard.RADIEN
-        self.segments = DartBoard.SEGMENTS
-        self.original_size = DartBoard.ORIGINAL_SIZE
         self.dartboard_path = DartBoard.DARTBOARD_PATH
         self.dart_path = DartBoard.DART_PATH
         self.skaliert = None
@@ -87,12 +82,12 @@ class DartBoard:
         self.center_y = None
         self.canvas = None # Wird in _create_board gesetzt
         self.root = tk.Toplevel()
-        if len(self.spiel.name) == 3: # = x01-Spiele
-            title = f"{self.spiel.name} - {self.spiel.opt_in}-in, {self.spiel.opt_out}-out"
-        elif self.spiel.name == "Around the Clock":
-            title = f"{self.spiel.name} - {self.spiel.opt_atc}"
+        if len(self.spiel.options.name) == 3: # = x01-Spiele
+            title = f"{self.spiel.options.name} - {self.spiel.options.opt_in}-in, {self.spiel.options.opt_out}-out"
+        elif self.spiel.options.name == "Around the Clock":
+            title = f"{self.spiel.options.name} - {self.spiel.options.opt_atc}"
         else:
-            title = f"{self.spiel.name}"
+            title = f"{self.spiel.options.name}"
         self.root.title(title)
         self.root.protocol("WM_DELETE_WINDOW", self.quit_game)
         self.root.resizable(False, False)
@@ -171,25 +166,45 @@ class DartBoard:
     def quit_game(self):
         """
         Zeigt einen Dialog mit den Optionen Speichern, Beenden oder Abbrechen.
-        Nutzt die zentrale `question_box`-Methode der GameUI.
+        Nutzt die zentrale `ask_question'-Methode der ui_utils.
         """
+        # Wenn das Spiel bereits beendet ist (z.B. durch einen Sieg),
+        # schließe das Fenster einfach, ohne zu fragen. Dies löst den
+        # `wait_window`-Aufruf in der Hauptanwendung aus.
+        if self.spiel.end:
+            self.spiel.destroy()
+            return
+
+        # Wenn es sich um ein laufendes Turnierspiel handelt, kann es nicht beendet werden.
+        if self.spiel.is_tournament_match:
+            ui_utils.show_message(
+                'warning', 
+                "Laufendes Turnierspiel", 
+                "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende, um zum Turnierbaum zurückzukehren.", 
+                parent=self.root
+            )
+            return # Verhindert das Schließen des Fensters
         # 'askyesnocancel' gibt True für Ja, False für Nein und None für Abbrechen zurück.
-        response = ui_utils.ask_question( # Diese Funktion existiert nicht, sollte aber ask_question sein
+        response = ui_utils.ask_question(
             'yesnocancel',
             "Spiel beenden", 
-            "Möchtest du den aktuellen Spielstand speichern, bevor du beendest?"
+            "Möchtest du den aktuellen Spielstand speichern, bevor du beendest?",
+            "no"
         )
 
-        if response is True: # Yes -> Save & Quit
-            was_saved = SaveLoadManager.save_game_state(self.spiel, self.root)
-            if was_saved:
-                self.spiel.destroy() # Schließt alle Spielfenster
-        elif response is False: # No -> Quit without saving
-            self.spiel.destroy()
-        # if response is None (Cancel), do nothing.
+        if response is None: # Cancel
+            return # Do nothing
 
-        
-    # POLARER WINKEL + DISTANZ
+        if response is True: # Yes -> Save
+            was_saved = SaveLoadManager.save_game_state(self.spiel, self.root)
+            if not was_saved:
+                return # Speichern fehlgeschlagen oder abgebrochen, also nicht beenden
+
+        # Wenn 'response' False (No) ist oder True war und das Speichern erfolgreich war,
+        # wird das Spiel beendet.
+        if self.spiel:
+            self.spiel.destroy()
+    
     def polar_angle(self, x, y):
         """
         Berechnet den polaren Winkel eines Punktes relativ zum Zentrum des Boards.
@@ -233,21 +248,20 @@ class DartBoard:
         """
         dist = self.distance(x, y)
         angle = self.polar_angle(x, y)
-        idx = int((angle+9) // 18) % 20
-        segment = self.segments[idx]
+        idx = int((angle + 9) // 18) % 20
+        segment = DartboardGeometry.SEGMENTS[idx]
 
-        if dist <= self.skaliert["bullseye"]:
-            return "Bullseye", 50
-        elif dist <= self.skaliert["bull"]:
-            return "Bull", 25
-        elif self.skaliert["triple_inner"] < dist < self.skaliert["triple_outer"]:
-            return "Triple", segment
-        elif self.skaliert["double_inner"] < dist < self.skaliert["double_outer"]:
-            return "Double", segment
-        elif dist < self.skaliert["außen"]:
-            return "Single", segment
-        else:
-            return "Miss", 0
+        for ring_name, inner_key, outer_key in self.RING_DEFINITIONS:
+            inner_radius = self.skaliert.get(inner_key, 0) if inner_key else 0
+            outer_radius = self.skaliert.get(outer_key, float('inf')) if outer_key else float('inf')
+
+            if inner_radius < dist <= outer_radius:
+                # Bullseye und Bull haben feste Segmentwerte
+                if ring_name == "Bullseye": return "Bullseye", 50
+                if ring_name == "Bull": return "Bull", 25
+                return ring_name, segment
+
+        return "Miss", 0 # Fallback
 
     def on_click(self, event):
         """
@@ -285,8 +299,8 @@ class DartBoard:
             self.dart_image_ids_on_canvas.append(dart_id)
         # Korrektur der x,y Koordinaten zwingend erforderlich zur korrekten Wurf-Ermittlung
         # NICHT ENTERNEN!!!
-        x += 8
-        y += 8
+        x += 6
+        y += 6
         # Schritt 1: Ermittle den Wurf
         ring, segment = self.get_ring_segment(x, y)
 
@@ -315,52 +329,42 @@ class DartBoard:
             tuple[int, int] or None: Ein (x, y)-Tupel der Zielkoordinaten oder None,
                                      wenn das Ziel ungültig ist.
         """
-        if ring == "Bullseye":
-            return self.center_x, self.center_y
-        if ring == "Bull":
-            # Zielt auf die Mitte des Bull-Rings (zwischen Bullseye und äußerem Bull-Rand)
-            radius = (self.skaliert["bullseye"] + self.skaliert["bull"]) / 2
-            angle_rad = 0 # Winkel ist irrelevant, aber wir können 0 nehmen
-        else:
-            try:
-                idx = self.segments.index(segment)
-            except ValueError:
-                return None # Ungültiges Segment
+        # Erstelle den Ziel-String, den die Geometrie-Klasse erwartet (z.B. "T20")
+        target_str_map = {
+            "Bullseye": "BE", "Bull": "B", "Triple": "T", "Double": "D", "Single": "S"
+        }
+        ring_prefix = target_str_map.get(ring)
+        if not ring_prefix: return None
 
-            # Berechne den mittleren Winkel für dieses Segment in Radiant.
-            # Jeder Sektor ist 18 Grad breit. Die Mitte ist bei (index * 18) Grad.
-            angle_deg = idx * 18
-            angle_rad = math.radians(angle_deg)
+        target_str = f"{ring_prefix}{segment}" if ring not in ("Bullseye", "Bull") else ring_prefix
 
-            # Finde den mittleren Radius für den Zielring
-            ring_map = {
-                "Triple": (self.skaliert["triple_inner"] + self.skaliert["triple_outer"]) / 2,
-                "Double": (self.skaliert["double_inner"] + self.skaliert["double_outer"]) / 2,
-                "Single": (self.skaliert["bull"] + self.skaliert["triple_inner"]) / 2, # Großes Single-Feld
-            }
-            radius = ring_map.get(ring)
-            if radius is None: return None # Unbekannter Ring
+        # Hole die unskalierten Original-Koordinaten von der Geometrie-Klasse
+        original_coords = DartboardGeometry.get_target_coords(target_str)
+        if not original_coords: return None
 
-        x = self.center_x + radius * math.cos(angle_rad)
-        y = self.center_y - radius * math.sin(angle_rad) # Y-Achse ist im Canvas invertiert
-        return int(x), int(y)
+        # Skaliere die Koordinaten auf die aktuelle Canvas-Größe
+        scale_factor = (self.canvas.winfo_width() if self.canvas else 0) / DartboardGeometry.ORIGINAL_SIZE
+        if scale_factor == 0: return None
+
+        scaled_x = int(original_coords[0] * scale_factor)
+        scaled_y = int(original_coords[1] * scale_factor)
+        return scaled_x, scaled_y
 
     def _create_board(self):
         """
         Erstellt und konfiguriert das Dartboard-Canvas und die zugehörigen Widgets.
-
         Diese private Methode skaliert das Dartboard-Bild auf die Bildschirmhöhe,
         erstellt das Canvas, platziert das Bild und bindet den Klick-Handler.
         """
         # Bildschirmgröße
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        target_height = int(screen_height * 0.90)
+        target_height = int(screen_height * 0.90) # type: ignore
 
         # Bildgröße skalieren
-        SCALE = target_height / self.original_size
+        SCALE = target_height / DartboardGeometry.ORIGINAL_SIZE
         # Radien skalieren
-        self.skaliert = {k: int(v * SCALE) for k, v in self.radien.items()}
+        self.skaliert = {k: int(v * SCALE) for k, v in DartboardGeometry.RADIEN.items()}
         # Bild vorbereiten
         image = Image.open(self.dartboard_path)
         # Bild skalieren

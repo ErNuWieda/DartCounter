@@ -2,34 +2,29 @@
 Dieses Modul definiert die Hauptlogik für das Spiel "Shanghai".
 """
 from .game_logic_base import GameLogicBase
-from tkinter import messagebox # Wird vom Test-Setup (patch) benötigt
 
 class Shanghai(GameLogicBase):
 	def __init__(self, game):
 		super().__init__(game)
-		self.targets = []
+		# Ziele direkt im Konstruktor generieren.
+		self.targets = [str(i + 1) for i in range(self.game.options.rounds)]
 
 	def initialize_player_state(self, player):
 		"""
 		Setzt den Anfangs-Score auf 0, initialisiert die Treffer-Map und das erste Ziel.
 		"""
 		player.score = 0
-		if self.get_targets(): # Sicherstellen, dass self.targets initialisiert ist
-			player.next_target = self.targets[0]
-			for target in self.targets:
-				player.hits[target] = 0
+		player.next_target = self.targets[0] if self.targets else None
+		for target in self.targets:
+			player.hits[target] = 0
 
 	def get_targets(self):
 		"""
-		Generiert die Zielliste für das Shanghai-Spiel basierend auf der
-		in den Spieloptionen festgelegten Rundenzahl.
+		Gibt die im Konstruktor erstellte Zielliste zurück.
 
 		Returns:
 			list[str]: Eine Liste der Zielsegmente als Strings (z.B. ["1", "2", ...]).
 		"""
-		if not self.targets: # Nur generieren, wenn die Liste leer ist
-			for i in range(self.game.rounds):
-				self.targets.append(str(i+1))
 		return self.targets
 
 	def _handle_throw_undo(self, player, ring, segment, players):
@@ -67,10 +62,10 @@ class Shanghai(GameLogicBase):
 		"""
 		# --- Gewinnbedingung prüfen (Ende der Runden) ---
 		# Diese Prüfung muss VOR der Wurfverarbeitung stattfinden.
-		if self.game.round > self.game.rounds:
+		if self.game.round > self.game.options.rounds:
 			self.game.end = True
 			winner = max(players, key=lambda p: p.score)
-			return f"🏆 Spiel beendet!\n{winner.name} gewinnt mit {winner.score} Punkten!"
+			return ('win', f"🏆 Spiel beendet!\n{winner.name} gewinnt mit {winner.score} Punkten!")
 
 		# Prüfen, ob der Wurf auf das Ziel der aktuellen Runde ging
 		if str(segment) == str(self.game.round):
@@ -85,7 +80,7 @@ class Shanghai(GameLogicBase):
 		else:
 			# Ungültiger Wurf, nur Wurfhistorie aktualisieren
 			player.sb.update_score(player.score)
-			return None
+			return ('ok', None)
 
 		# --- Gewinnbedingung prüfen ---
         # 1. Shanghai Finish (S, D, T des Zielfelds der Runde)
@@ -101,10 +96,10 @@ class Shanghai(GameLogicBase):
 		if rings_hit_on_target == {"Single", "Double", "Triple"}:
 			self.game.shanghai_finish = True
 			self.game.end = True
-			return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit einem Shanghai auf die {target_segment_for_shanghai}!"
+			return ('win', f"🏆 {player.name} gewinnt in Runde {self.game.round} mit einem Shanghai auf die {target_segment_for_shanghai}!")
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
 			player.next_target = str(self.game.round + 1)
 			# Turn ends
-			return None
-		return None # Throw processed, turn continues
+			return ('ok', None)
+		return ('ok', None) # Throw processed, turn continues

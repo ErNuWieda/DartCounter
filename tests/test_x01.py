@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 from core.x01 import X01
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
+from core.game_options import GameOptions
 
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
@@ -28,9 +29,12 @@ from core.player import Player
 def x01_logic(mock_game):
     """Erstellt eine Instanz der X01-Logik mit dem gemockten Spiel."""
     # Spieloptionen vor der Instanziierung der Logik setzen
-    mock_game.name = "501"
-    mock_game.opt_in = "Double"
-    mock_game.opt_out = "Double"
+    mock_game.options = GameOptions(
+        name="501", opt_in="Double", opt_out="Double", opt_atc="Single",
+        count_to=501, lifes=3, rounds=7
+    )
+    # Die Player-Klasse greift auf game.options.name zu
+    mock_game.options.name = "501"
     return X01(mock_game)
 
 @pytest.fixture
@@ -48,7 +52,7 @@ def player(mock_game, x01_logic):
 
 def test_opt_in_double_fails_on_single_throw(x01_logic, player):
     """Testet, ob bei 'Double In' ein Single-Wurf ungültig ist."""
-    player.game.opt_in = "Double"
+    player.game.options.opt_in = "Double"
     player.score = 501
     player.state['has_opened'] = False
 
@@ -61,7 +65,7 @@ def test_opt_in_double_fails_on_single_throw(x01_logic, player):
 
 def test_opt_in_double_succeeds_on_double_throw(x01_logic, player):
     """Testet, ob bei 'Double In' ein Double-Wurf gültig ist und das Spiel eröffnet."""
-    player.game.opt_in = "Double"
+    player.game.options.opt_in = "Double"
     player.score = 501
     player.state['has_opened'] = False
 

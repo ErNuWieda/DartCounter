@@ -14,12 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
 import logging
 import os
 import platform
 from pathlib import Path
 import sys
+from .json_io_handler import JsonIOHandler
 
 logger = logging.getLogger(__name__)
 
@@ -89,18 +89,16 @@ class SettingsManager:
         """
         # Der Pfad zum Speichern ist immer das Benutzerverzeichnis.
         self.save_filepath = get_app_data_dir() / "settings.json"
+        # Priorisierte Liste der Pfade, von denen geladen werden soll.
+        # 1. Benutzerspezifisches Verzeichnis (hat Vorrang)
+        # 2. Anwendungsverzeichnis (als Fallback oder für die Erstkonfiguration)
+        load_paths = [
+            self.save_filepath,
+            get_application_root_dir() / "settings.json"
+        ]
         
-        # Logik zum Finden der zu ladenden Konfigurationsdatei
-        root_filepath = get_application_root_dir() / "settings.json"
-        filepath_to_load_from = None
-
-        if self.save_filepath.exists():
-            filepath_to_load_from = self.save_filepath
-        elif root_filepath.exists():
-            filepath_to_load_from = root_filepath            
-            logger.info(f"Lade 'settings.json' aus dem Anwendungsverzeichnis als Fallback: {root_filepath}")
-
-        if filepath_to_load_from:
+        # Lade die erste existierende Datei aus der Liste.
+        if filepath_to_load_from := next((path for path in load_paths if path.exists()), None):
             self.settings = self._load_settings(filepath_to_load_from)
         else:
             self.settings = self._get_defaults()
@@ -138,34 +136,23 @@ class SettingsManager:
             dict: Das geladene und vervollständigte Einstellungs-Dictionary.
         """
         defaults = self._get_defaults()
-        try:
-            # Die Existenzprüfung wird hier entfernt, da sie bereits im Konstruktor stattfindet.
-            with open(filepath, 'r', encoding='utf-8') as f:
-                loaded_settings = json.load(f)
-                # Stellt sicher, dass alle Standardschlüssel in den geladenen
-                # Einstellungen vorhanden sind, um Kompatibilität zu gewährleisten.
-                for key, value in defaults.items():
-                    if key not in loaded_settings:
-                        loaded_settings[key] = value
-                return loaded_settings
-        except (json.JSONDecodeError, IOError):
-            # Bei Lesefehlern oder ungültigem JSON auf Standardwerte zurückfallen.
+        loaded_settings = JsonIOHandler.read_json(filepath)
+
+        if not loaded_settings:
             return defaults
+
+        # Stelle sicher, dass alle Standardschlüssel in den geladenen Einstellungen vorhanden sind.
+        for key, value in defaults.items():
+            loaded_settings.setdefault(key, value)
+        return loaded_settings
 
     def save_settings(self):
         """
         Speichert die aktuellen In-Memory-Einstellungen in die JSON-Datei.
         Diese Methode sollte beim Beenden der Anwendung aufgerufen werden.
         """
-        try:
-            # Sicherstellen, dass das übergeordnete Verzeichnis existiert.
-            # Dies ist wichtig für den allerersten Start der Anwendung.
-            self.save_filepath.parent.mkdir(parents=True, exist_ok=True)
-            # Speichert immer in das Benutzerverzeichnis
-            with open(self.save_filepath, 'w', encoding='utf-8') as f:
-                json.dump(self.settings, f, indent=4)
-        except IOError as e:
-            logger.error(f"Fehler beim Speichern der Einstellungen: {e}", exc_info=True)
+        if not JsonIOHandler.write_json(self.save_filepath, self.settings):
+            logger.error(f"Fehler beim Speichern der Einstellungen nach: {self.save_filepath}")
 
     def get(self, key, default=None):
         """

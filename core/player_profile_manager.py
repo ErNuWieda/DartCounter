@@ -42,19 +42,19 @@ class PlayerProfileManager:
         """Sucht und gibt ein Profil anhand seines Namens zurück."""
         return next((p for p in self.profiles if p.name == name), None)
 
-    def add_profile(self, name: str, avatar_path: str, dart_color: str, is_ai: bool = False, difficulty: str = None) -> bool:
+    def add_profile(self, name: str, avatar_path: str, dart_color: str, is_ai: bool = False, difficulty: str = None, preferred_double: int = None, accuracy_model: dict | None = None) -> bool:
         """
         Fügt ein neues Profil hinzu, wenn der Name noch nicht existiert.
         
         Returns:
             bool: True bei Erfolg, False wenn der Name bereits vergeben ist.
         """
-        success = self.db_manager.add_profile(name, avatar_path, dart_color, is_ai, difficulty)
+        success = self.db_manager.add_profile(name, avatar_path, dart_color, is_ai, difficulty, preferred_double, accuracy_model)
         if success:
             self.profiles = self._load_profiles_from_db() # Liste neu laden
         return success
 
-    def update_profile(self, profile_id: int, new_name: str, new_avatar_path: str, new_dart_color: str, is_ai: bool = False, difficulty: str = None) -> bool:
+    def update_profile(self, profile_id: int, new_name: str, new_avatar_path: str, new_dart_color: str, is_ai: bool = False, difficulty: str = None, preferred_double: int = None, accuracy_model: dict | None = None) -> bool:
         """
         Aktualisiert ein bestehendes Profil.
         
@@ -67,7 +67,7 @@ class PlayerProfileManager:
         Returns:
             bool: True bei Erfolg, False wenn der neue Name bereits von einem anderen Profil verwendet wird.
         """
-        success = self.db_manager.update_profile(profile_id, new_name, new_avatar_path, new_dart_color, is_ai, difficulty)
+        success = self.db_manager.update_profile(profile_id, new_name, new_avatar_path, new_dart_color, is_ai, difficulty, preferred_double, accuracy_model)
         if success:
             # Finde das Profil in der lokalen Liste und aktualisiere es, um einen Neuladevorgang zu vermeiden
             profile_to_update = next((p for p in self.profiles if p.id == profile_id), None)
@@ -77,6 +77,8 @@ class PlayerProfileManager:
                 profile_to_update.dart_color = new_dart_color
                 profile_to_update.is_ai = is_ai
                 profile_to_update.difficulty = difficulty
+                profile_to_update.preferred_double = preferred_double
+                profile_to_update.accuracy_model = accuracy_model
 
         return success
 

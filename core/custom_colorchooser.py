@@ -100,7 +100,10 @@ class CustomColorChooserDialog(tk.Toplevel):
         # --- Untere Reihe: Buttons ---
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=1, column=0, columnspan=2, sticky="e", pady=(20, 0))
-        ttk.Button(button_frame, text="OK", command=self._on_ok, style="Accent.TButton").pack(side=tk.LEFT, padx=5)
+        ok_button = ttk.Button(button_frame, text="OK", command=self._on_ok, style="Accent.TButton")
+        ok_button.pack(side=tk.LEFT, padx=5)
+        ok_button.bind("<Return>", lambda e: self._on_ok())
+        ok_button.focus_set()
         ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(side=tk.LEFT)
 
     def _create_slider(self, parent, label_text, variable, color):

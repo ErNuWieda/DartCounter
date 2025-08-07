@@ -13,15 +13,15 @@ Die Anwendung ist in logische, entkoppelte Komponenten mit klar definierten Aufg
 *   Sie ist verantwortlich für die Initialisierung des Hauptfensters, der Menüs und aller globalen "Manager"-Klassen (z.B. `SettingsManager`, `SoundManager`).
 *   Sie steuert den Lebenszyklus der Anwendung, reagiert auf Menü-Events (z.B. "Neues Spiel", "Laden") und delegiert die Aufgaben an die zuständigen Komponenten. Sie enthält selbst keine detaillierte Spiellogik oder UI-Dialog-Logik.
 
-#### **GameManager** & **GameSettingsDialog** (in `core/gamemgr.py`) - Die Spielkonfiguration
-*   Der `GameManager` ist ein UI-unabhängiger Controller, der ausschließlich den Prozess der Spielkonfiguration steuert.
-*   Er delegiert die gesamte UI-Darstellung an den `GameSettingsDialog`.
-*   Der `GameSettingsDialog` ist eine eigenständige, gekapselte UI-Komponente, die alle Widgets und die Logik zur Auswahl von Spielmodus, Spielern und Optionen enthält.
+#### **GameSettingsDialog** (in `core/gamemgr.py`) - Die Spielkonfiguration
+*   Dies ist eine eigenständige, gekapselte UI-Komponente (`Toplevel`-Dialog), die alle Widgets und die Logik zur Auswahl von Spielmodus, Spielern und Optionen enthält.
+*   Sie wird direkt von der `App`-Klasse aufgerufen und gibt die gewählten Einstellungen als Dictionary zurück, wenn der Benutzer auf "Spiel starten" klickt.
 
 #### **Game** (in `core/game.py`) - Der Spiel-Controller
 *   Diese Klasse steuert eine einzelne, aktive Spielsitzung.
 *   Sie wird von der `App`-Klasse instanziiert und ist für die Erstellung ihrer eigenen UI-Komponenten (`DartBoard`, `ScoreBoard`) verantwortlich.
-*   Sie verwaltet den gesamten Spielzustand (aktueller Spieler, Runde etc.) und agiert als Vermittler zwischen der UI (z.B. ein Klick auf das Dartboard) und der spezifischen Spiellogik.
+*   Sie verwaltet den gesamten Spielzustand (aktueller Spieler, Runde etc.) und hält direkte Referenzen auf ihre UI-Komponenten (z.B. `self.dartboard`).
+*   Sie agiert als Vermittler zwischen der UI (z.B. ein Klick auf das Dartboard) und der spezifischen Spiellogik.
 
 #### **Spiellogik-Klassen** (z.B. `X01`, `Cricket` in `core/`) - Die Strategien
 *   Jede dieser Klassen implementiert die spezifischen Regeln für einen einzelnen Spielmodus (**Strategy Pattern**).
@@ -41,15 +41,13 @@ Die Anwendung ist in logische, entkoppelte Komponenten mit klar definierten Aufg
 ## 2. Datenfluss am Beispiel: "Neues Spiel"
 
 1.  **User-Aktion:** Der Benutzer klickt im Menü der `App` auf "Neues Spiel".
-2.  **App (Orchestrator):** Die `new_game()`-Methode wird aufgerufen. Sie instanziiert den `GameManager`.
-3.  **GameManager (Setup-Controller):** Die `configure_game()`-Methode wird aufgerufen. Sie erstellt und öffnet den `GameSettingsDialog`.
-4.  **GameSettingsDialog (View):** Der Benutzer wählt Spielmodus und Spieler aus und klickt auf "Spiel starten". Der Dialog speichert die Auswahl und schließt sich.
-5.  **GameManager:** Er empfängt die Konfiguration vom geschlossenen Dialog und gibt sie an die `App` zurück.
-6.  **App:** Sie erhält die Konfiguration und ruft `_initialize_game_session()` auf, um eine neue `Game`-Instanz zu erstellen.
-7.  **Game (Spiel-Controller):** Der `__init__`-Konstruktor wird ausgeführt. Er...
+2.  **App (Orchestrator):** Die `new_game()`-Methode wird aufgerufen. Sie instanziiert und öffnet den `GameSettingsDialog`.
+3.  **GameSettingsDialog (View):** Der Benutzer wählt Spielmodus und Spieler aus und klickt auf "Spiel starten". Der Dialog speichert die Auswahl in seinem `result`-Attribut und schließt sich.
+4.  **App:** Sie liest das `result`-Dictionary aus dem geschlossenen Dialog aus, bereitet die `game_options` vor und ruft `_initialize_game_session()` auf, um eine neue `Game`-Instanz zu erstellen.
+5.  **Game (Spiel-Controller):** Der `__init__`-Konstruktor wird ausgeführt. Er...
     *   ...wählt die passende Spiellogik-Klasse (z.B. `X01`) aus.
     *   ...erstellt die `Player`-Instanzen.
     *   ...erstellt seine eigene UI: eine `DartBoard`-Instanz und die `ScoreBoard`-Instanzen für jeden Spieler.
-8.  **Spielstart:** Das Spiel ist initialisiert und wartet auf den ersten Wurf.
+6.  **Spielstart:** Das Spiel ist initialisiert und wartet auf den ersten Wurf.
 
 Dieses Design sorgt für eine robuste, flexible und leicht erweiterbare Anwendung.

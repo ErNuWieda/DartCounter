@@ -25,43 +25,47 @@ from core.player import Player
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
 @pytest.fixture
-def cricket_logic(mock_game):
+def _logic_factory(mock_game):
+    """Eine "private" Factory-Fixture, die Cricket-Logik-Instanzen erstellt."""
+    def _create_logic(game_name: str):
+        mock_game.options.name = game_name
+        logic = Cricket(mock_game)
+        mock_game.targets = logic.get_targets()
+        return logic
+    return _create_logic
+
+@pytest.fixture
+def cricket_logic(_logic_factory):
     """Erstellt eine Cricket-Logik-Instanz, konfiguriert für Standard-Cricket."""
-    mock_game.name = "Cricket"
-    logic = Cricket(mock_game)
-    mock_game.targets = logic.get_targets()
-    return logic
+    return _logic_factory("Cricket")
 
 @pytest.fixture
-def cut_throat_logic(mock_game):
+def cut_throat_logic(_logic_factory):
     """Erstellt eine Cricket-Logik-Instanz, konfiguriert für Cut Throat."""
-    mock_game.name = "Cut Throat"
-    logic = Cricket(mock_game)
-    mock_game.targets = logic.get_targets()
-    return logic
+    return _logic_factory("Cut Throat")
 
 @pytest.fixture
-def players(mock_game, cricket_logic):
+def _player_factory(mock_game):
+    """Eine "private" Factory-Fixture, die Spielerlisten erstellt und initialisiert."""
+    def _create_players(logic_instance, count: int):
+        player_list = []
+        for i in range(count):
+            p = Player(name=f"Player {i+1}", game=mock_game)
+            logic_instance.initialize_player_state(p)
+            p.sb = MagicMock()
+            player_list.append(p)
+        return player_list
+    return _create_players
+
+@pytest.fixture
+def players(cricket_logic, _player_factory):
     """Erstellt eine Liste von zwei initialisierten Spielern für ein Standard-Cricket-Spiel."""
-    player_list = []
-    for i in range(2):
-        p = Player(name=f"Player {i+1}", game=mock_game)
-        cricket_logic.initialize_player_state(p)
-        p.sb = MagicMock()
-        player_list.append(p)
-    return player_list
+    return _player_factory(cricket_logic, 2)
 
 @pytest.fixture
-def cut_throat_players(mock_game, cut_throat_logic):
+def cut_throat_players(cut_throat_logic, _player_factory):
     """Erstellt eine Liste von drei initialisierten Spielern für ein Cut-Throat-Spiel."""
-    player_list = []
-    for i in range(3):
-        p = Player(name=f"Player {i+1}", game=mock_game)
-        cut_throat_logic.initialize_player_state(p)
-        p.sb = MagicMock()
-        player_list.append(p)
-    return player_list
-
+    return _player_factory(cut_throat_logic, 3)
 
 def test_initialization(players):
     player1 = players[0]
@@ -113,11 +117,12 @@ def test_win_condition_all_targets_closed_and_highest_score(cricket_logic, playe
         player1.state['hits'][target] = 3
     player1.score = 100
     player2.score = 50
-
-    result = cricket_logic._handle_throw(player1, "Single", 20, players)
-
+ 
+    status, message = cricket_logic._handle_throw(player1, "Single", 20, players)
+ 
     assert player1.game.end is True
-    assert isinstance(result, str) and "gewinnt" in result
+    assert status == 'win'
+    assert "gewinnt" in message
 
 def test_no_win_if_score_is_lower(cricket_logic, players):
     player1, player2 = players
@@ -138,10 +143,11 @@ def test_win_on_equal_score(cricket_logic, players):
         player2.state['hits'][target] = 3
     player2.score = 80
 
-    result = cricket_logic._handle_throw(player2, "Single", 20, players)
-
+    status, message = cricket_logic._handle_throw(player2, "Single", 20, players)
+ 
     assert player2.game.end is True
-    assert isinstance(result, str) and "gewinnt" in result
+    assert status == 'win'
+    assert "gewinnt" in message
 
 def test_undo_simple_hit_restores_marks(cricket_logic, players):
     player1 = players[0]
@@ -183,10 +189,11 @@ def test_cut_throat_win_condition_lowest_score(cut_throat_logic, players):
     player1.score = 50
     player2.score = 100
 
-    result = cut_throat_logic._handle_throw(player1, "Single", 20, players)
-
+    status, message = cut_throat_logic._handle_throw(player1, "Single", 20, players)
+ 
     assert player1.game.end is True
-    assert isinstance(result, str) and "gewinnt" in result
+    assert status == 'win'
+    assert "gewinnt" in message
 
 def test_cut_throat_no_win_if_score_is_higher(cut_throat_logic, players):
     player1, player2 = players

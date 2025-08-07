@@ -27,9 +27,9 @@ from core.player import Player
 @pytest.fixture
 def elimination_logic(mock_game):
     """Erstellt eine Instanz der Elimination-Logik mit dem gemockten Spiel."""
-    mock_game.name = "Elimination"
-    mock_game.count_to = 301
-    mock_game.opt_out = "Single"
+    mock_game.options.name = "Elimination"
+    mock_game.options.count_to = 301
+    mock_game.options.opt_out = "Single"
     return Elimination(mock_game)
 
 @pytest.fixture
@@ -78,11 +78,11 @@ def test_elimination_resets_opponent_score(elimination_logic, players):
 def test_win_condition(elimination_logic, players):
     """Testet, ob das Spiel endet, wenn der Zielscore exakt erreicht wird."""
     player1 = players[0]
-    player1.score = 241
-    result = elimination_logic._handle_throw(player1, "Triple", 20, [])
+    player1.score = 241 # 301 - 60
+    status, message = elimination_logic._handle_throw(player1, "Triple", 20, [])
     assert player1.score == 301
     assert player1.game.end is True
-    assert isinstance(result, str) and "gewinnt" in result
+    assert status == 'win' and "gewinnt" in message
 
 def test_undo_elimination_restores_victim_score(elimination_logic, players):
     """Testet, ob Undo eine Eliminierung korrekt rückgängig macht."""

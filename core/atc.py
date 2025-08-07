@@ -28,7 +28,7 @@ ATC_SEGMENTS_AS_STR = [str(s) for s in range(1, 21)] # "1" bis "20"
 class AtC(GameLogicBase):
 	def __init__(self, game):
 		super().__init__(game)
-		self.opt_atc = game.opt_atc
+		self.opt_atc = game.options.opt_atc
 		self.targets = [k for k in ATC_TARGET_VALUES.keys()]
 
 	def initialize_player_state(self, player):
@@ -126,9 +126,9 @@ class AtC(GameLogicBase):
 
 		# --- Gewinnbedingung prüfen ---
 		if all_targets_closed:
-		    self.game.end = True
-		    total_darts = player.get_total_darts_in_game()
-		    return f"🏆 {player.name} gewinnt {self.game.name} in Runde {self.game.round} mit {total_darts} Darts!"
+			self.game.end = True
+			total_darts = player.get_total_darts_in_game()
+			return ('win', f"🏆 {player.name} gewinnt {self.game.options.name} in Runde {self.game.round} mit {total_darts} Darts!")
 
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:

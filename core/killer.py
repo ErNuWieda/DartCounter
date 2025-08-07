@@ -32,7 +32,7 @@ class Killer(GameLogicBase):
 		"""
 		Setzt die Anzahl der Leben für das Killer-Spiel.
 		"""
-		player.score = self.game.lifes
+		player.score = self.game.options.lifes
 		player.state['life_segment'] = None
 		player.state['can_kill'] = False
 
@@ -45,6 +45,22 @@ class Killer(GameLogicBase):
 	def get_targets(self):
 	    return []
 
+	def get_turn_start_message(self, player):
+		"""Gibt die passende Anweisung für die aktuelle Phase des Killer-Spiels zurück."""
+		if not player.state.get('life_segment'):
+			return ('info', "Lebensfeld ermitteln",
+					f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
+					f"Wirf mit deiner NICHT-dominanten Hand.\n"
+					"Das Double des getroffenen Segments wird dein Lebensfeld.\n"
+					"Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.")
+		
+		if not player.state.get('can_kill'):
+			segment_str = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
+			return ('info', "Zum Killer werden",
+					f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.")
+		
+		return None # In der Killer-Phase gibt es keine spezielle Nachricht.
+
 	def _get_active_players(self):
 		return [p for p in self.players if p.score > 0]
 
@@ -53,7 +69,7 @@ class Killer(GameLogicBase):
 		if len(active_players) == 1:
 			self.game.end = True
 			winner = active_players[0]
-			return f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!"
+			return ('win', f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!")
 		elif not active_players and len(self.players) > 0:
 			self.game.end = True
 			return "Niemand gewinnt! Alle Spieler wurden eliminiert."
@@ -76,7 +92,7 @@ class Killer(GameLogicBase):
 	def _undo_take_life(self, log_entry):
 		"""Macht das Nehmen eines Lebens von einem Opfer (oder sich selbst) rückgängig."""
 		victim = log_entry['victim']
-		if victim.score < self.game.lifes:
+		if victim.score < self.game.options.lifes:
 			victim.score += 1
 			victim.sb.set_score_value(victim.score)
 			return ('info', f"Leben für {victim.name} wiederhergestellt.")
@@ -122,13 +138,13 @@ class Killer(GameLogicBase):
 		player.state['life_segment'] = determined_segment
 		self.turn_log.append({'action': 'set_life_segment', 'player': player})
 		
-		determined_display = "Bull" if player.state['life_segment'] == "Bull" else f"Double {player.state['life_segment']}"
+		determined_display = "Bull" if determined_segment == "Bull" else f"Double {determined_segment}"
 		
-		# HINWEIS: Dieser direkte Aufruf von next_player() ist problematisch für ein sauberes Undo.
-		# Eine vollständige Korrektur würde eine Überarbeitung der Hauptspielschleife in core/game.py erfordern.
-		player.reset_turn()
-		self.game.next_player()
-		return ('info', f"{player.name} hat Lebensfeld: {determined_display}")
+		# KORREKTUR: Anstatt den Spielerwechsel direkt zu erzwingen, wird der Game-Klasse
+		# signalisiert, dass der Zug beendet ist. Der Benutzer klickt dann auf "Weiter".
+		# Dies hält die Undo-Kette intakt.
+		player.turn_is_over = True
+		return ('info', f"{player.name} hat Lebensfeld: {determined_display}\nBitte 'Weiter' klicken.")
 
 	def _handle_become_killer_phase(self, player, ring, segment):
 		"""Behandelt die Phase, in der ein Spieler versucht, Killer zu werden."""

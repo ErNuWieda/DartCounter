@@ -24,8 +24,8 @@ class Elimination(GameLogicBase):
 
     def __init__(self, game):
         super().__init__(game)
-        self.count_to = game.count_to
-        self.opt_out = game.opt_out
+        self.count_to = game.options.count_to
+        self.opt_out = game.options.opt_out
         # Ein transientes Protokoll, um Eliminierungen für die Undo-Funktion zu speichern.
         self.elimination_log = []
         # self.targets bleibt None aus der Basisklasse
@@ -76,16 +76,6 @@ class Elimination(GameLogicBase):
         score = self.game.get_score(ring, segment)
         result_event = ('ok', None) # Standard-Rückgabewert
 
-        if ring == "Miss":
-            # No messagebox for simple miss, score is 0.
-            # player.update_score_value(score, subtract=True) # score is 0, so no change.
-            player.sb.update_score(player.score) # Update display for throw history
-            if len(player.throws) == 3:
-                # Turn ends, user clicks "Weiter"
-                return result_event
-            return result_event # Throw processed
-
-
         new_score = player.score + score
         bust = False
         if new_score > self.count_to:
@@ -94,40 +84,37 @@ class Elimination(GameLogicBase):
             bust = True # Gewinnwurf muss ein Double sein
         
         if bust:
-            if self.game.sound_manager:
-                self.game.sound_manager.play_bust()
             player.turn_is_over = True
             # The score will be as it was BEFORE this busting throw.
             player.sb.update_score(player.score) # Update display
-            return ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+            result_event = ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+        elif ring == "Miss":
+            # Wurf war ein "Miss", aber kein Bust. Nur die Wurfhistorie aktualisieren.
+            player.sb.update_score(player.score)
+        else:
+            # Gültiger Wurf
+            player.update_score_value(score, subtract=False)
 
-        player.update_score_value(score, subtract=False)
+            # Prüfen, ob ein Gegner eliminiert wurde
+            for opp in players:
+                # Ein Gegner wird eliminiert, wenn sein Score mit dem des Werfers übereinstimmt
+                # und der Score nicht 0 ist (man kann niemanden bei 0 eliminieren).
+                if opp != player and player.score == opp.score and opp.score != 0:
+                    # Protokolliere den Zustand des Opfers VOR der Eliminierung
+                    self.elimination_log.append({
+                        'thrower_id': player.id,
+                        'victim_id': opp.id,
+                        'victim_score_before': opp.score
+                    })
+                    
+                    # Eliminiere das Opfer
+                    opp.score = 0
+                    opp.sb.set_score_value(opp.score)
+                    result_event = ('info', f"{player.name} schickt {opp.name} zurück an den Start!")
+                    break # Es kann nur ein Gegner pro Wurf eliminiert werden
 
-        # Prüfen, ob ein Gegner eliminiert wurde
-        for opp in players:
-            # Ein Gegner wird eliminiert, wenn sein Score mit dem des Werfers übereinstimmt
-            # und der Score nicht 0 ist (man kann niemanden bei 0 eliminieren).
-            if opp != player and player.score == opp.score and opp.score != 0:
-                # Protokolliere den Zustand des Opfers VOR der Eliminierung
-                self.elimination_log.append({
-                    'thrower_id': player.id,
-                    'victim_id': opp.id,
-                    'victim_score_before': opp.score
-                })
-                
-                # Eliminiere das Opfer
-                opp.score = 0
-                opp.sb.set_score_value(opp.score)
-                result_event = ('info', f"{player.name} schickt {opp.name} zurück an den Start!")
-                break # Es kann nur ein Gegner pro Wurf eliminiert werden
-
-        if player.score == self.count_to:            
+        if player.score == self.count_to:
+            result_event = ('win', f"🏆 {player.name} gewinnt in Runde {self.game.round}!")
             self.game.end = True
-            total_darts = player.get_total_darts_in_game()
-            return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
-
-        if len(player.throws) == 3:
-            # Turn ends, user clicks "Weiter"
-            return result_event
 
         return result_event

@@ -116,6 +116,8 @@ class SoundManager:
             "bull": "bull.wav",
             "bullseye": "bullseye.wav",
             "score_100": "100.wav",
+            "score_140": "140.wav",
+            "score_160": "160.wav",
             "score_180": "180.wav",
             "shanghai": "shanghai.wav",
         }
@@ -193,6 +195,18 @@ class SoundManager:
     def play_score_100(self):
         """Spielt den Sound für einen Score von 100+ ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.score_100_sound: self.score_100_sound.play()
+
+    def play_score_120(self):
+        """Spielt den Sound für einen Score von 100+ ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.score_100_sound: self.score_100_sound.play()
+
+    def play_score_140(self):
+        """Spielt den Sound für einen Score von 140 ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.score_140_sound: self.score_140_sound.play()
+
+    def play_score_160(self):
+        """Spielt den Sound für einen Score von 160 ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.score_160_sound: self.score_160_sound.play()
 
     def play_score_180(self):
         """Spielt den Sound für einen Score von 180 ab, falls Sounds aktiviert sind."""

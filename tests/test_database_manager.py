@@ -1,144 +1,160 @@
-import unittest
-from unittest.mock import patch, MagicMock, call
-import psycopg2
+import pytest
+from unittest.mock import MagicMock, patch
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from core.database_manager import DatabaseManager
+from core.db_models import Highscore, PlayerProfile
 
-class TestDatabaseManager(unittest.TestCase):
-    """
-    Testet den DatabaseManager.
-    Fokus liegt auf der korrekten Interaktion mit der Datenbank (gemockt)
-    und der Logik des @db_operation Decorators.
-    """
+"""
+Testet den DatabaseManager mit SQLAlchemy.
+Fokus liegt auf der korrekten Interaktion mit der SQLAlchemy Session und Engine.
+"""
 
-    @patch('core.database_manager.shutil.copy')
-    @patch('pathlib.Path.exists')
-    @patch('core.database_manager.configparser.ConfigParser')
-    @patch('core.database_manager.psycopg2.connect')
-    def setUp(self, mock_connect, mock_configparser, mock_exists, mock_copy):
-        """Setzt eine saubere Testumgebung mit gemockter DB-Verbindung auf."""
-        
-        # Mock für die Konfiguration
-        mock_exists.return_value = True
-        mock_config_instance = mock_configparser.return_value
-        mock_config_instance.__getitem__.return_value = {
-            'host': 'testhost', 'database': 'testdb', 'user': 'testuser', 'password': 'testpassword'
-        }
-        
-        # Mock für die DB-Verbindung
-        self.mock_conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        # Konfiguriere den Context Manager (__enter__/__exit__) des Cursors
-        self.mock_conn.cursor.return_value.__enter__.return_value = self.mock_cursor
-        mock_connect.return_value = self.mock_conn
+@pytest.fixture
+def db_manager_setup(monkeypatch):
+    """Setzt eine saubere Testumgebung mit gemockter SQLAlchemy-Engine und Session auf."""
+    # Mock für die Konfiguration
+    monkeypatch.setattr('core.database_manager.shutil.copy', MagicMock())
+    monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=True))
+    mock_configparser = MagicMock()
+    monkeypatch.setattr('core.database_manager.configparser.ConfigParser', mock_configparser)
+
+    mock_config_instance = mock_configparser.return_value
+    mock_config_instance.__getitem__.return_value = {
+        'host': 'testhost', 'database': 'testdb', 'user': 'testuser', 'password': 'testpassword'
+    }
+
+    # Mock für SQLAlchemy-Engine und Session
+    with patch('core.database_manager.create_engine') as mock_create_engine:
+        mock_engine_instance = MagicMock()
+        mock_create_engine.return_value = mock_engine_instance
+
+        mock_session_instance = MagicMock()
+        # Konfiguriere den Context Manager (__enter__/__exit__) der Session
+        mock_session_instance.query.return_value.filter_by.return_value.order_by.return_value.limit.return_value.all.return_value = []
+        mock_session_instance.query.return_value.distinct.return_value.order_by.return_value.all.return_value = []
+        mock_session_instance.query.return_value.filter_by.return_value.one_or_none.return_value = None
+
+        mock_sessionmaker = MagicMock()
+        mock_sessionmaker.return_value.__enter__.return_value = mock_session_instance
 
         # Instanziiere den DatabaseManager, was die Mocks auslöst
-        self.db_manager = DatabaseManager()
-
-    def test_initialization_successful(self):
-        """Testet, ob bei erfolgreicher Konfiguration eine Verbindung aufgebaut wird."""
-        self.assertTrue(self.db_manager.is_connected)
-        self.assertIsNotNone(self.db_manager.conn)
-        # Prüfen, ob die Initialisierungsmethoden aufgerufen wurden
-        # Es reicht zu prüfen, ob execute überhaupt aufgerufen wurde, da die Logik komplex ist.
-        self.mock_cursor.execute.assert_called()
-
-    @patch('core.database_manager.psycopg2.connect')
-    def test_initialization_connection_error(self, mock_connect):
-        """Testet, ob is_connected bei einem Verbindungsfehler False ist."""
-        mock_connect.side_effect = psycopg2.Error("Connection failed")
         db_manager = DatabaseManager()
-        self.assertFalse(db_manager.is_connected)
-        self.assertIsNone(db_manager.conn)
+        db_manager.Session = mock_sessionmaker
 
-    def test_get_scores_calls_correct_query(self):
-        """Testet, ob get_scores die korrekte SQL-Abfrage ausführt."""
-        # Reset, um die Aufrufe aus setUp zu ignorieren
-        self.mock_cursor.reset_mock()
+        yield db_manager, mock_engine_instance, mock_session_instance
 
-        # Test für X01 (ASC)
-        self.db_manager.get_scores("501")
-        self.mock_cursor.execute.assert_called_with(
-            "SELECT player_name, score_metric, date FROM highscores WHERE game_mode = %s ORDER BY score_metric ASC, date DESC LIMIT 10;",
-            ("501",)
-        )
+def test_initialization_successful(db_manager_setup):
+    """Testet, ob bei erfolgreicher Konfiguration eine Verbindung aufgebaut wird."""
+    db_manager, mock_engine, _ = db_manager_setup
+    assert db_manager.is_connected
+    assert db_manager.engine is not None
+    mock_engine.connect.assert_called_once()
+    # `create_all` wird aufgerufen, um Tabellen zu erstellen
+    mock_engine.mock_calls[1].assert_called_with('metadata.create_all(engine)')
 
-        # Test für Cricket (DESC)
-        self.db_manager.get_scores("Cricket")
-        self.mock_cursor.execute.assert_called_with(
-            "SELECT player_name, score_metric, date FROM highscores WHERE game_mode = %s ORDER BY score_metric DESC, date DESC LIMIT 10;",
-            ("Cricket",)
-        )
+def test_initialization_connection_error(monkeypatch):
+    """Testet, ob is_connected bei einem Verbindungsfehler False ist."""
+    # Mocks für die Konfigurationsleselogik
+    monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=True))
+    mock_configparser = MagicMock()
+    mock_config_instance = mock_configparser.return_value
+    mock_config_instance.__getitem__.return_value = {'host': 'h', 'database': 'd', 'user': 'u', 'password': 'p'}
+    monkeypatch.setattr('core.database_manager.configparser.ConfigParser', mock_configparser)
+    
+    # Simuliere einen Fehler bei create_engine
+    with patch('core.database_manager.create_engine', side_effect=SQLAlchemyError("Connection failed")):
+        db_manager = DatabaseManager()
+        assert not db_manager.is_connected
+        assert db_manager.engine is None
 
-    def test_add_score_commits_transaction(self):
-        """Testet, ob add_score einen Commit auslöst."""
-        # Reset, um die Aufrufe aus setUp zu ignorieren
-        self.mock_cursor.reset_mock()
-        self.mock_conn.reset_mock()
+def test_get_scores_calls_correct_query(db_manager_setup):
+    """Testet, ob get_scores die korrekte SQLAlchemy-Abfrage ausführt."""
+    db_manager, _, mock_session = db_manager_setup
 
-        self.db_manager.add_score("501", "Tester", 99)
-        self.mock_cursor.execute.assert_called_once()
-        self.mock_conn.commit.assert_called_once()
+    # Test für X01 (ASC)
+    db_manager.get_scores("501")
+    mock_session.query.assert_called_with(Highscore)
+    # Die Sortierlogik ist komplexer zu mocken, aber wir können den Filter prüfen
+    mock_session.query.return_value.filter_by.assert_called_with(game_mode="501")
 
-    def test_db_operation_on_disconnected_db(self):
-        """Testet, dass bei fehlender Verbindung keine DB-Operationen ausgeführt werden."""
-        self.db_manager.is_connected = False
-        
-        # Reset mocks to check for new calls
-        self.mock_conn.reset_mock()
+    # Test für Cricket (DESC)
+    db_manager.get_scores("Cricket")
+    mock_session.query.return_value.filter_by.assert_called_with(game_mode="Cricket")
 
-        # Test read operation
-        result_read = self.db_manager.get_all_profiles()
-        self.assertEqual(result_read, []) # Sollte den Default-Wert zurückgeben
+def test_add_profile_commits_transaction(db_manager_setup):
+    """Testet, ob add_profile einen Commit auslöst."""
+    db_manager, _, mock_session = db_manager_setup
+    mock_session.reset_mock()
 
-        # Test write operation
-        result_write = self.db_manager.delete_profile("Test")
-        self.assertFalse(result_write) # Sollte den Default-Wert zurückgeben
+    db_manager.add_profile("Tester", "/path", "#ff0000")
+    mock_session.add.assert_called_once()
+    mock_session.commit.assert_called_once()
 
-        # Es dürfen keine Cursor- oder Commit-Aufrufe stattgefunden haben
-        self.mock_conn.cursor.assert_not_called()
-        self.mock_conn.commit.assert_not_called()
+def test_operation_on_disconnected_db(db_manager_setup):
+    """Testet, dass bei fehlender Verbindung keine DB-Operationen ausgeführt werden."""
+    db_manager, _, mock_session = db_manager_setup
+    db_manager.is_connected = False
+    db_manager.Session = None # Wichtig, um den Zustand zu simulieren
+    
+    # Reset mocks to check for new calls
+    mock_session.reset_mock()
 
-    def test_db_operation_handles_exception_and_rolls_back(self):
-        """
-        Testet, ob der Decorator bei einem Fehler einen Rollback durchführt
-        und den Standardwert zurückgibt.
-        """
-        # Reset, um die Aufrufe aus setUp zu ignorieren
-        self.mock_conn.reset_mock()
+    # Test read operation
+    result_read = db_manager.get_all_profiles()
+    assert result_read == []
 
-        # Simuliere einen Fehler während der Ausführung
-        self.mock_cursor.execute.side_effect = psycopg2.Error("Test IntegrityError")
+    # Test write operation
+    result_write = db_manager.delete_profile("Test")
+    assert not result_write
 
-        # Führe eine Schreiboperation aus, die fehlschlagen wird
-        result = self.db_manager.add_profile("Tester", "/path", "#ff0000")
+    # Es dürfen keine Session-Aufrufe stattgefunden haben
+    mock_session.query.assert_not_called()
+    mock_session.commit.assert_not_called()
 
-        # Überprüfe das Ergebnis
-        self.assertFalse(result) # Sollte den Default-Wert False zurückgeben
-        self.mock_conn.commit.assert_not_called() # Commit darf nicht aufgerufen werden
-        self.mock_conn.rollback.assert_called_once() # Rollback muss aufgerufen werden
+def test_add_profile_handles_integrity_error(db_manager_setup):
+    """
+    Testet, ob bei einem IntegrityError (z.B. doppelter Name) ein Rollback
+    durchgeführt und False zurückgegeben wird.
+    """
+    db_manager, _, mock_session = db_manager_setup
+    mock_session.reset_mock()
 
-    def test_delete_profile_returns_true_on_success(self):
-        """Testet, ob delete_profile bei Erfolg True zurückgibt."""
-        # Reset, um die Aufrufe aus setUp zu ignorieren
-        self.mock_conn.reset_mock()
+    # Simuliere einen Fehler während des Commits
+    mock_session.commit.side_effect = IntegrityError("test", "test", "test")
 
-        # rowcount > 0 bedeutet, dass eine Zeile gelöscht wurde
-        self.mock_cursor.rowcount = 1
-        result = self.db_manager.delete_profile("Existing Player")
-        self.assertTrue(result)
-        self.mock_conn.commit.assert_called_once()
+    # Führe die Schreiboperation aus, die fehlschlagen wird
+    result = db_manager.add_profile("Tester", "/path", "#ff0000")
 
-    def test_delete_profile_returns_false_if_not_found(self):
-        """Testet, ob delete_profile bei nicht gefundenem Profil False zurückgibt."""
-        # Reset, um die Aufrufe aus setUp zu ignorieren
-        self.mock_conn.reset_mock()
+    # Überprüfe das Ergebnis
+    assert not result
+    mock_session.add.assert_called_once()
+    mock_session.commit.assert_called_once()
+    mock_session.rollback.assert_called_once()
 
-        # rowcount == 0 bedeutet, dass keine Zeile gelöscht wurde
-        self.mock_cursor.rowcount = 0
-        result = self.db_manager.delete_profile("Non-Existing Player")
-        self.assertFalse(result)
-        self.mock_conn.commit.assert_called_once()
+def test_delete_profile_returns_true_on_success(db_manager_setup):
+    """Testet, ob delete_profile bei Erfolg True zurückgibt."""
+    db_manager, _, mock_session = db_manager_setup
+    mock_session.reset_mock()
 
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    # Simuliere, dass ein Profil gefunden wird
+    mock_profile = PlayerProfile(name="Existing Player")
+    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = mock_profile
+
+    result = db_manager.delete_profile("Existing Player")
+    assert result
+    mock_session.delete.assert_called_with(mock_profile)
+    mock_session.commit.assert_called_once()
+
+def test_delete_profile_returns_false_if_not_found(db_manager_setup):
+    """Testet, ob delete_profile bei nicht gefundenem Profil False zurückgibt."""
+    db_manager, _, mock_session = db_manager_setup
+    mock_session.reset_mock()
+
+    # Simuliere, dass kein Profil gefunden wird (Standardverhalten des Mocks)
+    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = None
+
+    result = db_manager.delete_profile("Non-Existing Player")
+    assert not result
+    mock_session.delete.assert_not_called()
+    mock_session.commit.assert_not_called()

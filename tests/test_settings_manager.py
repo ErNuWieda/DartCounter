@@ -1,101 +1,108 @@
-import unittest
-from unittest.mock import patch, mock_open, call
+import pytest
+from unittest.mock import mock_open, call, MagicMock, patch
 import json 
 from pathlib import Path
 
 # Klasse, die getestet wird
 from core.settings_manager import SettingsManager
 
-class TestSettingsManager(unittest.TestCase):
+@pytest.fixture
+def settings_manager_mocks(monkeypatch):
+    """Patcht die Hilfsfunktion, um den Dateipfad zu kontrollieren und setzt das Singleton zurück."""
+    # Singleton-Reset, um eine saubere Instanz für jeden Test zu gewährleisten.
+    if hasattr(SettingsManager, '_instance'):
+        SettingsManager._instance = None
+    if hasattr(SettingsManager, '_initialized'):
+        delattr(SettingsManager, '_initialized')
+
+    # Patch für das AppData-Verzeichnis
+    mock_app_data_dir = Path('/fake/appdata/dir')
+    monkeypatch.setattr('core.settings_manager.get_app_data_dir', lambda: mock_app_data_dir)
+
+    # Patch für das Anwendungs-Root-Verzeichnis
+    mock_root_dir = Path('/fake/root/dir')
+    monkeypatch.setattr('core.settings_manager.get_application_root_dir', lambda: mock_root_dir)
+
+    return {
+        "app_data_dir": mock_app_data_dir,
+        "root_dir": mock_root_dir,
+        "expected_filepath": mock_app_data_dir / "settings.json"
+    }
+
+class TestSettingsManager:
     """Testet die Logik zum Laden und Speichern von Anwendungseinstellungen."""
 
-    def setUp(self):
-        """Patcht die Hilfsfunktion, um den Dateipfad zu kontrollieren."""
-        # Singleton-Reset, um eine saubere Instanz für jeden Test zu gewährleisten.
-        # Dies verhindert, dass Tests sich gegenseitig beeinflussen.
-        if hasattr(SettingsManager, '_instance'):
-            SettingsManager._instance = None
-        # Das _initialized-Flag muss entfernt werden, damit __init__ erneut ausgeführt wird.
-        if hasattr(SettingsManager, '_initialized'):
-            delattr(SettingsManager, '_initialized')
-
-        # Patch für das AppData-Verzeichnis
-        patcher_app_data = patch('core.settings_manager.get_app_data_dir')
-        self.mock_get_app_data_dir = patcher_app_data.start()
-        self.mock_app_data_dir = Path('/fake/appdata/dir')
-        self.mock_get_app_data_dir.return_value = self.mock_app_data_dir
-        self.expected_filepath = self.mock_app_data_dir / "settings.json"
-        self.addCleanup(patcher_app_data.stop)
-
-        # Patch für das Anwendungs-Root-Verzeichnis (der fehlende Teil)
-        patcher_root_dir = patch('core.settings_manager.get_application_root_dir')
-        self.mock_get_root_dir = patcher_root_dir.start()
-        self.mock_root_dir = Path('/fake/root/dir')
-        self.mock_get_root_dir.return_value = self.mock_root_dir
-        self.addCleanup(patcher_root_dir.stop)
-
-    @patch('pathlib.Path.exists', return_value=False)
-    def test_load_settings_no_file_uses_defaults(self, mock_exists):
+    def test_load_settings_no_file_uses_defaults(self, settings_manager_mocks, monkeypatch):
         """Testet, ob Standardeinstellungen geladen werden, wenn keine Datei existiert."""
+        mock_exists = MagicMock(return_value=False)
+        monkeypatch.setattr('pathlib.Path.exists', mock_exists)
+        
         sm = SettingsManager()
         defaults = sm._get_defaults()
 
-        self.assertEqual(sm.settings, defaults)
-        self.assertEqual(sm.get('theme'), 'light')
+        assert sm.settings == defaults
+        assert sm.get('theme') == 'light'
         # Prüfen, ob auf beide Pfade geprüft wurde
-        self.assertEqual(mock_exists.call_count, 2)
+        assert mock_exists.call_count == 2
 
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_load_settings_with_existing_file(self, mock_exists):
+    def test_load_settings_with_existing_file(self, settings_manager_mocks, monkeypatch):
         """Testet das erfolgreiche Laden aus einer existierenden Datei."""
+        mock_exists = MagicMock(return_value=True)
+        monkeypatch.setattr('pathlib.Path.exists', mock_exists)
+        expected_filepath = settings_manager_mocks["expected_filepath"]
+
         mock_data = json.dumps({'theme': 'dark', 'sound_enabled': False, 'last_player_names': ['A', 'B']}) 
         
-        with patch('builtins.open', mock_open(read_data=mock_data)) as mock_file:
+        with patch('builtins.open', mock_open(read_data=mock_data)) as m_open: # noqa: F821
             sm = SettingsManager()
-            self.assertEqual(sm.get('theme'), 'dark')
-            self.assertFalse(sm.get('sound_enabled'))
-            self.assertEqual(sm.get('last_player_names'), ['A', 'B'])
-            mock_file.assert_called_once_with(self.expected_filepath, 'r', encoding='utf-8')
-        # Prüfen, dass nur der erste Pfad geprüft wurde (da er existiert)
-        mock_exists.assert_called_once()
+            assert sm.get('theme') == 'dark'
+            assert not sm.get('sound_enabled')
+            assert sm.get('last_player_names') == ['A', 'B']
+            # Wir prüfen, ob die korrekte Datei geöffnet wurde. Die Anzahl der `exists`-Aufrufe ist ein Implementierungsdetail.
+            m_open.assert_called_with(expected_filepath, 'r', encoding='utf-8')
 
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_load_settings_with_partial_file_merges_defaults(self, mock_exists):
+    def test_load_settings_with_partial_file_merges_defaults(self, settings_manager_mocks, monkeypatch):
         """Testet, ob eine unvollständige Datei mit Standardwerten zusammengeführt wird."""
+        monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=True))
         mock_data = json.dumps({'theme': 'dark'}) # 'sound_enabled' und 'last_player_names' fehlen
         
-        with patch('builtins.open', mock_open(read_data=mock_data)):
+        with patch('builtins.open', mock_open(read_data=mock_data)): # noqa: F821
             sm = SettingsManager()
-            self.assertEqual(sm.get('theme'), 'dark') # Wert aus Datei
-            self.assertTrue(sm.get('sound_enabled')) # Wert aus Defaults
-            self.assertIsNotNone(sm.get('last_player_names')) # Wert aus Defaults
+            assert sm.get('theme') == 'dark' # Wert aus Datei
+            assert sm.get('sound_enabled') # Wert aus Defaults
+            assert sm.get('last_player_names') is not None # Wert aus Defaults
 
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_load_settings_with_corrupt_file_uses_defaults(self, mock_exists):
+    def test_load_settings_with_corrupt_file_uses_defaults(self, settings_manager_mocks, monkeypatch):
         """Testet, ob bei einer korrupten JSON-Datei auf Standardwerte zurückgegriffen wird."""
+        monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=True))
         mock_data = "this is not valid json"
         
-        with patch('builtins.open', mock_open(read_data=mock_data)):
+        with patch('builtins.open', mock_open(read_data=mock_data)): # noqa: F821
             sm = SettingsManager()
             defaults = sm._get_defaults()
-            self.assertEqual(sm.settings, defaults)
+            assert sm.settings == defaults
 
-    def test_get_value_with_default_fallback(self):
+    def test_get_value_with_default_fallback(self, settings_manager_mocks, monkeypatch):
         """Testet die get-Methode mit einem Fallback-Standardwert."""
         # Initialisieren ohne Datei, um sicherzustellen, dass nur Defaults geladen werden
-        with patch('os.path.exists', return_value=False):
-            sm = SettingsManager()
+        monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=False))
+        sm = SettingsManager()
         
         # Annahme: 'non_existent_key' ist nicht in den Defaults
-        self.assertIsNone(sm.get('non_existent_key'))
-        self.assertEqual(sm.get('non_existent_key', 'fallback'), 'fallback')
+        assert sm.get('non_existent_key') is None
+        assert sm.get('non_existent_key', 'fallback') == 'fallback'
 
-    @patch('pathlib.Path.mkdir')
-    @patch('os.path.exists', return_value=False)
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('json.dump')
-    def test_set_and_save_settings(self, mock_json_dump, mock_file, mock_exists, mock_mkdir):
+    def test_set_and_save_settings(self, settings_manager_mocks, monkeypatch):
         """Testet das Setzen und anschließende Speichern von Einstellungen."""
+        monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=False))
+        mock_mkdir = MagicMock()
+        monkeypatch.setattr('pathlib.Path.mkdir', mock_mkdir)
+        m_open = mock_open()
+        monkeypatch.setattr('builtins.open', m_open)
+        mock_json_dump = MagicMock()
+        monkeypatch.setattr('json.dump', mock_json_dump)
+        
+        expected_filepath = settings_manager_mocks["expected_filepath"]
         sm = SettingsManager()
         
         # Werte ändern
@@ -109,22 +116,27 @@ class TestSettingsManager(unittest.TestCase):
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
         # Überprüfen, ob die Datei zum Schreiben geöffnet wurde
-        mock_file.assert_called_once_with(self.expected_filepath, 'w', encoding='utf-8')
+        m_open.assert_called_once_with(expected_filepath, 'w', encoding='utf-8')
         
         # Überprüfen, ob json.dump mit den korrekten, aktualisierten Daten aufgerufen wurde
-        self.assertTrue(mock_json_dump.called)
+        assert mock_json_dump.called
         saved_data = mock_json_dump.call_args[0][0]
         
-        self.assertEqual(saved_data['theme'], 'dark')
-        self.assertEqual(saved_data['new_setting'], 123)
-        self.assertTrue(saved_data['sound_enabled']) # Standardwert sollte noch da sein
+        assert saved_data['theme'] == 'dark'
+        assert saved_data['new_setting'] == 123
+        assert saved_data['sound_enabled'] # Standardwert sollte noch da sein
 
-    @patch('pathlib.Path.mkdir')
-    @patch('os.path.exists', return_value=False) # Starten ohne Datei
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('json.dump')
-    def test_save_settings_creates_directory_if_not_exists(self, mock_json_dump, mock_file, mock_exists, mock_mkdir):
+    def test_save_settings_creates_directory_if_not_exists(self, settings_manager_mocks, monkeypatch):
         """Testet, ob save_settings das Verzeichnis erstellt, falls es nicht existiert."""
+        monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=False))
+        mock_mkdir = MagicMock()
+        monkeypatch.setattr('pathlib.Path.mkdir', mock_mkdir)
+        m_open = mock_open()
+        monkeypatch.setattr('builtins.open', m_open)
+        mock_json_dump = MagicMock()
+        monkeypatch.setattr('json.dump', mock_json_dump)
+        
+        expected_filepath = settings_manager_mocks["expected_filepath"]
         sm = SettingsManager()
 
         # Speichern
@@ -134,5 +146,5 @@ class TestSettingsManager(unittest.TestCase):
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
         # Überprüfen, ob die Datei trotzdem gespeichert wurde
-        mock_file.assert_called_once_with(self.expected_filepath, 'w', encoding='utf-8')
+        m_open.assert_called_once_with(expected_filepath, 'w', encoding='utf-8')
         mock_json_dump.assert_called_once()

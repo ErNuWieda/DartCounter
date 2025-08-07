@@ -27,8 +27,8 @@ from core.player import Player
 @pytest.fixture
 def atc_logic(mock_game):
     """Erstellt eine Instanz der AtC-Logik mit dem gemockten Spiel."""
-    mock_game.name = "Around the Clock"
-    mock_game.opt_atc = "Single"  # Standard für die meisten Tests
+    mock_game.options.name = "Around the Clock"
+    mock_game.options.opt_atc = "Single"  # Standard für die meisten Tests
     logic = AtC(mock_game)
     mock_game.targets = logic.get_targets()
     return logic
@@ -66,8 +66,8 @@ def test_invalid_hit_returns_error(atc_logic, player):
 def test_valid_hit_with_double_option(mock_game):
     """Testet einen gültigen Treffer, wenn die Option 'Double' aktiv ist."""
     # Für diesen Test müssen Spiel und Logik manuell konfiguriert werden.
-    mock_game.name = "Around the Clock"
-    mock_game.opt_atc = "Double"
+    mock_game.options.name = "Around the Clock"
+    mock_game.options.opt_atc = "Double"
     atc_logic = AtC(mock_game)
     mock_game.targets = atc_logic.get_targets()
     player = Player(name="Tester", game=mock_game)
@@ -86,11 +86,11 @@ def test_win_condition(atc_logic, player):
         atc_logic._handle_throw(player, "Single", i, [])
     
     # Den letzten Wurf auf Bull machen
-    result = atc_logic._handle_throw(player, "Bull", 25, [])
+    status, message = atc_logic._handle_throw(player, "Bull", 25, [])
 
     assert player.game.end is True
-    assert isinstance(result, str)
-    assert "gewinnt" in result
+    assert status == 'win'
+    assert "gewinnt" in message
 
 def test_undo_restores_target(atc_logic, player):
     """Testet, ob die Undo-Funktion den Zustand korrekt wiederherstellt."""

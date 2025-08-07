@@ -48,7 +48,7 @@ class Cricket(GameLogicBase):
     """
     def __init__(self, game):
         super().__init__(game)
-        self.name = game.name
+        self.name = game.options.name
         self.CRICKET_TARGET_VALUES = CRICKET_TARGET_VALUES
         self.CRICKET_SEGMENTS_AS_STR = CRICKET_SEGMENTS_AS_STR
 
@@ -185,77 +185,69 @@ class Cricket(GameLogicBase):
             segment (int/str): Das getroffene Segment.
 
         Returns:
+            tuple: (str, str) - 
             str or None: Eine Gewinnnachricht, wenn das Spiel gewonnen wurde, ansonsten None.
         """
+        return_msg = ("ok", None)
         target_hit, marks_scored = self._get_target_and_marks (ring, segment)
 
-        # Statistik für Marks-per-Round (MPR) aktualisieren
-        if target_hit and marks_scored > 0:
-            player.stats['total_marks_scored'] += marks_scored
-
-        if not target_hit or marks_scored == 0:
+        if not target_hit: 
             player.sb.update_score(player.score) # Scoreboard aktualisieren (für Wurf-Historie)
-            if len(player.throws) == 3:
-                # Turn ends
-                return ('invalid_target', "Nur Treffer auf 15-20 oder Bull zählen.\nLetzter Dart dieser Aufnahme.")
-            return ('invalid_target', "Nur Treffer auf 15-20 oder Bull zählen.")
+        else:
+            # Statistik für Marks-per-Round (MPR) aktualisieren
+            player.stats['total_marks_scored'] += marks_scored
+            # --- Treffer auf Cricket-Ziel verarbeiten (optimierte Logik) ---
+            marks_before_throw = player.state['hits'].get(target_hit, 0)
+            player.state['hits'][target_hit] += marks_scored
 
-        # --- Treffer auf Cricket-Ziel verarbeiten (optimierte Logik) ---
-        marks_before_throw = player.state['hits'].get(target_hit, 0)
-        player.state['hits'][target_hit] += marks_scored
+            # Berechne, wie viele der geworfenen Marks punktend waren
+            # (d.h. auf ein bereits vom Spieler geschlossenes Ziel fielen)
+            scoring_marks = max(0, (marks_before_throw + marks_scored) - 3) - max(0, marks_before_throw - 3)
 
-        # Berechne, wie viele der geworfenen Marks punktend waren
-        # (d.h. auf ein bereits vom Spieler geschlossenes Ziel fielen)
-        scoring_marks = max(0, (marks_before_throw + marks_scored) - 3) - max(0, marks_before_throw - 3)
+            points_for_this_throw = 0
+            if scoring_marks > 0:
+                # Prüfen, ob das Ziel bei mindestens einem Gegner noch offen ist
+                is_target_open_for_scoring = any(opp != player and opp.state['hits'].get(target_hit, 0) < 3 for opp in players)
+                if is_target_open_for_scoring:
+                    points_for_this_throw = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks
+                    
+                    if self.name in ("Cricket", "Tactics"):
+                        player.update_score_value(points_for_this_throw, subtract=False)
+                    else: # Cut Throat
+                        for opp in players:
+                            if opp != player and opp.state['hits'].get(target_hit, 0) < 3:
+                                opp.score += points_for_this_throw
+                                opp.sb.set_score_value(opp.score)
+                            
+            # Marks und Score aktualisieren
+            player.sb.update_display(player.state['hits'], player.score) 
 
-        points_for_this_throw = 0
-        if scoring_marks > 0:
-            # Prüfen, ob das Ziel bei mindestens einem Gegner noch offen ist
-            is_target_open_for_scoring = any(opp != player and opp.state['hits'].get(target_hit, 0) < 3 for opp in players)
-            if is_target_open_for_scoring:
-                points_for_this_throw = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks
-                
-                if self.name in ("Cricket", "Tactics"):
-                    player.update_score_value(points_for_this_throw, subtract=False)
-                else: # Cut Throat
-                    for opp in players:
-                        if opp != player and opp.state['hits'].get(target_hit, 0) < 3:
-                            opp.score += points_for_this_throw
-                            opp.sb.set_score_value(opp.score)
-                        
-        # Marks und Score aktualisieren
-        player.sb.update_display(player.state['hits'], player.score) 
+            # --- Gewinnbedingung prüfen ---
+            all_targets_closed_by_player = all(player.state['hits'].get(target, 0) >= 3 for target in self.targets)
 
-        # --- Gewinnbedingung prüfen ---
-        all_targets_closed_by_player = all(player.state['hits'].get(target, 0) >= 3 for target in self.targets)
+            if all_targets_closed_by_player:
+                # Ein Spieler gewinnt, wenn er alle Ziele geschlossen hat und
+                # einen mindestens so guten Punktestand wie alle Gegner hat.
+                has_won = True
+                opponents = [p for p in players if p != player]
 
-        if all_targets_closed_by_player:
-            # Ein Spieler gewinnt, wenn er alle Ziele geschlossen hat und
-            # einen mindestens so guten Punktestand wie alle Gegner hat.
-            has_won = True
-            opponents = [p for p in players if p != player]
+                for opp in opponents:
+                    if self.name in ("Cricket", "Tactics"):
+                        if player.score < opp.score:
+                            has_won = False
+                            break
+                    elif self.name == "Cut Throat":
+                        if player.score > opp.score:
+                            has_won = False
+                            break
 
-            for opp in opponents:
-                if self.name in ("Cricket", "Tactics"):
-                    if player.score < opp.score:
-                        has_won = False
-                        break
-                elif self.name == "Cut Throat":
-                    if player.score > opp.score:
-                        has_won = False
-                        break
+                if has_won:
+                    # Der Spieler, der den Wurf gemacht hat, der die Gewinnbedingung erfüllt, ist der alleinige Sieger.
+                    self.game.end = True
+                    self.game.winner = player
+                    if self.game.highscore_manager:
+                        mpr = player.get_mpr()
+                        self.game.highscore_manager.add_score(self.name, player.name, mpr)
+                    return_msg = ('win', f"🏆 {player.name} gewinnt!")
 
-            if has_won:
-                self.game.end = True
-
-                # Highscore für Cricket-Modi hinzufügen (MPR)
-                if self.game.highscore_manager:
-                    mpr = player.get_mpr()
-                    self.game.highscore_manager.add_score(self.name, player.name, mpr)
-                return f"🏆 {player.name} gewinnt!"
-
-        # --- Weiter / Nächster Spieler ---
-        if len(player.throws) == 3:
-            # Turn ends
-            return ('ok', None)
-        return ('ok', None)
+        return  return_msg

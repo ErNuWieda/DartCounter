@@ -28,7 +28,8 @@ from core.game import Game
 def mock_game():
     """Erstellt eine gemockte Game-Instanz mit den für die Micky-Logik benötigten Attributen."""
     game = MagicMock(spec=Game)
-    game.name = "Micky Mouse"
+    game.options = MagicMock()
+    game.options.name = "Micky Mouse"
     game.round = 1 # Fehlte, wird für die Gewinnprüfung benötigt
     game.end = False
     game.winner = None
@@ -117,10 +118,10 @@ def test_win_condition(micky_logic, player):
     player.state['hits']["Bull"] = 2 # Zwei Treffer auf Bull
 
     # Der letzte Wurf, der das Spiel gewinnt
-    result = micky_logic._handle_throw(player, "Bull", 25, [])
+    status, message = micky_logic._handle_throw(player, "Bull", 25, [])
 
     assert player.game.end is True
-    assert isinstance(result, str) and "gewinnt" in result
+    assert status == 'win' and "gewinnt" in message
 
 
 def test_undo_restores_marks_and_target(micky_logic, player):

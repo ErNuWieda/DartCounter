@@ -107,6 +107,66 @@ class PlayerStatsManager:
         ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(side="left", padx=5)
 
+    def update_accuracy_model(self, player_name: str, parent_window=None):
+        """
+        Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es.
+        """
+        if not NUMPY_AVAILABLE:
+            messagebox.showerror("Abhängigkeit fehlt", "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\nBitte installieren: pip install numpy", parent=parent_window)
+            return
+
+        # 1. Alle Wurfkoordinaten des Spielers sammeln
+        records = self.db_manager.get_records_for_player(player_name)
+        all_coords_normalized = [coord for rec in records for coord in rec.get('all_throws_coords', []) if coord]
+
+        if len(all_coords_normalized) < 20: # Mindestanzahl an Würfen für eine sinnvolle Analyse
+            messagebox.showinfo("Nicht genügend Daten", f"Für '{player_name}' sind nicht genügend Wurfdaten für eine Analyse vorhanden.", parent=parent_window)
+            return
+
+        # 2. Würfe nach Zielsegment gruppieren
+        throws_by_target = {}
+        for norm_x, norm_y in all_coords_normalized:
+            # Konvertiere normalisierte Koordinaten in absolute Koordinaten des Referenz-Boards
+            x = norm_x * DartboardGeometry.ORIGINAL_SIZE
+            y = norm_y * DartboardGeometry.ORIGINAL_SIZE
+            
+            # Leite das getroffene Segment ab
+            segment = DartboardGeometry.get_segment_from_coords(x, y)
+            target_key = f"T{segment}" # Wir nehmen an, dass auf das Triple gezielt wurde
+
+            if target_key not in throws_by_target:
+                throws_by_target[target_key] = []
+            throws_by_target[target_key].append((x, y))
+
+        # 3. Statistisches Modell für jede Zielgruppe berechnen
+        accuracy_model = {}
+        for target_key, coords_list in throws_by_target.items():
+            if len(coords_list) < 10: continue # Mindestanzahl Würfe pro Ziel
+
+            ideal_coords = DartboardGeometry.get_target_coords(target_key)
+            if not ideal_coords: continue
+
+            # Berechne die Abweichungen von jedem Wurf zum idealen Ziel
+            deviations = np.array(coords_list) - np.array(ideal_coords)
+            
+            # Berechne Mittelwert (Bias) und Standardabweichung (Gruppierung)
+            mean_deviation = np.mean(deviations, axis=0)
+            std_deviation = np.std(deviations, axis=0)
+            
+            accuracy_model[target_key] = {
+                'mean_offset_x': float(mean_deviation[0]),
+                'mean_offset_y': float(mean_deviation[1]),
+                'std_dev_x': float(std_deviation[0]),
+                'std_dev_y': float(std_deviation[1]),
+                'data_points': len(coords_list)
+            }
+
+        # 4. Modell in der Datenbank speichern
+        if self.db_manager.update_profile_accuracy_model(player_name, accuracy_model):
+            messagebox.showinfo("Erfolg", f"Genauigkeitsmodell für '{player_name}' wurde erfolgreich berechnet und gespeichert.", parent=parent_window)
+        else:
+            messagebox.showerror("Fehler", "Das Genauigkeitsmodell konnte nicht gespeichert werden.", parent=parent_window)
+
     def show_stats_window(self, parent):
         """Erstellt und zeigt das Fenster für die Spielerstatistiken an."""
         if not MATPLOTLIB_AVAILABLE:

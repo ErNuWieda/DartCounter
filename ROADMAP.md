@@ -17,14 +17,15 @@ Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplant
 - Erste Version einer KI mit einfacher Wurflogik.
 
 ### Version 1.2: Professionalisierung & Features
-- **Turniermodus:** Implementierung eines K.o.-Turniersystems mit grafischem Turnierbaum.
+- **Turniermodus:** Implementierung Turniersysteme (K.o. und Doppel-K.o.) mit grafischem Turnierbaum.
 - **Statistiken & Highscores:** Einführung einer Datenbank zur Speicherung von Spielerstatistiken (Average, MPR) und Highscores.
 - **UI-Verbesserungen:** Hinzufügen eines dunklen Themes, Soundeffekten und einer überarbeiteten Spielerverwaltung.
 - **Speichern & Laden:** Möglichkeit, laufende Spiele und Turniere zu speichern und fortzusetzen.
 - **Qualitätssicherung:** Aufbau einer umfassenden Test-Suite mit `pytest`.
 
 ### Aktueller Stand (Post-1.2)
-- **Intelligente KI:** Die KI-Logik wurde grundlegend überarbeitet und agiert nun strategisch im Finish-Bereich.
+- **Adaptive KI ('KI-Klon'):** Die KI kann nun die Wurf-Charakteristiken (Genauigkeit, Streuung) menschlicher Spieler lernen und imitieren, um einen realistischen Sparringspartner zu erschaffen.
+- **Intelligente Wurfstrategie:** Die KI-Logik wurde grundlegend überarbeitet und agiert nun strategisch im Finish-Bereich, inklusive sicherer Setup-Würfe und der Vermeidung von "Bogey"-Zahlen.
 - **Stabiler Turniermodus:** Kritische Fehler in der Turnierlogik wurden behoben, was einen reibungslosen Ablauf von Anfang bis Ende sicherstellt.
 - **Poliertes UI:** Dialoge und Ansichten (Profil-Manager, Turnierbaum) wurden verfeinert für eine bessere Benutzererfahrung.
 
@@ -33,11 +34,12 @@ Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplant
 ## 🚀 Zukünftige Pläne (Version 1.3 und darüber hinaus)
 
 ### Kurzfristige Ziele
-- **Strategische KI-Positionierung:** Die KI soll lernen, auf "sichere" Bereiche eines Segments zu zielen (z.B. die Innenseite der T20, um die 5 und 1 zu vermeiden).
+- **Erweiterte KI-Strategie (Cricket):** Die Cricket-KI soll lernen, den Punktestand der Gegner zu berücksichtigen, um aggressiver oder defensiver zu spielen.
 - **Weitere Spielmodi:** Implementierung von "Legs" und "Sets" innerhalb von X01-Spielen.
+- **Turnier-Optionen:** Auswahlmöglichkeit zwischen "Einfach-K.o." und "Doppel-K.o." im Turnier-Setup-Dialog.
 
 ### Langfristige Vision
-- **Online-Modus:** Entwicklung einer Client-Server-Architektur, um Online-Spiele gegen andere zu ermöglichen.
+- **Online-Freundschaftsspiele & Team-Modus:** Entwicklung einer einfachen Client-Server-Architektur für private Spiele. Dies könnte auch einen Team-Modus umfassen, bei dem menschliche Spieler mit KI-Partnern zufälliger Stärke gegen andere Teams antreten.
 - **Erweiterte Statistiken:** Detailliertere Analyse von Trefferquoten auf einzelne Felder (Doubles, Triples).
 - **Barrierefreiheit:** Verbesserung der UI für bessere Lesbarkeit und Bedienbarkeit.
 - **Lokalisierung:** Unterstützung für weitere Sprachen (z.B. Englisch).

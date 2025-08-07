@@ -1,170 +1,187 @@
-import unittest
-from unittest.mock import patch, MagicMock, ANY
+# Dartcounter Deluxe
+# Copyright (C) 2025 Martin Hehl (airnooweeda)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# Import the class to be tested
-from core.game import Game
+import pytest
+from unittest.mock import MagicMock, ANY
+
+# Import the class to be tested AND the dictionary to be patched
+from core.game import Game, GAME_LOGIC_MAP
+from core.game_options import GameOptions
 # Import classes that are dependencies and will be mocked
 from core.player import Player
-from core.x01 import X01
 
 
-class TestGame(unittest.TestCase):
-    """Testet die Kernlogik der Game-Klasse, insbesondere Spieler- und Rundenwechsel."""
+@pytest.fixture
+def game_with_mocks(monkeypatch):
+    """
+    Eine pytest-Fixture, die eine Game-Instanz mit allen notwendigen Mocks einrichtet.
+    Ersetzt die komplexe setUp-Methode aus der unittest-Version.
+    """
+    # Mock für die X01-Klasse
+    mock_x01_class = MagicMock()
+    # Patch the dictionary directly by importing it
+    monkeypatch.setitem(GAME_LOGIC_MAP, '301', mock_x01_class)
 
-    def setUp(self):
-        """
-        Setzt eine kontrollierte Testumgebung für jeden Test auf.
-        - Mockt UI-Komponenten (messagebox, ScoreBoard, DartBoard).
-        - Mockt die spezifische Spiellogik (z.B. X01).
-        - Erstellt eine Game-Instanz mit gemockten Spielern.
-        """
-        # Patches, um UI-Elemente und externe Abhängigkeiten zu neutralisieren
-        patcher_ui_utils = patch('core.game.ui_utils')
-        patcher_game_ui = patch('core.game.GameUI')
+    # Mock für UI-Utilities und GameUI
+    mock_ui_utils = MagicMock()
+    monkeypatch.setattr('core.game.ui_utils', mock_ui_utils)
 
-        # Erstelle einen Mock für die X01-Klasse. Dieser wird in die Map injiziert.
-        self.mock_x01_class = MagicMock()
+    # Mock die gesamte UI-Setup-Funktion, um TclError zu vermeiden.
+    # Weisen jedem Spieler ein Mock-Scoreboard zu.
+    def mock_setup_scoreboards(game_controller):
+        for p in game_controller.players:
+            p.sb = MagicMock()
+        return [] # Gibt eine leere Liste zurück, da wir die SBs nicht brauchen
+    monkeypatch.setattr('core.game.setup_scoreboards', mock_setup_scoreboards)
+    monkeypatch.setattr('core.game.DartBoard', MagicMock())
+    
+    # Konfiguration für das Spiel
+    game_options_dict = {
+        'name': '301', 'opt_in': 'Single', 'opt_out': 'Single', 'opt_atc': 'Single',
+        'count_to': 301, 'lifes': 3, 'rounds': 7
+    }
+    player_names = ["Alice", "Bob"]
 
-        # Patche das Dictionary, das von der Factory-Methode verwendet wird, nicht die Klasse selbst.
-        # Dies stellt sicher, dass get_game_logic bei der Suche nach "301" unseren Mock erhält.
-        patcher_logic_map = patch.dict('core.game.GAME_LOGIC_MAP', {'301': self.mock_x01_class})
+    # Mock-Spieler-Instanzen
+    mock_players = []
+    for i, name in enumerate(player_names):
+        player = MagicMock(spec=Player)
+        player.name = name
+        player.id = i + 1
+        player.throws = []
+        player.sb = MagicMock()
+        player.reset_turn = MagicMock()
+        player.profile = None
+        mock_players.append(player)
 
-        self.mock_ui_utils = patcher_ui_utils.start()
-        self.mock_game_ui = patcher_game_ui.start()
-        patcher_logic_map.start()
+    # Patch die Player-Klasse
+    monkeypatch.setattr('core.game.Player', MagicMock(side_effect=mock_players))
 
-        # Sicherstellen, dass die Mocks nach jedem Test gestoppt werden
-        self.addCleanup(patcher_ui_utils.stop)
-        self.addCleanup(patcher_game_ui.stop)
-        self.addCleanup(patcher_logic_map.stop)
+    # Initialisiere die Game-Klasse
+    game = Game(
+        root=MagicMock(),
+        game_options=GameOptions.from_dict(game_options_dict),
+        player_names=player_names,
+        sound_manager=MagicMock(),
+        highscore_manager=MagicMock(),
+        player_stats_manager=MagicMock(),
+        profile_manager=MagicMock()
+    )
 
-        # Konfiguration für das Spiel
-        self.game_options = {
-            'name': '301', 'opt_in': 'Single', 'opt_out': 'Single',
-            'opt_atc': 'Single', 'count_to': 301, 'lifes': 3, 'rounds': 7
-        }
-        self.player_names = ["Alice", "Bob"]
+    # Weisen die erstellten Mock-Spieler der Instanz zu
+    game.players = mock_players
+    # Mock die Methode, die UI-Interaktionen auslöst
+    game.announce_current_player_turn = MagicMock()
 
-        # Erstelle Mock-Spieler-Instanzen manuell, um ihr Verhalten zu kontrollieren
-        self.mock_players = []
-        for i, name in enumerate(self.player_names):
-            player = MagicMock(spec=Player)
-            player.name = name
-            player.id = i + 1
-            player.throws = []
-            player.sb = MagicMock()
-            player.reset_turn = MagicMock()
-            player.profile = None # Hinzufügen, da Player jetzt ein Profil-Attribut erwartet
-            self.mock_players.append(player)
-
-        # Patch die Player-Klasse, damit sie unsere Mock-Spieler zurückgibt
-        self.patcher_player = patch('core.game.Player', side_effect=self.mock_players)
-        self.mock_player_class = self.patcher_player.start()
-        self.addCleanup(self.patcher_player.stop)
-
-        # Initialisiere die Game-Klasse
-        self.game = Game(
-            root=MagicMock(),
-            game_options=self.game_options,
-            player_names=self.player_names,
-            sound_manager=MagicMock(),
-            highscore_manager=MagicMock(),
-            player_stats_manager=MagicMock(),
-            profile_manager=MagicMock() # Hinzufügen, da Game jetzt den ProfileManager erwartet
-        )
-        # Weisen die erstellten Mock-Spieler der Instanz zu (da der Patcher sie erstellt hat)
-        self.game.players = self.mock_players
-        # Mock die Methode, die UI-Interaktionen auslöst
-        self.game.announce_current_player_turn = MagicMock()
+    # Gib die game-Instanz und die Mocks für die Tests zurück
+    return game, {'ui_utils': mock_ui_utils, 'x01_class': mock_x01_class}
 
 
-    def test_initialization(self):
-        """Testet, ob das Spiel korrekt initialisiert wird."""
-        self.assertEqual(len(self.game.players), 2)
-        self.assertEqual(self.game.players[0].name, "Alice")
-        self.assertEqual(self.game.current, 0, "Das Spiel sollte mit dem ersten Spieler (Index 0) beginnen.")
-        self.assertEqual(self.game.round, 1, "Das Spiel sollte in Runde 1 beginnen.")
-        self.assertFalse(self.game.end)
-        # Prüfen, ob die Spiellogik-Klasse (X01) instanziiert wurde
-        self.mock_x01_class.assert_called_once_with(self.game)
-        # Prüfen, ob die GameUI-Klasse instanziiert wurde
-        self.mock_game_ui.assert_called_once_with(self.game)
+def test_initialization(game_with_mocks):
+    """Testet, ob das Spiel korrekt initialisiert wird."""
+    game, mocks = game_with_mocks
+    assert len(game.players) == 2
+    assert game.players[0].name == "Alice"
+    assert game.current == 0
+    assert game.round == 1
+    assert not game.end
+    # Prüfen, ob die Spiellogik-Klasse (X01) instanziiert wurde
+    mocks['x01_class'].assert_called_once_with(game)
 
 
-    def test_current_player_returns_correct_player(self):
-        """Testet, ob current_player() den richtigen Spieler zurückgibt."""
-        self.game.current = 0
-        self.assertEqual(self.game.current_player(), self.mock_players[0])
+def test_current_player_returns_correct_player(game_with_mocks):
+    """Testet, ob current_player() den richtigen Spieler zurückgibt."""
+    game, _ = game_with_mocks
+    game.current = 0
+    assert game.current_player() == game.players[0]
 
-        self.game.current = 1
-        self.assertEqual(self.game.current_player(), self.mock_players[1])
-
-
-    def test_next_player_advances_turn(self):
-        """Testet den einfachen Wechsel zum nächsten Spieler innerhalb einer Runde."""
-        player1 = self.game.current_player()
-        
-        self.game.next_player()
-
-        self.assertEqual(self.game.current, 1, "Der Index des aktuellen Spielers sollte auf 1 erhöht werden.")
-        self.assertEqual(self.game.round, 1, "Die Runde sollte gleich bleiben.")
-        player1.reset_turn.assert_called_once()
-        self.game.announce_current_player_turn.assert_called_once()
+    game.current = 1
+    assert game.current_player() == game.players[1]
 
 
-    def test_next_player_increments_round(self):
-        """Testet, ob die Runde erhöht wird, wenn der letzte Spieler seinen Zug beendet."""
-        self.game.current = len(self.game.players) - 1 # Setze auf den letzten Spieler (Bob)
-        last_player = self.game.current_player()
+def test_next_player_advances_turn(game_with_mocks):
+    """Testet den einfachen Wechsel zum nächsten Spieler innerhalb einer Runde."""
+    game, _ = game_with_mocks
+    player1 = game.current_player()
+    
+    game.next_player()
 
-        self.game.next_player()
-
-        self.assertEqual(self.game.current, 0, "Der Index sollte nach dem letzten Spieler auf 0 zurückgesetzt werden.")
-        self.assertEqual(self.game.round, 2, "Die Runde sollte auf 2 erhöht werden.")
-        last_player.reset_turn.assert_called_once()
-        self.game.announce_current_player_turn.assert_called_once()
-
-
-    def test_leave_game_current_player_advances_turn(self):
-        """Testet, was passiert, wenn der aktuelle Spieler das Spiel verlässt."""
-        player_to_leave = self.game.players[0]
-        
-        self.game.leave(player_to_leave.id)
-
-        self.assertEqual(len(self.game.players), 1, "Die Spielerliste sollte einen Spieler weniger haben.")
-        self.assertNotIn(player_to_leave, self.game.players)
-        self.assertEqual(self.game.current, 0, "Der 'current' Zeiger sollte auf den neuen Spieler an Index 0 zeigen.")
-        self.assertEqual(self.game.players[0].name, "Bob")
-        self.game.announce_current_player_turn.assert_called_once()
+    assert game.current == 1
+    assert game.round == 1
+    player1.reset_turn.assert_called_once()
+    game.announce_current_player_turn.assert_called_once()
 
 
-    def test_leave_game_non_current_player_adjusts_index(self):
-        """Testet das Verlassen eines Spielers, der nicht am Zug ist."""
-        self.game.current = 1 # Bob ist am Zug
-        player_to_leave = self.game.players[0] # Alice verlässt das Spiel
+def test_next_player_increments_round(game_with_mocks):
+    """Testet, ob die Runde erhöht wird, wenn der letzte Spieler seinen Zug beendet."""
+    game, _ = game_with_mocks
+    game.current = len(game.players) - 1 # Setze auf den letzten Spieler (Bob)
+    last_player = game.current_player()
 
-        self.game.leave(player_to_leave.id)
+    game.next_player()
 
-        self.assertEqual(len(self.game.players), 1)
-        self.assertNotIn(player_to_leave, self.game.players)
-        self.assertEqual(self.game.current, 0, "Der 'current' Zeiger sollte auf 0 dekrementiert werden, da ein Spieler davor entfernt wurde.")
-        self.game.announce_current_player_turn.assert_not_called()
+    assert game.current == 0
+    assert game.round == 2
+    last_player.reset_turn.assert_called_once()
+    game.announce_current_player_turn.assert_called_once()
 
 
-    def test_leave_game_last_player_ends_game(self):
-        """Testet, ob das Spiel endet, wenn der letzte Spieler geht."""
-        # Reduziere die Spielerliste auf einen
-        self.game.players = [self.mock_players[0]]
-        self.game.current = 0
-        player_to_leave = self.game.players[0]
-        # Mock die destroy-Methode, um ihren Aufruf zu prüfen
-        self.game.destroy = MagicMock()
+def test_leave_game_current_player_advances_turn(game_with_mocks):
+    """Testet, was passiert, wenn der aktuelle Spieler das Spiel verlässt."""
+    game, _ = game_with_mocks
+    player_to_leave = game.players[0]
+    
+    game.leave(player_to_leave)
 
-        self.game.leave(player_to_leave.id)
+    assert len(game.players) == 1
+    assert player_to_leave not in game.players
+    assert game.current == 0
+    assert game.players[0].name == "Bob"
+    game.announce_current_player_turn.assert_called_once()
 
-        self.assertEqual(len(self.game.players), 0)
-        self.assertTrue(self.game.end, "Die 'end'-Flagge sollte auf True gesetzt werden.")
-        self.mock_ui_utils.show_message.assert_called_once_with(
-            'info', "Spielende", "Alle Spieler haben das Spiel verlassen.", parent=ANY
-        )
-        self.game.destroy.assert_called_once()
+
+def test_leave_game_non_current_player_adjusts_index(game_with_mocks):
+    """Testet das Verlassen eines Spielers, der nicht am Zug ist."""
+    game, _ = game_with_mocks
+    game.current = 1 # Bob ist am Zug
+    player_to_leave = game.players[0] # Alice verlässt das Spiel
+
+    game.leave(player_to_leave)
+
+    assert len(game.players) == 1
+    assert player_to_leave not in game.players
+    assert game.current == 0
+    game.announce_current_player_turn.assert_not_called()
+
+
+def test_leave_game_last_player_ends_game(game_with_mocks):
+    """Testet, ob das Spiel endet, wenn der letzte Spieler geht."""
+    game, mocks = game_with_mocks
+    # Reduziere die Spielerliste auf einen
+    game.players = [game.players[0]]
+    game.current = 0
+    player_to_leave = game.players[0]
+    # Mock die destroy-Methode, um ihren Aufruf zu prüfen
+    game.destroy = MagicMock()
+
+    game.leave(player_to_leave)
+
+    assert len(game.players) == 0
+    assert game.end is True
+    mocks['ui_utils'].show_message.assert_called_once_with(
+        'info', "Spielende", "Alle Spieler haben das Spiel verlassen.", parent=ANY
+    )
+    game.destroy.assert_called_once()

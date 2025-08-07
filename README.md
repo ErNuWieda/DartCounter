@@ -19,6 +19,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 *   **Intelligente KI-Gegner:**
     *   Spiele gegen KI-Gegner mit einstellbaren Schwierigkeitsgraden (von Anfänger bis Champion).
     *   Die KI verfolgt eine menschliche Wurfstrategie, inklusive Power-Scoring und cleveren Setup-Würfen im Finish-Bereich.
+    *   **Adaptive 'KI-Klone':** Lassen Sie die KI die Wurf-Statistiken (Genauigkeit und Streuung) eines menschlichen Spielers analysieren und erstellen Sie einen Klon als perfekten, realistischen Sparringspartner.
 *   **Spieler-Profile & Statistiken:**
     *   **Persistente Profile:** Erstelle und verwalte Spielerprofile (Mensch & KI) mit Namen, Avatar und individueller Dart-Farbe.
     *   **Detaillierte Statistiken:** Verfolge deine Leistung mit Statistiken wie 3-Dart-Average, MPR, Checkout-Quote und einem grafischen Formverlauf.

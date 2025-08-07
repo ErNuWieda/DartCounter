@@ -53,7 +53,6 @@ class Player:
         'hits': {},
         'life_segment': "",
         'can_kill': False,
-        'killer_throws': 0,
         'next_target': None,
         'has_opened': False,
     }
@@ -74,12 +73,12 @@ class Player:
             game (Game): Die Instanz des laufenden Spiels.
             profile (PlayerProfile, optional): Das zugehörige Spielerprofil. Defaults to None.
         """
-        self.name = name
-        self.game_name = game.name
+        self.name = name # type: ignore
+        self.game_name = game.options.name
         self.profile = profile
         self.score = 0
         self.game = game
-        self.targets = self.game.targets
+        self.targets = self.game.targets # type: ignore
 
         # State- und Statistik-Dictionaries aus den Klassenvorlagen initialisieren
         self.state = self.INITIAL_STATE.copy()
@@ -128,14 +127,6 @@ class Player:
         self.state['can_kill'] = value
 
     @property
-    def killer_throws(self):
-        return self.state.get('killer_throws', 0)
-
-    @killer_throws.setter
-    def killer_throws(self, value):
-        self.state['killer_throws'] = value
-
-    @property
     def next_target(self):
         return self.state.get('next_target')
 
@@ -159,7 +150,7 @@ class Player:
         aus der Liste der aktiven Spieler entfernt und das zugehörige
         Scoreboard-Fenster schließt.
         """
-        self.game.leave(self.id)
+        self.game.leave(self)
 
 
     def reset_turn(self):

@@ -1,5 +1,7 @@
-Pillow
 pygame
-sv_ttk
+sv-ttk
+Pillow
 psycopg2-binary
+sqlalchemy
 matplotlib
+numpy

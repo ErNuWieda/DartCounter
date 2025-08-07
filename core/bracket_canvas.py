@@ -36,6 +36,7 @@ class BracketCanvas(tk.Canvas):
             is_dark_theme = False # Fallback auf helles Theme
 
         # --- Allgemeines Layout ---
+        self.HEADER_HEIGHT = 30
         self.PADDING = 25
         self.ROUND_WIDTH = 160
         self.MATCH_HEIGHT = 66 # Geändert für saubere Integer-Positionierung
@@ -67,7 +68,7 @@ class BracketCanvas(tk.Canvas):
         self.NORMAL_FONT = (base_font, 10, "normal")
         self.LOSER_FONT = (base_font, 10, "italic")
 
-    def draw_bracket(self, rounds_data: list, next_match: dict | None, tournament_winner: str | None):
+    def draw_bracket(self, rounds_data: list, next_match: dict | None, bracket_winner: str | None, bracket_type: str = "winners"):
         """
         Zeichnet den kompletten Turnierbaum basierend auf den übergebenen Daten.
         Verwendet einen Zwei-Phasen-Ansatz: Zuerst werden alle Positionen berechnet,
@@ -76,7 +77,8 @@ class BracketCanvas(tk.Canvas):
         Args:
             rounds_data (list): Eine Liste von Runden, wobei jede Runde eine Liste von Matches ist.
             next_match (dict | None): Das nächste zu spielende Match, um es hervorzuheben.
-            tournament_winner (str | None): Der Name des Turniersiegers, falls vorhanden.
+            bracket_winner (str | None): Der Name des Siegers dieses Brackets, falls vorhanden.
+            bracket_type (str): Der Typ des Brackets ('winners' oder 'losers'), um die Zeichenlogik anzupassen.
         """
         self.delete("all")
         if not rounds_data or not rounds_data[0]:
@@ -86,10 +88,11 @@ class BracketCanvas(tk.Canvas):
 
         # --- Phase 1: Positionen berechnen ---
         # Runde 1 wird vertikal zentriert
+        available_height = self.winfo_height() - self.HEADER_HEIGHT
         total_height_round1 = len(rounds_data[0]) * self.MATCH_HEIGHT
-        y_offset_round1 = (self.winfo_height() - total_height_round1) // 2 # Integer-Division für saubere Positionierung
-        if y_offset_round1 < self.PADDING:
-            y_offset_round1 = self.PADDING
+        y_offset_round1 = self.HEADER_HEIGHT + (available_height - total_height_round1) // 2
+        if y_offset_round1 < self.HEADER_HEIGHT + self.PADDING:
+            y_offset_round1 = self.HEADER_HEIGHT + self.PADDING
 
         for match_idx, _ in enumerate(rounds_data[0]):
             y_pos = y_offset_round1 + (match_idx * self.MATCH_HEIGHT)
@@ -98,25 +101,44 @@ class BracketCanvas(tk.Canvas):
         # Folge-Runden werden relativ zur vorherigen Runde positioniert
         for round_idx in range(len(rounds_data) - 1):
             next_round_idx = round_idx + 1
-            for next_match_idx, _ in enumerate(rounds_data[next_round_idx]):
-                parent1_y = match_positions.get((round_idx, next_match_idx * 2))
-                parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
+            # In Losers Bracket, ungerade Runden sind "feed-in" Runden
+            is_lb_feed_in_round = (bracket_type == "losers" and next_round_idx % 2 != 0)
 
-                if parent1_y and parent2_y:
-                    # Der Y-Mittelpunkt des nächsten Matches ist der Durchschnitt der Eltern
-                    y_center = (parent1_y + parent2_y) // 2
-                elif parent1_y:
-                    # Fall für ein Freilos in der vorherigen Runde
-                    y_center = parent1_y
+            for next_match_idx, _ in enumerate(rounds_data[next_round_idx]):
+                if is_lb_feed_in_round:
+                    # In einer Feed-in-Runde hat jedes Match nur einen Elternteil aus der vorherigen LB-Runde.
+                    # Die Position wird direkt vom Elternteil übernommen.
+                    parent_y = match_positions.get((round_idx, next_match_idx))
+                    y_center = parent_y if parent_y else self.winfo_height() / 2
                 else:
-                    # Sollte nicht passieren, aber als Fallback
-                    y_center = self.winfo_height() / 2
-                
+                    # Standardlogik für WB oder interne LB-Runden
+                    parent1_y = match_positions.get((round_idx, next_match_idx * 2))
+                    parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
+
+                    if parent1_y and parent2_y:
+                        # Der Y-Mittelpunkt des nächsten Matches ist der Durchschnitt der Eltern
+                        y_center = (parent1_y + parent2_y) // 2
+                    elif parent1_y:
+                        # Fall für ein Freilos in der vorherigen Runde
+                        y_center = parent1_y
+                    else:
+                        # Sollte nicht passieren, aber als Fallback
+                        y_center = self.winfo_height() / 2
                 match_positions[(next_round_idx, next_match_idx)] = y_center
 
+
         # --- Phase 2: Alles zeichnen ---
+        # Zuerst die Runden-Titel
+        for round_idx, _ in enumerate(rounds_data):
+            x_pos = self.PADDING + (round_idx * self.ROUND_WIDTH) + (self.BOX_WIDTH / 2)
+            y_pos = self.HEADER_HEIGHT / 2
+            self.create_text(
+                x_pos, y_pos, text=f"Runde {round_idx + 1}",
+                font=self.LOSER_FONT, fill=self.LOSER_COLOR, anchor="center"
+            )
+
         # Zuerst die Verbindungslinien
-        self._draw_connecting_lines(rounds_data, match_positions)
+        self._draw_connecting_lines(rounds_data, match_positions, bracket_type)
 
         # Dann die Match-Boxen
         for (round_idx, match_idx), y_center in match_positions.items():
@@ -126,8 +148,8 @@ class BracketCanvas(tk.Canvas):
             is_next = (match == next_match)
             self._draw_match_box(x_pos, y_pos, match, is_next)
 
-        # --- Phase 3: Den Turniersieger zeichnen ---
-        if tournament_winner:
+        # --- Phase 3: Den Bracket-Sieger zeichnen ---
+        if bracket_winner:
             last_round_idx = len(rounds_data) - 1
             final_match_x = self.PADDING + (last_round_idx * self.ROUND_WIDTH)
             final_match_y_center = match_positions.get((last_round_idx, 0))
@@ -142,27 +164,38 @@ class BracketCanvas(tk.Canvas):
 
                 # Zeichne den Namen des Siegers
                 self.create_text(
-                    winner_x + 10, winner_y, text=f"🏆 {tournament_winner}",
+                    winner_x + 10, winner_y, text=f"🏆 {bracket_winner}",
                     anchor="w", font=(self.WINNER_FONT[0], 14, "bold"), fill=self.WINNER_COLOR
                 )
 
-    def _draw_connecting_lines(self, rounds_data, match_positions):
+    def _draw_connecting_lines(self, rounds_data, match_positions, bracket_type="winners"):
         """Zeichnet die Verbindungslinien zwischen den Matches."""
         for round_idx in range(len(rounds_data) - 1):
             x_start = self.PADDING + (round_idx * self.ROUND_WIDTH) + self.BOX_WIDTH
             x_end = self.PADDING + ((round_idx + 1) * self.ROUND_WIDTH)
             x_mid = (x_start + x_end) / 2
 
-            for next_match_idx, _ in enumerate(rounds_data[round_idx + 1]):
-                parent1_y = match_positions.get((round_idx, next_match_idx * 2))
-                parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
-                child_y = match_positions.get((round_idx + 1, next_match_idx))
+            next_round_idx = round_idx + 1
+            is_lb_feed_in_round = (bracket_type == "losers" and next_round_idx % 2 != 0)
 
+            for next_match_idx, _ in enumerate(rounds_data[round_idx + 1]):
+                child_y = match_positions.get((next_round_idx, next_match_idx))
                 if not child_y: continue
-                if parent1_y: self.create_line(x_start, parent1_y, x_mid, parent1_y, fill=self.LINE_COLOR)
-                if parent2_y: self.create_line(x_start, parent2_y, x_mid, parent2_y, fill=self.LINE_COLOR)
-                if parent1_y and parent2_y: self.create_line(x_mid, parent1_y, x_mid, parent2_y, fill=self.LINE_COLOR)
-                if parent1_y or parent2_y: self.create_line(x_mid, child_y, x_end, child_y, fill=self.LINE_COLOR)
+
+                if is_lb_feed_in_round:
+                    # In Feed-in-Runden gibt es nur eine Linie vom einzelnen Elternteil.
+                    parent_y = match_positions.get((round_idx, next_match_idx))
+                    if parent_y:
+                        # Zeichne eine direkte diagonale Linie, um Überlappungen zu vermeiden.
+                        self.create_line(x_start, parent_y, x_end, child_y, fill=self.LINE_COLOR)
+                else:
+                    # Standard-Zeichenlogik für normale Runden
+                    parent1_y = match_positions.get((round_idx, next_match_idx * 2))
+                    parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
+                    if parent1_y: self.create_line(x_start, parent1_y, x_mid, parent1_y, fill=self.LINE_COLOR)
+                    if parent2_y: self.create_line(x_start, parent2_y, x_mid, parent2_y, fill=self.LINE_COLOR)
+                    if parent1_y and parent2_y: self.create_line(x_mid, parent1_y, x_mid, parent2_y, fill=self.LINE_COLOR)
+                    if parent1_y or parent2_y: self.create_line(x_mid, child_y, x_end, child_y, fill=self.LINE_COLOR)
 
     def _draw_match_box(self, x, y, match, is_next_match):
         """Zeichnet eine einzelne Spielpaarung mit verbessertem Stil."""

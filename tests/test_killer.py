@@ -55,9 +55,9 @@ def test_initialization(players, mock_game):
 def test_set_life_segment_success(killer_logic, players):
     """Testet das erfolgreiche Festlegen eines Lebensfeldes."""
     player1 = players[0]
-    status, message = killer_logic._handle_throw(player1, "Single", 15, players)
+    status, message = killer_logic._handle_life_segment_phase(player1, "Single", 15, players)
     assert player1.state['life_segment'] == "15"
-    assert player1.game.next_player.called
+    assert player1.turn_is_over is True
     assert status == 'info'
     assert "hat Lebensfeld" in message
 
@@ -66,10 +66,10 @@ def test_set_life_segment_fails_on_taken_segment(killer_logic, players):
     player1, player2 = players
     player2.state['life_segment'] = "15"
 
-    status, message = killer_logic._handle_throw(player1, "Single", 15, players)
+    status, message = killer_logic._handle_life_segment_phase(player1, "Single", 15, players)
 
     assert player1.state['life_segment'] is None
-    assert not player1.game.next_player.called
+    assert player1.turn_is_over is False
     assert status == 'warning'
     assert "bereits an" in message
 
