@@ -227,7 +227,7 @@ class App:
 
     def new_game(self):
         """Startet den Workflow zum Erstellen eines neuen Spiels."""
-        if not self._ensure_no_active_session("Neues Spiel", "Ein Spiel läuft bereits. Möchtest du es beenden und ein neues starten?"):
+        if not self._ensure_no_active_session("Neues Spiel", "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein neues Spiel starten?"):
             return
 
         self.root.withdraw()
@@ -244,7 +244,7 @@ class App:
 
     def load_game(self):
         """Startet den Workflow zum Laden eines gespeicherten Spiels."""
-        if not self._ensure_no_active_session("Spiel laden", "Ein Spiel läuft bereits. Möchtest du es beenden und ein anderes laden?"):
+        if not self._ensure_no_active_session("Spiel laden", "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Spiel laden?"):
             return
 
         data = SaveLoadManager.load_game_data(self.root)
@@ -347,7 +347,7 @@ class App:
 
     def open_profile_manager(self):
         """Öffnet den Dialog zur Verwaltung von Spielerprofilen."""
-        dialog = ProfileManagerDialog(self.root, self.profile_manager)
+        dialog = ProfileManagerDialog(self.root, self.profile_manager, self.player_stats_manager)
         self.root.wait_window(dialog)
 
     def save_game(self):
@@ -385,8 +385,8 @@ class App:
         about_text = (
             "Idee, Konzept und Code\n"
             "von Martin Hehl (airnooweeda)\n\n"
-            "Ein besonderer Dank geht an Gemini Code Assist\n"
-            "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
+#            "Ein besonderer Dank geht an Gemini Code Assist\n"
+#           "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
             f"© 2025 Martin Hehl"
         )
         ui_utils.show_message('info', f"Dartcounter {self.version}", about_text, parent=self.root)

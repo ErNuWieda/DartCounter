@@ -1,6 +1,7 @@
 # Dartcounter Deluxe
 
 [![CI](https://github.com/ErNuWieda/DartCounter/actions/workflows/ci.yml/badge.svg)](https://github.com/ErNuWieda/DartCounter/actions/workflows/ci.yml)
+[![Test on Trixie](https://github.com/ErNuWieda/DartCounter/actions/workflows/test-on-trixie.yml/badge.svg)](https://github.com/ErNuWieda/DartCounter/actions/workflows/test-on-trixie.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
@@ -10,8 +11,9 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 ## Features
 
 *   **Verschiedene Spielmodi:**
-    *   **Turniermodus:** Erstelle K.o.-Turniere für bis zu 8 Spieler. Der Fortschritt wird in einem interaktiven, grafischen Turnierbaum visualisiert.
+    *   **Turniermodus:** Erstelle Turniere im **K.o.- oder Doppel-K.o.-System** für bis zu 8 Spieler. Der Fortschritt wird in einem interaktiven, grafischen Turnierbaum visualisiert.
     *   **X01-Spiele:** 301, 501, 701 mit flexiblen Regeln für:
+        *   **Profi-Modus:** Spiele vollwertige Matches im "Best of Legs / Best of Sets"-Format.
         *   Opt-In: Single, Double, Masters
         *   Opt-Out: Single, Double, Masters
     *   **Cricket-Varianten:** Standard Cricket, Cut Throat und Tactics.
@@ -26,9 +28,10 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     *   **Wurf-Analyse:** Visualisiere deine Treffsicherheit mit einer persönlichen Wurf-Heatmap.
 *   **Moderne Benutzeroberfläche:**
     *   Interaktives, klickbares Dartboard zur einfachen Eingabe der Würfe.
-    *   Individuelle Scoreboards für jeden Spieler mit allen relevanten Informationen.
     *   Helles und dunkles Design wählbar.
 *   **Speichern & Laden:** Laufende Spiele und Turniere können jederzeit gespeichert und später fortgesetzt werden.
+*   **Einfache Einrichtung & Wartung:** Dank automatischer Datenbank-Migrationen werden Tabellen beim ersten Start selbstständig angelegt und bei zukünftigen Updates aktualisiert.
+*   **Individuelle Scoreboards:** Für jeden Spieler mit allen relevanten Informationen.
 
 ![Turnier-Ansicht](./assets/screenshot_tournament.png "Turnierbaum für 8 Spieler")
 ![Spielerprofile verwalten](./assets/screenshot_profiles.png "Verwaltung der Spielerprofile mit Avataren und Farben")
@@ -37,9 +40,14 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
 
 ## Systemvoraussetzungen
 
+Die Anwendung wird kontinuierlich auf den neuesten Versionen von Windows, Ubuntu und Debian (inkl. Trixie/testing) getestet, um eine breite Kompatibilität zu gewährleisten.
+
 *   **Python:** Version 3.8 oder neuer.
 *   **Git:** Zum Herunterladen (Klonen) des Projekts.
 *   **Tkinter:** Ist in den meisten Standard-Python-Installationen für Windows und macOS enthalten. Unter Linux muss es eventuell manuell installiert werden (z.B. `sudo apt install python3-tk` auf Debian/Ubuntu).
+   *   **Wichtiger Hinweis für Debian/Ubuntu:** Für die Bildanzeige in Tkinter wird zusätzlich das Paket `python3-pil.imagetk` benötigt. Installieren Sie es mit:
+       `sudo apt install python3-pil.imagetk`
+       Dies stellt sicher, dass die von `pip` installierte `Pillow`-Bibliothek korrekt mit der System-Tkinter-Bibliothek zusammenarbeiten kann.
 *   **PostgreSQL-Server:** (Optional) Wird nur benötigt, wenn Sie die Highscore-Funktion nutzen möchten.
 
 ## Installation & Nutzung
@@ -214,7 +222,7 @@ Wenn dir dieses Projekt gefällt und du die Weiterentwicklung unterstützen möc
 
 An alle Kaffeetassen, die während der Entwicklung geleert wurden.
 
-Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Code-Strukturierung und der Erstellung der Dokumentation von unschätzbarem Wert. Zahlreiche Implementierungen und Verbesserungen konnten durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ aufgewertet werden.
+~~Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Code-Strukturierung und der Erstellung der Dokumentation von unschätzbarem Wert. Zahlreiche Implementierungen und Verbesserungen konnten durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ aufgewertet werden.~~
 
 ## Lizenz
 
