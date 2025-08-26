@@ -70,9 +70,9 @@ class TestGameSettingsDialog:
         assert dialog.player_name_entries[1].get() == "P2"
 
         # Prüfen, ob der korrekte Options-Frame sichtbar ist
-        assert dialog.game_option_frames['x01_options'].winfo_ismapped()
-        assert not dialog.game_option_frames['killer_options'].winfo_ismapped()
-        assert not dialog.game_option_frames['shanghai_options'].winfo_ismapped()
+        assert dialog.game_option_frames['x01_options'].grid_info()
+        assert not dialog.game_option_frames['killer_options'].grid_info()
+        assert not dialog.game_option_frames['shanghai_options'].grid_info()
 
     def test_set_game_changes_visible_options(self, dialog_setup):
         """Testet, ob bei einer Spielauswahl der korrekte Options-Frame angezeigt wird."""
@@ -84,8 +84,8 @@ class TestGameSettingsDialog:
         dialog.update() # Verarbeite das Event
 
         # Überprüfe die Sichtbarkeit der Frames
-        assert not dialog.game_option_frames['x01_options'].winfo_ismapped()
-        assert dialog.game_option_frames['killer_options'].winfo_ismapped()
+        assert not dialog.game_option_frames['x01_options'].grid_info()
+        assert dialog.game_option_frames['killer_options'].grid_info()
 
     def test_start_button_collects_data_and_sets_flag(self, dialog_setup):
         """Testet, ob der Start-Button die Daten korrekt sammelt und den Dialog schließt."""
