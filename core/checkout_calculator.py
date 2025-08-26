@@ -48,6 +48,23 @@ def _load_checkout_paths():
 # Die Checkout-Pfade werden nur einmal beim Import des Moduls geladen.
 CHECKOUT_PATHS = _load_checkout_paths()
 
+# Eine vorberechnete Map der bestmöglichen Single-Dart-Finishes.
+# Die Reihenfolge der Erstellung ist wichtig, da sie die Priorität bestimmt
+# (z.B. T20 für 60). Bullseye (BE) wird zuletzt gesetzt, um alles andere zu überschreiben.
+_SINGLE_DART_FINISH_MAP = {}
+# Singles (niedrigste Priorität)
+for i in range(1, 21): _SINGLE_DART_FINISH_MAP[i] = f"{i}"
+_SINGLE_DART_FINISH_MAP[25] = "25"
+# Doubles
+for i in range(1, 21): _SINGLE_DART_FINISH_MAP[i * 2] = f"D{i}"
+# Triples
+for i in range(1, 21): _SINGLE_DART_FINISH_MAP[i * 3] = f"T{i}"
+# Bullseye (höchste Priorität)
+_SINGLE_DART_FINISH_MAP[50] = "BE"
+# Unmögliche Single-Dart-Finishes explizit entfernen, um die Logik zu 100% abzubilden
+for score in [59, 58, 56, 55, 53, 52, 49, 47, 46, 44, 43, 41]:
+    _SINGLE_DART_FINISH_MAP.pop(score, None)
+
 # Geordnete Liste der Würfe von hoch nach niedrig, als Klassenkonstante definiert,
 # um eine Neuerstellung bei jedem Aufruf von _get_two_dart_setup zu vermeiden.
 _ORDERED_THROWS = (
@@ -67,17 +84,11 @@ class CheckoutCalculator:
     @staticmethod
     def _get_single_dart_throw(score: int) -> str | None:
         """
-        Ermittelt den besten Wurf, um einen Score mit einem einzelnen Dart zu erzielen.
-        Gibt None zurück, wenn der Score nicht mit einem Dart machbar ist.
+        Ermittelt den besten Wurf, um einen Score mit einem einzelnen Dart zu erzielen,
+        indem eine vorberechnete Map für einen schnellen Lookup verwendet wird.
+        Gibt None zurück, wenn der Score nicht mit einem einzelnen Dart machbar ist.
         """
-        if score <= 0 or score > 60 or score in [59, 58, 56, 55, 53, 52, 49, 47, 46, 44, 43, 41]:
-            return None
-        if score == 50: return "BE"
-        if score % 3 == 0: return f"T{score // 3}"
-        if score % 2 == 0 and score <= 40: return f"D{score // 2}"
-        if 1 <= score <= 20: return f"{score}"
-        if score == 25: return "25"
-        return None
+        return CheckoutCalculator._SINGLE_DART_FINISH_MAP.get(score)
 
     @staticmethod
     def _get_two_dart_setup(score: int) -> tuple[str, str] | None:
@@ -113,13 +124,13 @@ class CheckoutCalculator:
         if darts_left >= 2:
             setup_throw = CheckoutCalculator._get_single_dart_throw(setup_score)
             if setup_throw:
-                return f"{setup_throw} {double_str}"
+                return f"{setup_throw}, {double_str}"
 
         # 3-Dart-Finish (2 Setup-Darts + Double)
         if darts_left >= 3:
             setup_throws = CheckoutCalculator._get_two_dart_setup(setup_score)
             if setup_throws:
-                return f"{setup_throws[0]} {setup_throws[1]} {double_str}"
+                return f"{setup_throws[0]}, {setup_throws[1]}, {double_str}"
 
         return None
 
@@ -155,11 +166,9 @@ class CheckoutCalculator:
 
         # Für "Single Out" (einfachster Fall)
         if opt_out == "Single":
-            if score <= 40 and score % 2 == 0: return f"D{score // 2}"
-            if score <= 20: return f"{score}"
-            if score <= 60 and score % 3 == 0: return f"T{score // 3}"
+            # Für Single-Out ist der Standard-Pfad aus der JSON-Datei ausreichend und am verständlichsten.
             path = CHECKOUT_PATHS.get(score)
-            if isinstance(path, list): path = path[0]
+            if isinstance(path, list): path = path[0] # Nimm den ersten Pfad, falls mehrere existieren
             return path.replace(" ", ", ") if path else "-"
 
         # --- Logik für "Double Out" / "Masters Out" ---
@@ -168,7 +177,7 @@ class CheckoutCalculator:
             if preferred_double:
                 calculated_path = CheckoutCalculator._calculate_path_for_preferred_double(score, darts_left, preferred_double)
                 if calculated_path:
-                    return calculated_path.replace(" ", ", ")
+                    return calculated_path # Ist bereits komma-separiert
 
             # 2. Fallback: Suche in den Standard-Pfaden (JSON)
             possible_paths_raw = CHECKOUT_PATHS.get(score)

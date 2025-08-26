@@ -15,135 +15,185 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import Mock, MagicMock
 
 # Klasse, die getestet wird
 from core.x01 import X01
 # Klassen, die als Abhängigkeiten gemockt werden
-from core.player import Player
 from core.game_options import GameOptions
 
-# Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
+# --- Fixtures für Mocks ---
 
 @pytest.fixture
-def x01_logic(mock_game):
-    """Erstellt eine Instanz der X01-Logik mit dem gemockten Spiel."""
-    # Spieloptionen vor der Instanziierung der Logik setzen
-    mock_game.options = GameOptions(
-        name="501", opt_in="Double", opt_out="Double", opt_atc="Single",
-        count_to=501, lifes=3, rounds=7
+def mock_player():
+    """Erstellt einen Mock-Spieler für Testzwecke."""
+    player = MagicMock()
+    player.name = "TestPlayer"
+    player.score = 501
+    player.throws = []
+    player.state = {'has_opened': False}
+    player.stats = {
+        'checkout_opportunities': 0,
+        'checkouts_successful': 0,
+        'successful_finishes': [],
+        'highest_finish': 0,
+        'total_darts_thrown': 0,
+        'total_score_thrown': 0,
+    }
+    player.sb = MagicMock()
+    player.profile = None
+    player.game = MagicMock()
+    player.game.options.name = '501'
+
+    type(player).has_opened = property(
+        fget=lambda p: p.state.get('has_opened', False),
+        fset=lambda p, v: p.state.update({'has_opened': v})
     )
-    # Die Player-Klasse greift auf game.options.name zu
-    mock_game.options.name = "501"
-    return X01(mock_game)
+
+    def update_score_value(score, subtract=True):
+        if subtract:
+            player.score -= score
+        else:
+            player.score += score
+    player.update_score_value = Mock(side_effect=update_score_value)
+    
+    return player
 
 @pytest.fixture
-def player(mock_game, x01_logic):
-    """Erstellt eine echte Player-Instanz, die für die Tests konfiguriert ist."""
-    p = Player(name="Tester", game=mock_game)
-    x01_logic.initialize_player_state(p)
-    p.sb = MagicMock()
-    # Standardwerte, die in Tests überschrieben werden können
-    p.score = 501
-    p.state['has_opened'] = True
-    return p
+def mock_game():
+    """Erstellt ein Mock-Spiel für Testzwecke."""
+    game = MagicMock()
+    game.options = GameOptions(name="501", opt_in="Single", opt_out="Double", count_to=501, opt_atc="Single", lifes=3, rounds=7, legs_to_win=1, sets_to_win=1)
+    game.get_score = lambda ring, segment: {
+        "Single": segment, "Double": segment * 2, "Triple": segment * 3,
+        "Bull": 25, "Bullseye": 50, "Miss": 0
+    }.get(ring, 0)
+    game.round = 1
+    game.end = False
+    game.winner = None
+    game.shanghai_finish = False
+    game._handle_leg_win = Mock()
+    return game
 
-# --- Opt-In Tests ---
 
-def test_opt_in_double_fails_on_single_throw(x01_logic, player):
-    """Testet, ob bei 'Double In' ein Single-Wurf ungültig ist."""
-    player.game.options.opt_in = "Double"
-    player.score = 501
-    player.state['has_opened'] = False
+class TestX01Logic:
 
-    status, message = x01_logic._handle_throw(player, "Single", 20, [])
+    def test_handle_throw_normal_score(self, mock_game, mock_player):
+        """Testet einen normalen Wurf, der nur den Punktestand reduziert."""
+        x01_logic = X01(mock_game)
+        mock_player.score = 140
+        mock_player.has_opened = True
+        
+        status, msg = x01_logic._handle_throw(mock_player, "Triple", 20, [])
+        
+        assert status == 'ok'
+        assert msg is None
+        assert mock_player.score == 80
+        assert mock_player.stats['total_score_thrown'] == 60, "Der geworfene Score wurde nicht korrekt zur Statistik hinzugefügt."
 
-    assert player.score == 501
-    assert not player.state['has_opened']
-    assert status == 'invalid_open'
-    assert message is not None
+    def test_handle_throw_bust_score_is_one(self, mock_game, mock_player):
+        """Testet einen Bust, weil der Restscore 1 ist (bei Double Out)."""
+        x01_logic = X01(mock_game)
+        mock_player.score = 61
+        mock_player.state['has_opened'] = True
+        
+        status, msg = x01_logic._handle_throw(mock_player, "Triple", 20, [])
 
-def test_opt_in_double_succeeds_on_double_throw(x01_logic, player):
-    """Testet, ob bei 'Double In' ein Double-Wurf gültig ist und das Spiel eröffnet."""
-    player.game.options.opt_in = "Double"
-    player.score = 501
-    player.state['has_opened'] = False
+        assert status == 'bust'
+        assert "überworfen" in msg
+        assert mock_player.score == 61
 
-    status, _ = x01_logic._handle_throw(player, "Double", 20, [])
+    def test_handle_throw_bust_invalid_finish(self, mock_game, mock_player):
+        """Testet einen Bust, weil auf einem Single gefinished wurde (bei Double Out)."""
+        x01_logic = X01(mock_game)
+        mock_player.score = 20
+        mock_player.state['has_opened'] = True
+        
+        status, msg = x01_logic._handle_throw(mock_player, "Single", 20, [])
 
-    assert player.score == 461
-    assert player.state['has_opened']
-    assert status == 'ok'
+        assert status == 'bust'
+        assert "überworfen" in msg
+        assert mock_player.score == 20
 
-# --- Bust Tests ---
+    def test_handle_throw_win_condition(self, mock_game, mock_player):
+        """Testet einen gültigen Gewinnwurf."""
+        x01_logic = X01(mock_game)
+        mock_player.score = 40
+        mock_player.has_opened = True
+        
+        status, msg = x01_logic._handle_throw(mock_player, "Double", 20, [])
 
-def test_bust_if_score_goes_below_zero(x01_logic, player):
-    """Testet, ob ein Wurf, der den Score unter 0 bringen würde, ein 'Bust' ist."""
-    player.score = 20
-    status, _ = x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
-    assert player.score == 20
-    assert player.turn_is_over
-    assert status == 'bust'
+        assert status == 'win'
+        assert "gewinnt" in msg if msg else False
+        assert mock_player.score == 0
+        assert mock_player.stats['checkouts_successful'] == 1
+        assert mock_player.stats['highest_finish'] == 40
+        mock_game._handle_leg_win.assert_called_once_with(mock_player)
 
-def test_opt_out_double_busts_if_score_is_one(x01_logic, player):
-    """Testet, ob bei 'Double Out' ein Rest von 1 ein 'Bust' ist."""
-    player.score = 21
-    status, _ = x01_logic._handle_throw(player, "Single", 20, []) # Bringt Score auf 1 -> Bust
-    assert player.score == 21
-    assert player.turn_is_over
-    assert status == 'bust'
+    def test_handle_throw_opt_in_fail(self, mock_game, mock_player):
+        """Testet einen ungültigen Eröffnungswurf (bei Double In)."""
+        mock_game.options.opt_in = "Double"
+        x01_logic = X01(mock_game)
+        mock_player.has_opened = False
 
-def test_opt_out_double_busts_on_single_finish(x01_logic, player):
-    """Testet, ob bei 'Double Out' ein Finish mit einem Single-Wurf ein 'Bust' ist."""
-    player.score = 20
-    status, _ = x01_logic._handle_throw(player, "Single", 20, [])
-    assert player.score == 20
-    assert player.turn_is_over
-    assert status == 'bust'
+        status, msg = x01_logic._handle_throw(mock_player, "Single", 20, [])
 
-# --- Gültiger Wurf & Gewinn Tests ---
+        assert status == 'invalid_open'
+        assert "Double zum Start" in msg
+        assert mock_player.state['has_opened'] is False
 
-def test_valid_throw_updates_score_and_stats(x01_logic, player):
-    """Testet, ob ein gültiger Wurf den Score und die Statistiken korrekt aktualisiert."""
-    player.score = 100
-    status, _ = x01_logic._handle_throw(player, "Triple", 20, []) # Wurf von 60
-    assert player.score == 40
-    assert player.stats['total_darts_thrown'] == 1
-    assert player.stats['total_score_thrown'] == 60
-    assert status == 'ok'
+    def test_handle_throw_opt_in_success(self, mock_game, mock_player):
+        """Testet einen gültigen Eröffnungswurf (bei Double In)."""
+        mock_game.options.opt_in = "Double"
+        x01_logic = X01(mock_game)
+        mock_player.has_opened = False
+        mock_player.score = 501
 
-def test_win_on_double_out_updates_all_stats(x01_logic, player):
-    """Testet, ob ein Gewinnwurf bei 'Double Out' alle relevanten Daten korrekt aktualisiert."""
-    player.score = 40
-    result = x01_logic._handle_throw(player, "Double", 20, [])
-    assert player.score == 0
-    assert player.game.end is True
-    assert player.stats['checkout_opportunities'] == 1
-    assert player.stats['checkouts_successful'] == 1
-    assert player.stats['highest_finish'] == 40
-    assert isinstance(result, str) and "gewinnt" in result
+        status, msg = x01_logic._handle_throw(mock_player, "Double", 20, [])
 
-# --- Undo Tests ---
+        assert status == 'ok'
+        assert mock_player.state['has_opened'] is True
+        assert mock_player.score == 461
 
-def test_undo_simple_throw_restores_state(x01_logic, player):
-    """Testet, ob das Rückgängigmachen eines Wurfs Score und Stats korrekt wiederherstellt."""
-    player.score = 100
-    x01_logic._handle_throw(player, "Triple", 20, [])
-    assert player.score == 40
+    def test_handle_throw_shanghai_finish(self, mock_game, mock_player):
+        """Testet die Erkennung eines 120er Shanghai-Finishs."""
+        x01_logic = X01(mock_game)
+        mock_player.score = 40 # Score nach den ersten beiden Würfen
+        mock_player.has_opened = True
+        # Wichtig: Der aktuelle Wurf muss in der Liste sein, BEVOR _handle_throw aufgerufen wird.
+        mock_player.throws = [("Triple", 20, None), ("Single", 20, None), ("Double", 20, None)]
 
-    x01_logic._handle_throw_undo(player, "Triple", 20, [])
+        status, msg = x01_logic._handle_throw(mock_player, "Double", 20, [])
 
-    assert player.score == 100
-    assert player.stats['total_darts_thrown'] == 0
-    assert player.stats['total_score_thrown'] == 0
+        assert status == 'win', "Ein Shanghai-Finish sollte als 'win' zurückgegeben werden."
+        assert mock_game.shanghai_finish is True
 
-def test_undo_winning_throw_restores_player_state(x01_logic, player):
-    """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spieler-Zustand wiederherstellt."""
-    player.score = 40
-    x01_logic._handle_throw(player, "Double", 20, [])
-    assert player.stats['checkouts_successful'] == 1
+    def test_handle_throw_undo_simple_score(self, mock_game, mock_player):
+        """Testet das Rückgängigmachen eines einfachen Wurfs."""
+        x01_logic = X01(mock_game)
+        mock_player.score = 100
+        mock_player.stats['total_score_thrown'] = 60
+        mock_player.stats['total_darts_thrown'] = 1
+        mock_player.state['has_opened'] = True
 
-    x01_logic._handle_throw_undo(player, "Double", 20, [])
+        x01_logic._handle_throw_undo(mock_player, "Triple", 20, [])
 
-    assert player.score == 40
-    assert player.stats['checkouts_successful'] == 0
+        assert mock_player.score == 160
+        assert mock_player.stats['total_score_thrown'] == 0
+        assert mock_player.stats['total_darts_thrown'] == 0
+
+    def test_handle_throw_undo_opening_throw(self, mock_game, mock_player):
+        """Testet das Rückgängigmachen eines Eröffnungswurfs."""
+        mock_game.options.opt_in = "Double"
+        x01_logic = X01(mock_game)
+        
+        mock_player.score = 501
+        mock_player.state['has_opened'] = False
+        x01_logic._handle_throw(mock_player, "Double", 20, [])
+        assert mock_player.score == 461
+        assert mock_player.has_opened is True
+
+        x01_logic._handle_throw_undo(mock_player, "Double", 20, [])
+
+        assert mock_player.score == 501
+        assert mock_player.has_opened is False

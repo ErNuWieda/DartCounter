@@ -385,8 +385,8 @@ class App:
         about_text = (
             "Idee, Konzept und Code\n"
             "von Martin Hehl (airnooweeda)\n\n"
-#            "Ein besonderer Dank geht an Gemini Code Assist\n"
-#           "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
+            "Ein besonderer Dank geht an Gemini Code Assist\n"
+            "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
             f"© 2025 Martin Hehl"
         )
         ui_utils.show_message('info', f"Dartcounter {self.version}", about_text, parent=self.root)

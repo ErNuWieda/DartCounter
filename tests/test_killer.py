@@ -27,9 +27,8 @@ from core.player import Player
 @pytest.fixture
 def killer_logic(mock_game):
     """Erstellt eine Instanz der Killer-Logik mit dem gemockten Spiel."""
-    mock_game.name = "Killer"
-    mock_game.lifes = 3
-    mock_game.next_player = MagicMock()
+    mock_game.options.name = "Killer"
+    mock_game.options.lifes = 3
     return Killer(mock_game)
 
 @pytest.fixture
@@ -48,7 +47,7 @@ def players(mock_game, killer_logic):
 def test_initialization(players, mock_game):
     """Testet, ob ein Spieler korrekt für Killer initialisiert wird."""
     player1 = players[0]
-    assert player1.score == mock_game.lifes
+    assert player1.score == mock_game.options.lifes
     assert player1.state['life_segment'] is None
     assert player1.state['can_kill'] is False
 
@@ -105,11 +104,12 @@ def test_win_condition_last_player_standing(killer_logic, players):
     victim.state['life_segment'] = "19"
     victim.score = 1
 
-    status, _ = killer_logic._handle_throw(killer, "Double", 19, players)
+    status, message = killer_logic._handle_throw(killer, "Double", 19, players)
 
     assert victim.score == 0
     assert killer.game.end is True
-    assert status == 'info'
+    assert status == 'win'
+    assert "gewinnt" in message
 
 def test_undo_take_life_restores_victim_life(killer_logic, players, mock_game):
     """Testet, ob das Rückgängigmachen einer 'take_life'-Aktion das Leben wiederherstellt."""
@@ -119,8 +119,8 @@ def test_undo_take_life_restores_victim_life(killer_logic, players, mock_game):
     victim.state['life_segment'] = "19"
 
     killer_logic._handle_throw(killer, "Double", 19, players)
-    assert victim.score == mock_game.lifes - 1
+    assert victim.score == mock_game.options.lifes - 1
 
     killer_logic._handle_throw_undo(killer, "Double", 19, players)
 
-    assert victim.score == mock_game.lifes
+    assert victim.score == mock_game.options.lifes

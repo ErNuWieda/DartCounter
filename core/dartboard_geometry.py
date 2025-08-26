@@ -32,60 +32,74 @@ class DartboardGeometry:
     SEGMENTS = [6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10]
 
     @staticmethod
-    def get_segment_from_coords(x: float, y: float) -> int:
+    def get_segment_from_coords(x: float, y: float, size: int = 2200) -> str:
         """
-        Ermittelt das getroffene Segment basierend auf unskalierten Koordinaten.
-        Dies ist die UI-unabhängige Kernlogik von DartBoard.get_ring_segment.
+        Ermittelt das getroffene Segment (z.B. "20", "Bullseye", "Miss") basierend auf
+        Koordinaten, die auf eine Referenzgröße skaliert sind.
 
         Args:
-            x (float): Die x-Koordinate auf dem Original-Board.
-            y (float): Die y-Koordinate auf dem Original-Board.
+            x (float): Die x-Koordinate.
+            y (float): Die y-Koordinate.
+            size (int): Die Referenzgröße des Boards, auf das sich x und y beziehen.
 
         Returns:
-            int: Der Zahlenwert des getroffenen Segments.
+            str: Der Name des getroffenen Segments.
         """
-        angle = (math.degrees(math.atan2(DartboardGeometry.CENTER - y, x - DartboardGeometry.CENTER)) + 360) % 360
+        scale = DartboardGeometry.ORIGINAL_SIZE / size
+        center = size / 2
+        dist = math.sqrt((x - center)**2 + (y - center)**2) * scale
+
+        if dist > DartboardGeometry.RADIEN["double_outer"]:
+            return "Miss"
+        if dist <= DartboardGeometry.RADIEN["bullseye"]:
+            return "Bullseye"
+
+        angle = (math.degrees(math.atan2(center - y, x - center)) + 360) % 360
         idx = int((angle + 9) // 18) % 20
-        return DartboardGeometry.SEGMENTS[idx]
+        return str(DartboardGeometry.SEGMENTS[idx])
+
     @staticmethod
-    def get_target_coords(target_name: str) -> tuple[int, int]:
+    def get_target_coords(target_name: str) -> tuple[int, int] | None:
         """
         Berechnet die Mittelpunkt-Koordinaten für ein gegebenes Ziel (z.B. "T20", "D18", "BE").
+        Diese Methode ist nun datengesteuert, um die Lesbarkeit und Wartbarkeit zu verbessern.
 
         Args:
             target_name (str): Der Name des Ziels.
 
         Returns:
-            tuple[int, int]: Die (x, y)-Koordinaten des Ziels auf dem Original-Board.
+            tuple[int, int] or None: Die (x, y)-Koordinaten des Ziels oder None bei ungültigem Ziel.
         """
-        if target_name == "BE": return (DartboardGeometry.CENTER, DartboardGeometry.CENTER)
+        target_name = target_name.upper().strip()
+
+        if target_name == "BE":
+            return (DartboardGeometry.CENTER, DartboardGeometry.CENTER)
         if target_name == "B":
             radius = (DartboardGeometry.RADIEN["bullseye"] + DartboardGeometry.RADIEN["bull"]) / 2
-            return DartboardGeometry._polar_to_cartesian(radius, 0) # Winkel ist irrelevant
-
-        ring_char = target_name[0]
-        segment = int(target_name[1:])
+            return DartboardGeometry._polar_to_cartesian(radius, 0)
 
         try:
+            ring_char = target_name[0]
+            segment = int(target_name[1:])
             segment_index = DartboardGeometry.SEGMENTS.index(segment)
-        except ValueError:
-            return (DartboardGeometry.CENTER, DartboardGeometry.CENTER) # Fallback
+        except (ValueError, IndexError):
+            return None # Ungültiges Format oder Segment nicht gefunden
 
-        # Jeder Sektor ist 18 Grad breit. Der Winkel wird zur Mitte des Sektors berechnet.
-        # Wir starten bei 9 Grad (Mitte der 6) und subtrahieren für jedes weitere Segment 18 Grad.
+        # Winkel zur Mitte des Segments berechnen
+        # Start bei 9 Grad (Mitte der 6) und Subtraktion von 18 Grad pro Segment
         angle_deg = 9 - (segment_index * 18)
 
-        radius = 0
-        if ring_char == 'T':
-            radius = (DartboardGeometry.RADIEN["triple_inner"] + DartboardGeometry.RADIEN["triple_outer"]) / 2
-        elif ring_char == 'D':
-            radius = (DartboardGeometry.RADIEN["double_inner"] + DartboardGeometry.RADIEN["double_outer"]) / 2
-        elif ring_char == 'S':
-            # Unterscheide zwischen großem und kleinem Single-Feld
-            if segment_index % 2 == 0: # Annahme: Große Felder bei geraden Indizes
-                radius = (DartboardGeometry.RADIEN["bull"] + DartboardGeometry.RADIEN["triple_inner"]) / 2
-            else:
-                radius = (DartboardGeometry.RADIEN["triple_outer"] + DartboardGeometry.RADIEN["double_inner"]) / 2
+        # Datengesteuerte Radienberechnung
+        radius_keys_map = {
+            'T': ("triple_inner", "triple_outer"),
+            'D': ("double_inner", "double_outer"),
+            'S': ("bull", "triple_inner") # Für 'S' zielen wir immer auf das große innere Feld
+        }
+        if ring_char not in radius_keys_map:
+            return None # Ungültiger Ring
+
+        inner_key, outer_key = radius_keys_map[ring_char]
+        radius = (DartboardGeometry.RADIEN[inner_key] + DartboardGeometry.RADIEN[outer_key]) / 2
 
         return DartboardGeometry._polar_to_cartesian(radius, angle_deg)
 

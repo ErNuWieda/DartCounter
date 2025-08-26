@@ -33,7 +33,8 @@ def test_serialization_and_deserialization():
         'avatar_path': 'assets/avatars/martin.png',
         'dart_color': '#ff0000',
         'is_ai': False,
-        'difficulty': None
+        'difficulty': None,
+        'preferred_double': None, 'accuracy_model': None
     }
     assert profile_dict == expected_dict
 

@@ -77,10 +77,11 @@ def test_correct_hit_increases_marks(micky_logic, player):
     """Testet, ob ein Treffer auf das korrekte Ziel die Treffer erhöht."""
     player.state['next_target'] = "20"
     
-    result = micky_logic._handle_throw(player, "Single", 20, [])
+    status, message = micky_logic._handle_throw(player, "Single", 20, [])
     
     assert player.state['hits']["20"] == 1
-    assert result is None
+    assert status == 'ok'
+    assert message is None
 
 
 def test_incorrect_hit_returns_error(micky_logic, player):
@@ -100,10 +101,11 @@ def test_closing_target_advances_to_next(micky_logic, player):
     player.state['next_target'] = "20"
     player.state['hits']["20"] = 2 # Bereits 2 Treffer
 
-    micky_logic._handle_throw(player, "Single", 20, [])
+    status, _ = micky_logic._handle_throw(player, "Single", 20, [])
     
     assert player.state['hits']["20"] == 3
     assert player.state['next_target'] == "19"
+    assert status == 'ok'
 
 
 def test_win_condition(micky_logic, player):

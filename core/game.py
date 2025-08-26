@@ -99,7 +99,7 @@ class Game:
         self.winner = None
         self.game = self.get_game_logic()
         self.targets = self.game.get_targets()
-        
+
         # Spieler-Instanzen erstellen und Profile zuweisen
         self.players = []
         for name in player_names:
@@ -108,6 +108,18 @@ class Game:
                 self.players.append(AIPlayer(name, self, profile=profile))
             else:
                 self.players.append(Player(name, self, profile=profile))
+
+        # Spieler-
+        # --- Legs & Sets Konfiguration ---
+        self.legs_to_win = self.options.legs_to_win
+        self.sets_to_win = self.options.sets_to_win
+        self.is_leg_set_match = self.legs_to_win > 1 or self.sets_to_win > 1
+
+        if self.is_leg_set_match:
+            self.player_leg_scores = {p.id: 0 for p in self.players}
+            self.player_set_scores = {p.id: 0 for p in self.players}
+            self.leg_start_player_index = 0
+            self.current = self.leg_start_player_index
         
         # Spielspezifischen Zustand für jeden Spieler initialisieren,
         # indem die Logik an die jeweilige Spielklasse delegiert wird.
@@ -162,6 +174,10 @@ class Game:
         # Passe den 'current' Index an, BEVOR der Spieler entfernt wird.
         if player_to_remove_index < self.current:
             self.current -= 1
+        
+        # NEU: Passe auch den Startspieler-Index für das nächste Leg an.
+        if self.is_leg_set_match and player_to_remove_index < self.leg_start_player_index:
+            self.leg_start_player_index -= 1
 
         # Entferne den Spieler aus der Liste
         self.players.pop(player_to_remove_index)
@@ -440,19 +456,90 @@ class Game:
         # Erstelle ein strukturiertes Ergebnisobjekt
         result = ThrowResult(status=status, message=message)
 
-        # Sound bestimmen und dem Ergebnisobjekt hinzufügen
+        # Sound bestimmen und dem Ergebnisobjekt hinzufügen (bleibt hier)
         result.sound = self._determine_sound_for_throw(result, player, ring)
-
-        # Finalisiere Statistiken und Highscores bei einem Sieg
-        if status == 'win':
-            self._finalize_and_record_stats(winner=player)
 
         # Rufe den Callback auf, um das UI-Feedback zu verarbeiten
         self.on_throw_processed(result, player)
 
-        # Button-Zustände nach jedem Wurf aktualisieren
+        # NEU: Wenn das Spiel durch diesen Wurf gewonnen wurde, die Statistiken finalisieren.
+        # Für X01 wird dies durch _handle_leg_win() gesteuert, das von der X01-Logik aufgerufen wird.
+        # Für alle anderen Spiele (ohne Legs/Sets) müssen wir es hier explizit aufrufen.
+        if result.status == 'win' and self.winner and not self.is_leg_set_match:
+            # Die X01-Logik ruft _handle_leg_win, was wiederum _finalize_and_record_stats aufruft.
+            self._finalize_and_record_stats(self.winner)
+
+        # Button-Zustände nach jedem Wurf aktualisieren, damit "Weiter" und "Zurück"
+        # korrekt aktiviert/deaktiviert werden.
         if self.dartboard:
             self.dartboard.update_button_states()
+
+    def _update_leg_set_displays(self):
+        """Weist alle Scoreboards an, ihre Leg/Set-Anzeige zu aktualisieren."""
+        if not self.is_leg_set_match:
+            return
+        for p in self.players:
+            if p.sb and hasattr(p.sb, 'update_leg_set_scores'):
+                leg_score = self.player_leg_scores.get(p.id, 0)
+                set_score = self.player_set_scores.get(p.id, 0)
+                p.sb.update_leg_set_scores(leg_score, set_score)
+
+    def _handle_leg_win(self, winner: Player):
+        """
+        Wird von der Spiellogik (z.B. X01) aufgerufen, wenn ein Leg endet.
+        Steuert den Ablauf von Legs und Sets.
+        """
+        if not self.is_leg_set_match:
+            # Dies ist ein einfaches Spiel (keine Legs/Sets). Der Gewinn des "Legs" ist der Gewinn des Matches.
+            self._finalize_and_record_stats(winner)
+            return
+
+        self.player_leg_scores[winner.id] += 1
+        self._update_leg_set_displays()
+
+        # Prüfen, ob der Satz gewonnen wurde
+        if self.player_leg_scores[winner.id] >= self.legs_to_win:
+            self.player_set_scores[winner.id] += 1
+            self.player_leg_scores = {p.id: 0 for p in self.players} # Reset für nächsten Satz
+            self._update_leg_set_displays() # Anzeige aktualisieren (Legs=0, Sets++)
+            ui_utils.show_message('info', "Satzgewinn", f"{winner.name} gewinnt den Satz!", parent=self.dartboard.root)
+
+            # Prüfen, ob das gesamte Match gewonnen wurde
+            if self.player_set_scores[winner.id] >= self.sets_to_win:
+                # Finaler Gewinn des Matches. Jetzt werden die Statistiken gespeichert.
+                self._finalize_and_record_stats(winner)
+                return
+            else:
+                # Nächster Satz beginnt
+                self.end = False
+                self.winner = None
+                self._start_next_leg()
+        else:
+            # Nächstes Leg im selben Satz
+            ui_utils.show_message('info', "Leg-Gewinn", f"{winner.name} gewinnt das Leg!", parent=self.dartboard.root)
+            self.end = False
+            self.winner = None
+            self._start_next_leg()
+
+    def _start_next_leg(self):
+        """Setzt den Zustand für das nächste Leg zurück."""
+        # Setze den Zustand für alle Spieler zurück
+        for player in self.players:
+            # Setze die Leg-spezifischen Statistiken zurück, bevor der neue Zustand gesetzt wird.
+            player.reset_leg_stats()
+            player.reset_turn() # Leert die 'throws'-Liste für alle
+            self.game.initialize_player_state(player) # Setzt Score, etc.
+
+        # Wer beginnt das nächste Leg? (abwechselnd)
+        self.leg_start_player_index = (self.leg_start_player_index + 1) % len(self.players)
+        self.current = self.leg_start_player_index
+        
+        # UI für alle Scoreboards aktualisieren
+        for p in self.players:
+            if p.sb:
+                p.sb.update_score(p.score)
+
+        self.announce_current_player_turn()
 
     def to_dict(self) -> dict:
         """
@@ -471,12 +558,23 @@ class Game:
             }
             players_data.append(player_dict)
 
-        return {
+        game_state = {
             **self.options.to_dict(),
             'current_player_index': self.current,
             'round': self.round,
             'players': players_data,
         }
+
+        # Füge den Zustand für Legs & Sets hinzu, falls es sich um ein solches Match handelt.
+        # Dies ist wichtig für das korrekte Laden des Spiels.
+        if self.is_leg_set_match:
+            game_state.update({
+                'player_leg_scores': self.player_leg_scores,
+                'player_set_scores': self.player_set_scores,
+                'leg_start_player_index': self.leg_start_player_index
+            })
+
+        return game_state
 
     def get_save_meta(self) -> dict:
         """

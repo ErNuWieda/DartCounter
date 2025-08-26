@@ -66,6 +66,8 @@ class X01(GameLogicBase):
         # 'has_opened' wird im state-Dictionary des Spielers gespeichert,
         # das bereits in der Player-Klasse initialisiert wird.
         player.has_opened = False
+        # Setzt Leg-spezifische Statistiken wie den Average zurück.
+        player.reset_leg_stats()
 
     def get_scoreboard_height(self):
         """
@@ -232,44 +234,33 @@ class X01(GameLogicBase):
         # Erfolgreiches Finish zur Liste hinzufügen und höchsten Finish aktualisieren
         finishes = player.stats.setdefault('successful_finishes', [])
         finishes.append(score_before_throw)
-        player.stats['highest_finish'] = max(finishes)
+        player.stats['highest_finish'] = max(player.stats.get('highest_finish', 0), score_before_throw)
 
         self.game.shanghai_finish = self._is_shanghai_finish(player)
         
         self.game.end = True
         self.game.winner = player
         total_darts = player.get_total_darts_in_game()
-        
-        # Zum Highscore hinzufügen, falls Manager vorhanden
-        if self.game.highscore_manager:
-            self.game.highscore_manager.add_score(self.game.options.name, player.name, total_darts)
 
         # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
         # wenn self.game.shanghai_finish True ist.
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
-    def _handle_throw(self, player, ring, segment, players):
+    def _handle_throw(self, player: Player, ring: str, segment: int, players: list[Player]) -> tuple[str, str | None]:
         """
         Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
 
         Dies ist die Kernmethode, die alle Spielregeln auf einen Wurf anwendet.
-        Sie folgt einer Sequenz von Überprüfungen:
-        1. Berechnet den Punktwert und prüft auf Checkout-Möglichkeiten.
-        2. Delegiert die 'Opt-In'-Validierung an `_validate_opt_in`.
-        3. Delegiert die 'Bust'-Validierung an `_check_for_bust`.
-        4. Wenn der Wurf gültig ist, werden Punktestand und Statistiken aktualisiert.
-        6. Prüft auf eine Gewinnbedingung (Punktestand ist genau null).
-        7. Bei einem Gewinn wird auf ein spezielles 'Shanghai'-Finish geprüft und
-           der Punktestand an den Highscore-Manager übermittelt.
 
         Args:
             player (Player): Der Spieler, der den Wurf gemacht hat.
             ring (str): Der getroffene Ring (z.B. 'Single', 'Double').
             segment (int): Die getroffene Segmentnummer.
             players (list[Player]): Die Liste aller Spieler im Spiel.
-
+ 
         Returns:
-            str or None: Eine Gewinnnachricht, wenn das Spiel gewonnen wurde, ansonsten None.
+            tuple[str, str | None]: Ein Tupel aus Status-String und optionaler Nachricht.
+                                    Mögliche Status: 'ok', 'bust', 'win', 'invalid_open'.
         """
         score = self.game.get_score(ring, segment)
         score_before_throw = player.score
@@ -311,7 +302,7 @@ class X01(GameLogicBase):
 
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
         # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.
-        if player.game_name in ('301', '501', '701'):
+        if player.has_opened:
             player.stats['total_darts_thrown'] += 1
             player.stats['total_score_thrown'] += score
 
@@ -324,7 +315,10 @@ class X01(GameLogicBase):
         player.sb.update_checkout_suggestion(suggestion)
 
         if player.score == 0: # Gilt nur für x01
-            return self._handle_win_condition(player, score_before_throw)
+            win_message = self._handle_win_condition(player, score_before_throw)
+            # NEU: Delegiere die Leg/Set-Logik an die Game-Klasse
+            self.game._handle_leg_win(player)
+            return ('win', win_message)
 
         if len(player.throws) == 3:
             # Turn ends, user clicks "Weiter"

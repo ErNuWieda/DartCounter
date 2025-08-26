@@ -34,7 +34,8 @@ class AIStrategy:
     def _parse_target_string(self, target_str: str) -> tuple[str, int]:
         """Hilfsmethode zum Parsen von Ziel-Strings (z.B. "T20")."""
         target_str = target_str.strip().upper()
-        if target_str in ("BULL", "BULLSEYE", "BE"): return "Bullseye", 50
+        if target_str in ("BULLSEYE", "BE"): return "Bullseye", 50
+        if target_str == "BULL": return "Bull", 25
         ring_map = {'T': "Triple", 'D': "Double", 'S': "Single"}
         ring_char = target_str[0]
         if ring_char in ring_map:
@@ -158,8 +159,21 @@ class KillerAIStrategy(AIStrategy):
         if not opponents:
             return "Bullseye", 50 # Keine Gegner mehr
 
-        victim = max(opponents, key=lambda p: p.score)
+        # Priorisiere Gegner, die ebenfalls Killer sind.
+        killer_opponents = [p for p in opponents if p.state.get('can_kill')]
+        
+        if killer_opponents:
+            # Unter den Killern, greife den mit den meisten Leben an.
+            victim = max(killer_opponents, key=lambda p: p.score)
+        else:
+            # Wenn es keine anderen Killer gibt, greife den Spieler mit den meisten Leben an.
+            victim = max(opponents, key=lambda p: p.score)
+
         victim_segment = victim.state.get('life_segment')
+        if not victim_segment:
+            # Fallback, falls ein Gegner aus irgendeinem Grund kein Lebensfeld hat
+            return "Bullseye", 50
+
         return ("Bullseye", 50) if victim_segment == "Bull" else ("Double", int(victim_segment))
 
 class ShanghaiAIStrategy(AIStrategy):

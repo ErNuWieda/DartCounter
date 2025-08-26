@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, font
 from .database_manager import DatabaseManager
 import csv
 from .settings_manager import get_app_data_dir
@@ -208,15 +208,29 @@ class HighscoreManager:
             tree.heading("Score", text=score_header); tree.column("Score", width=80, anchor="center")
             tree.heading("Date", text="Datum"); tree.column("Date", width=100, anchor="center")
 
+            # NEU: Tag für persönliche Bestleistungen konfigurieren
+            # Wir leiten die Schriftart vom Treeview ab, um themenkonsistent zu sein
+            try:
+                default_font = font.nametofont(tree.cget("font"))
+                bold_font = default_font.copy()
+                bold_font.configure(weight='bold')
+                tree.tag_configure('personal_best', font=bold_font)
+            except tk.TclError:
+                # Fallback, falls die Schriftart nicht gefunden wird
+                tree.tag_configure('personal_best', font='-weight bold')
+
+            # NEU: Persönliche Bestleistungen für alle Spieler in diesem Modus abrufen
+            personal_bests = self.db_manager.get_personal_bests_for_mode(game_mode)
+
             scores = self.db_manager.get_scores(game_mode)
             for i, score in enumerate(scores):
                 # Score-Wert korrekt formatieren
                 score_value = score['score_metric']
-                if game_mode in ("Cricket", "Cut Throat", "Tactics"):
-                    formatted_score = f"{score_value:.2f}"
-                else:
-                    formatted_score = int(score_value)
-                tree.insert("", "end", values=(f"{i+1}.", score['player_name'], formatted_score, score['date'].strftime("%Y-%m-%d")))
+                formatted_score = f"{score_value:.2f}" if game_mode in ("Cricket", "Cut Throat", "Tactics") else int(score_value)
+                
+                player_name = score['player_name']
+                tags = ('personal_best',) if player_name in personal_bests and score_value == personal_bests[player_name] else ()
+                tree.insert("", "end", values=(f"{i+1}.", player_name, formatted_score, score['date'].strftime("%Y-%m-%d")), tags=tags)
 
             tree.pack(expand=True, fill="both")
 

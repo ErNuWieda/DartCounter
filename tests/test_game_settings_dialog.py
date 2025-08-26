@@ -40,8 +40,12 @@ def dialog_setup(tk_root, monkeypatch):
     # update() ist notwendig, damit die Widgets gezeichnet und ihre Werte gesetzt werden
     # Setze Standardwerte, um ValueErrors zu vermeiden
     dialog.count_to_var.set("301")
+    dialog.player_count_var.set("1") # Explizite Initialisierung der Spieleranzahl
     dialog.lifes_var.set("3")
     dialog.rounds_var.set("7")
+    dialog.legs_to_win_var.set("1")
+    dialog.sets_to_win_var.set("1")
+
     dialog.update()
 
     yield dialog, mock_settings_manager, mock_profile_manager

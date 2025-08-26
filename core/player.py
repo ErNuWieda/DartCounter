@@ -162,6 +162,15 @@ class Player:
         self.turn_is_over = False
         self.throws = []
 
+    def reset_leg_stats(self):
+        """
+        Setzt die Statistiken zurück, die pro Leg gezählt werden (z.B. Average).
+        Match-übergreifende Statistiken wie 'highest_finish' bleiben erhalten.
+        """
+        self.stats['total_darts_thrown'] = 0
+        self.stats['total_score_thrown'] = 0
+        self.stats['checkout_opportunities'] = 0
+
     def update_score_value(self, value, subtract=True):
         """
         Aktualisiert den Punktestand des Spielers und die UI-Anzeige.

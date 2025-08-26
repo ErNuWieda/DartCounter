@@ -46,7 +46,7 @@ class TestPlayerProfileManager:
         result = manager.add_profile("Charlie", "c.png", "#ffffff")
         
         assert result
-        mock_db_manager.add_profile.assert_called_once_with("Charlie", "c.png", "#ffffff", False, None)
+        mock_db_manager.add_profile.assert_called_once_with("Charlie", "c.png", "#ffffff", False, None, None, None)
         # Prüfen, ob die Profile nach dem Hinzufügen neu geladen werden
         assert mock_db_manager.get_all_profiles.call_count == 2
 
@@ -65,15 +65,15 @@ class TestPlayerProfileManager:
     def test_update_profile_success(self, mock_db_manager):
         """Testet das erfolgreiche Aktualisieren eines Profils."""
         mock_db_manager.get_all_profiles.return_value = [
-            {'id': 1, 'name': 'Alice', 'avatar_path': 'a.png', 'dart_color': '#ff0000', 'is_ai': False, 'difficulty': None}
+            {'id': 1, 'name': 'Alice', 'avatar_path': 'a.png', 'dart_color': '#ff0000', 'is_ai': False, 'difficulty': None, 'preferred_double': None, 'accuracy_model': None}
         ]
         mock_db_manager.update_profile.return_value = True
         manager = PlayerProfileManager(mock_db_manager)
         
-        result = manager.update_profile(1, "AliceV2", "a_v2.png", "#0000ff", is_ai=False, difficulty=None)
+        result = manager.update_profile(1, "AliceV2", "a_v2.png", "#0000ff", is_ai=False, difficulty=None, preferred_double=None, accuracy_model=None)
         
         assert result
-        mock_db_manager.update_profile.assert_called_once_with(1, "AliceV2", "a_v2.png", "#0000ff", False, None)
+        mock_db_manager.update_profile.assert_called_once_with(1, "AliceV2", "a_v2.png", "#0000ff", False, None, None, None)
         # Prüfen, ob das lokale Profil aktualisiert wurde
         updated_profile = manager.get_profile_by_name("AliceV2")
         assert updated_profile is not None
@@ -82,7 +82,7 @@ class TestPlayerProfileManager:
     def test_delete_profile_success(self, mock_db_manager):
         """Testet das erfolgreiche Löschen eines Profils."""
         mock_db_manager.get_all_profiles.return_value = [
-            {'id': 1, 'name': 'Alice', 'avatar_path': 'a.png', 'dart_color': '#ff0000', 'is_ai': False, 'difficulty': None}
+            {'id': 1, 'name': 'Alice', 'avatar_path': 'a.png', 'dart_color': '#ff0000', 'is_ai': False, 'difficulty': None, 'preferred_double': None, 'accuracy_model': None}
         ]
         mock_db_manager.delete_profile.return_value = True
         manager = PlayerProfileManager(mock_db_manager)

@@ -23,22 +23,22 @@ Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplant
 - **Speichern & Laden:** Möglichkeit, laufende Spiele und Turniere zu speichern und fortzusetzen.
 - **Qualitätssicherung:** Aufbau einer umfassenden Test-Suite mit `pytest`.
 
-### Aktueller Stand (Post-1.2)
-- **Adaptive KI ('KI-Klon'):** Die KI kann nun die Wurf-Charakteristiken (Genauigkeit, Streuung) menschlicher Spieler lernen und imitieren, um einen realistischen Sparringspartner zu erschaffen.
-- **Intelligente Wurfstrategie:** Die KI-Logik wurde grundlegend überarbeitet und agiert nun strategisch im Finish-Bereich, inklusive sicherer Setup-Würfe und der Vermeidung von "Bogey"-Zahlen.
-- **Stabiler Turniermodus:** Kritische Fehler in der Turnierlogik wurden behoben, was einen reibungslosen Ablauf von Anfang bis Ende sicherstellt.
-- **Poliertes UI:** Dialoge und Ansichten (Profil-Manager, Turnierbaum) wurden verfeinert für eine bessere Benutzererfahrung.
+### Version 1.3: Spieltiefe & Professionalisierung
+- **Erweiterter Turniermodus:** Implementierung von **Doppel-K.o.-Turnieren**, bei denen Spieler erst nach zwei Niederlagen ausscheiden.
+- **Professionelle Match-Formate:** X01-Spiele können nun im **"Best of Legs / Best of Sets"**-Modus gespielt werden.
+- **Verbesserte KI-Intelligenz:**
+    - **Taktische Cricket-KI:** Die KI analysiert den Punktestand und wählt strategisch zwischen dem Schließen von Feldern und dem Sammeln von Punkten.
+    - **Strategische X01-KI:** Die Zielauswahl der KI im Finish-Bereich wurde grundlegend überarbeitet, um menschlicher und strategischer zu agieren (inkl. Setup-Würfe).
+- **Poliertes UI & Bugfixes:**
+    - **Turnierbaum-Visualisierung:** Die Darstellung wurde mit pixelgenauen Linien und einem Trophäen-Symbol für den Sieger verfeinert.
+    - **Profil-Manager:** Der Dialog zur Spieler-Verwaltung wurde für eine bessere Übersichtlichkeit und dynamische Größenanpassung überarbeitet.
+    - **Stabiler Turniermodus:** Kritische Fehler in der Turnierlogik wurden behoben, was einen reibungslosen Ablauf sicherstellt.
 
 ---
 
-## 🚀 Zukünftige Pläne (Version 1.3 und darüber hinaus)
+## 🚀 Zukünftige Pläne (Version 1.4 und darüber hinaus)
 
-### Kurzfristige Ziele
-- **Erweiterte KI-Strategie (Cricket):** Die Cricket-KI soll lernen, den Punktestand der Gegner zu berücksichtigen, um aggressiver oder defensiver zu spielen.
-- **Weitere Spielmodi:** Implementierung von "Legs" und "Sets" innerhalb von X01-Spielen.
-- **Turnier-Optionen:** Auswahlmöglichkeit zwischen "Einfach-K.o." und "Doppel-K.o." im Turnier-Setup-Dialog.
-
-### Langfristige Vision
+### Langfristige Vision (Auswahl)
 - **Online-Freundschaftsspiele & Team-Modus:** Entwicklung einer einfachen Client-Server-Architektur für private Spiele. Dies könnte auch einen Team-Modus umfassen, bei dem menschliche Spieler mit KI-Partnern zufälliger Stärke gegen andere Teams antreten.
 - **Erweiterte Statistiken:** Detailliertere Analyse von Trefferquoten auf einzelne Felder (Doubles, Triples).
 - **Barrierefreiheit:** Verbesserung der UI für bessere Lesbarkeit und Bedienbarkeit.

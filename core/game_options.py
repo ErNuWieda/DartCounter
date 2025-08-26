@@ -26,6 +26,8 @@ class GameOptions:
     count_to: int
     lifes: int
     rounds: int
+    legs_to_win: int
+    sets_to_win: int
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -37,7 +39,7 @@ class GameOptions:
 
         # Konvertiere numerische Felder explizit zu Integers, da UI-Elemente
         # oder JSON-Ladevorgänge Strings liefern können.
-        for field in ['count_to', 'lifes', 'rounds']:
+        for field in ['count_to', 'lifes', 'rounds', 'legs_to_win', 'sets_to_win']:
             if field in filtered_data:
                 try:
                     # Stellt sicher, dass der Wert zu einem Integer konvertiert wird.
@@ -49,6 +51,8 @@ class GameOptions:
                     if field == 'count_to': filtered_data[field] = 301
                     if field == 'lifes': filtered_data[field] = 3
                     if field == 'rounds': filtered_data[field] = 7
+                    if field == 'legs_to_win': filtered_data[field] = 1
+                    if field == 'sets_to_win': filtered_data[field] = 1
 
         return cls(**filtered_data)
 

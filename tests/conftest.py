@@ -17,8 +17,10 @@
 import os
 import sys
 import logging
+import tkinter as tk
 import pytest
 from unittest.mock import MagicMock
+from core.game_options import GameOptions
 # Wichtig: Wir müssen die zu testenden Klassen importieren.
 from core.game import Game
 # --- One-time setup for all tests, executed by pytest before test collection ---
@@ -80,6 +82,8 @@ def mock_game():
     game.options.count_to = 301
     game.options.opt_in = "Single"
     game.options.opt_out = "Single"
+    game.options.legs_to_win = 1
+    game.options.sets_to_win = 1
     # Füge ein gemocktes Logik-Objekt hinzu, das von UI-Komponenten erwartet wird
     game.game = MagicMock()
     game.game.get_scoreboard_height.return_value = 400
@@ -101,3 +105,53 @@ def mock_game():
 
     game.get_score.side_effect = _get_score_side_effect
     return game
+
+@pytest.fixture(scope="session")
+def tk_root_session():
+    """Erstellt eine einzige, versteckte Tk-Wurzel für die gesamte Test-Session."""
+    root = tk.Tk()
+    root.withdraw()
+    yield root
+    if root and root.winfo_exists():
+        root.destroy()
+
+@pytest.fixture
+def game_factory(tk_root_session, monkeypatch):
+    """
+    Eine Factory-Fixture zum Erstellen von echten Game-Instanzen mit gemockten Abhängigkeiten.
+    Dies ist die zentrale Fixture für alle Integrationstests.
+    """
+    created_games = []
+
+    def _create_game(game_options_dict: dict, player_names: list[str]):
+        # Mock all external dependencies
+        monkeypatch.setattr('core.game.ui_utils.show_message', MagicMock())
+        monkeypatch.setattr('core.game.ui_utils.ask_question', MagicMock())
+        
+        # Mock managers
+        mock_highscore_manager = MagicMock()
+        mock_player_stats_manager = MagicMock()
+        mock_profile_manager = MagicMock()
+        mock_profile_manager.get_profile_by_name.return_value = None # Default behavior
+
+        # Mock UI components that Game creates
+        monkeypatch.setattr('core.game.DartBoard', MagicMock())
+        monkeypatch.setattr('core.game.setup_scoreboards', MagicMock(return_value=[]))
+
+        game_options = GameOptions.from_dict(game_options_dict)
+        
+        game = Game(
+            tk_root_session, game_options, player_names,
+            on_throw_processed_callback=MagicMock(),
+            highscore_manager=mock_highscore_manager, 
+            player_stats_manager=mock_player_stats_manager,
+            profile_manager=mock_profile_manager
+        )
+        created_games.append(game)
+        return game
+
+    yield _create_game
+
+    for game in created_games:
+        if game:
+            game.destroy()

@@ -15,16 +15,22 @@ def db_manager_setup(monkeypatch):
     """Setzt eine saubere Testumgebung mit gemockter SQLAlchemy-Engine und Session auf."""
     # Mock für die Konfiguration
     monkeypatch.setattr('core.database_manager.shutil.copy', MagicMock())
-    monkeypatch.setattr('pathlib.Path.exists', MagicMock(return_value=True))
+    # Wir mocken die `exists`-Methode so, dass sie nur für die config.ini True zurückgibt
+    def mock_exists(path):
+        return 'config.ini' in str(path)
+    monkeypatch.setattr('pathlib.Path.exists', mock_exists)
+    
     mock_configparser = MagicMock()
     monkeypatch.setattr('core.database_manager.configparser.ConfigParser', mock_configparser)
 
     mock_config_instance = mock_configparser.return_value
-    mock_config_instance.__getitem__.return_value = {
-        'host': 'testhost', 'database': 'testdb', 'user': 'testuser', 'password': 'testpassword'
-    }
-
+    # Simuliere den Zugriff via `config['postgresql']`
+    mock_config_instance.__getitem__.return_value = {'host': 'testhost', 'database': 'testdb', 'user': 'testuser', 'password': 'testpassword'}
+    
     # Mock für SQLAlchemy-Engine und Session
+    # Verhindere, dass die echten Migrationen im Test ausgeführt werden, was zu ImportErrors führt.
+    monkeypatch.setattr('core.database_manager.DatabaseManager._run_migrations', MagicMock())
+
     with patch('core.database_manager.create_engine') as mock_create_engine:
         mock_engine_instance = MagicMock()
         mock_create_engine.return_value = mock_engine_instance
@@ -35,6 +41,10 @@ def db_manager_setup(monkeypatch):
         mock_session_instance.query.return_value.distinct.return_value.order_by.return_value.all.return_value = []
         mock_session_instance.query.return_value.filter_by.return_value.one_or_none.return_value = None
 
+        # Mock für Base.metadata.create_all
+        mock_base = MagicMock()
+        monkeypatch.setattr('core.database_manager.Base', mock_base)
+
         mock_sessionmaker = MagicMock()
         mock_sessionmaker.return_value.__enter__.return_value = mock_session_instance
 
@@ -42,16 +52,16 @@ def db_manager_setup(monkeypatch):
         db_manager = DatabaseManager()
         db_manager.Session = mock_sessionmaker
 
-        yield db_manager, mock_engine_instance, mock_session_instance
+        yield db_manager, mock_engine_instance, mock_session_instance, mock_base
 
 def test_initialization_successful(db_manager_setup):
     """Testet, ob bei erfolgreicher Konfiguration eine Verbindung aufgebaut wird."""
-    db_manager, mock_engine, _ = db_manager_setup
+    db_manager, mock_engine, _, _ = db_manager_setup
     assert db_manager.is_connected
     assert db_manager.engine is not None
     mock_engine.connect.assert_called_once()
-    # `create_all` wird aufgerufen, um Tabellen zu erstellen
-    mock_engine.mock_calls[1].assert_called_with('metadata.create_all(engine)')
+    # Überprüfen, ob die Migrationsmethode aufgerufen wurde
+    db_manager._run_migrations.assert_called_once()
 
 def test_initialization_connection_error(monkeypatch):
     """Testet, ob is_connected bei einem Verbindungsfehler False ist."""
@@ -70,7 +80,7 @@ def test_initialization_connection_error(monkeypatch):
 
 def test_get_scores_calls_correct_query(db_manager_setup):
     """Testet, ob get_scores die korrekte SQLAlchemy-Abfrage ausführt."""
-    db_manager, _, mock_session = db_manager_setup
+    db_manager, _, mock_session, _ = db_manager_setup
 
     # Test für X01 (ASC)
     db_manager.get_scores("501")
@@ -84,7 +94,7 @@ def test_get_scores_calls_correct_query(db_manager_setup):
 
 def test_add_profile_commits_transaction(db_manager_setup):
     """Testet, ob add_profile einen Commit auslöst."""
-    db_manager, _, mock_session = db_manager_setup
+    db_manager, _, mock_session, _ = db_manager_setup
     mock_session.reset_mock()
 
     db_manager.add_profile("Tester", "/path", "#ff0000")
@@ -93,7 +103,7 @@ def test_add_profile_commits_transaction(db_manager_setup):
 
 def test_operation_on_disconnected_db(db_manager_setup):
     """Testet, dass bei fehlender Verbindung keine DB-Operationen ausgeführt werden."""
-    db_manager, _, mock_session = db_manager_setup
+    db_manager, _, mock_session, _ = db_manager_setup
     db_manager.is_connected = False
     db_manager.Session = None # Wichtig, um den Zustand zu simulieren
     
@@ -117,7 +127,7 @@ def test_add_profile_handles_integrity_error(db_manager_setup):
     Testet, ob bei einem IntegrityError (z.B. doppelter Name) ein Rollback
     durchgeführt und False zurückgegeben wird.
     """
-    db_manager, _, mock_session = db_manager_setup
+    db_manager, _, mock_session, _ = db_manager_setup
     mock_session.reset_mock()
 
     # Simuliere einen Fehler während des Commits
@@ -134,7 +144,7 @@ def test_add_profile_handles_integrity_error(db_manager_setup):
 
 def test_delete_profile_returns_true_on_success(db_manager_setup):
     """Testet, ob delete_profile bei Erfolg True zurückgibt."""
-    db_manager, _, mock_session = db_manager_setup
+    db_manager, _, mock_session, _ = db_manager_setup
     mock_session.reset_mock()
 
     # Simuliere, dass ein Profil gefunden wird
@@ -148,7 +158,7 @@ def test_delete_profile_returns_true_on_success(db_manager_setup):
 
 def test_delete_profile_returns_false_if_not_found(db_manager_setup):
     """Testet, ob delete_profile bei nicht gefundenem Profil False zurückgibt."""
-    db_manager, _, mock_session = db_manager_setup
+    db_manager, _, mock_session, _ = db_manager_setup
     mock_session.reset_mock()
 
     # Simuliere, dass kein Profil gefunden wird (Standardverhalten des Mocks)

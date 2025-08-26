@@ -2,12 +2,8 @@ import unittest
 import tkinter as tk
 from tkinter import ttk
 from unittest.mock import MagicMock, patch, call, ANY
-import sys
-import os
 from datetime import date
 
-# Füge das Hauptverzeichnis zum Python-Pfad hinzu
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.highscore_manager import HighscoreManager
 
 class TestHighscoreManager(unittest.TestCase):

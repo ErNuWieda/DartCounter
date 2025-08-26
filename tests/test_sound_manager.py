@@ -70,9 +70,9 @@ class TestSoundManager:
     def test_init_sound_file_not_found(self, sound_manager_mocks):
         """Testet, ob ein Fehler protokolliert wird, wenn eine Sounddatei fehlt."""
         mocks = sound_manager_mocks
-        # Reihenfolge: hit, win, miss, bust, bull, bullseye, 100, 180, shanghai
+        # Reihenfolge: hit, win, miss, bust, bull, bullseye, 100, 140, 160, 180, shanghai
         # Simuliere, dass 'bust.wav' (4. Sound) fehlt.
-        mocks["mock_path_exists"].side_effect = [True, True, True, False, True, True, True, True, True]
+        mocks["mock_path_exists"].side_effect = [True, True, True, False, True, True, True, True, True, True, True]
         sm = SoundManager(mocks["settings_manager"], mocks["root"])
         assert sm.hit_sound is not None
         assert sm.win_sound is not None
@@ -81,6 +81,8 @@ class TestSoundManager:
         assert sm.bull_sound is not None
         assert sm.bullseye_sound is not None
         assert sm.score_100_sound is not None
+        assert sm.score_140_sound is not None
+        assert sm.score_160_sound is not None
         assert sm.score_180_sound is not None
         assert sm.shanghai_sound is not None
         mocks["mock_messagebox"].showwarning.assert_called_once()
@@ -88,8 +90,8 @@ class TestSoundManager:
     def test_init_sound_loading_error(self, sound_manager_mocks):
         """Testet, ob ein Fehler protokolliert wird, wenn pygame eine Datei nicht laden kann."""
         mocks = sound_manager_mocks
-        # Simuliere, dass Sound() beim Laden von 'bull.wav' (5. Sound) einen Fehler wirft.
-        sound_mocks = [MagicMock() for _ in range(9)]
+        # Simuliere, dass Sound() beim Laden von 'bull.wav' (5. Sound) einen Fehler wirft. Es gibt 11 Sounds.
+        sound_mocks = [MagicMock() for _ in range(11)]
         sound_mocks[4] = mocks["mock_pygame"].error("Ladefehler") # bull.wav fails
         mocks["mock_pygame"].mixer.Sound.side_effect = sound_mocks
 
@@ -101,6 +103,8 @@ class TestSoundManager:
         assert sm.bull_sound is None, "bull_sound sollte None sein, da ein Ladefehler auftrat."
         assert sm.bullseye_sound is not None
         assert sm.score_100_sound is not None
+        assert sm.score_140_sound is not None
+        assert sm.score_160_sound is not None
         assert sm.score_180_sound is not None
         assert sm.shanghai_sound is not None
         mocks["mock_messagebox"].showwarning.assert_called_once()
@@ -139,9 +143,9 @@ class TestSoundManager:
     def test_play_miss_when_sound_not_loaded(self, sound_manager_mocks):
         """Testet, ob play_miss() nicht abstürzt, wenn der Sound nicht geladen wurde."""
         mocks = sound_manager_mocks
-        # Reihenfolge: hit, win, miss, bust, bull, bullseye, 100, 180, shanghai
+        # Reihenfolge: hit, win, miss, bust, bull, bullseye, 100, 140, 160, 180, shanghai
         # Simuliere, dass miss.wav (3. Sound) nicht gefunden wurde
-        mocks["mock_path_exists"].side_effect = [True, True, False, True, True, True, True, True, True]
+        mocks["mock_path_exists"].side_effect = [True, True, False, True, True, True, True, True, True, True, True]
         sm = SoundManager(mocks["settings_manager"], mocks["root"])
         
         # sm.miss_sound ist jetzt None

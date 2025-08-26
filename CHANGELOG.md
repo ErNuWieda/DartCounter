@@ -10,9 +10,28 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### ✨ Features & Verbesserungen
 
+### 🐛 Bugfixes & Stabilität
+
+---
+
+## [1.3.0] - 2025-08-09
+
+### ✨ Features & Verbesserungen
+
+### 🐛 Bugfixes & Stabilität
+
+---
+
+## [1.3.0] - 2025-08-09
+
+### ✨ Features & Verbesserungen
+
 *   **KI-Logik:** Die strategische Zielauswahl der KI-Spieler wurde grundlegend überarbeitet. Sie agiert jetzt im Finish-Bereich deutlich menschlicher, versucht gezielt Setup-Würfe zu spielen und vermeidet unsinnige Würfe auf die 20.
 *   **Profil-Manager UI:** Der Dialog zur Verwaltung der Spielerprofile wurde überarbeitet. Er gruppiert und sortiert die Spieler nun logisch (Menschen zuerst, dann KI nach Stärke) und passt seine Fenstergröße dynamisch an den Inhalt an.
 *   **Turnierbaum-Visualisierung:** Die Darstellung des Turnierbaums wurde verbessert. Verbindungslinien sind nun pixelgenau, und der Turniersieger wird am Ende prominent mit einem Trophäen-Symbol hervorgehoben.
+*   **Legs & Sets für X01-Spiele:** X01-Spiele können nun im professionellen "Best of Legs / Best of Sets"-Modus gespielt werden, um vollwertige Matches zu simulieren.
+*   **Doppel-K.o.-Turniere:** Der Turniermodus wurde um die Option "Doppel-K.o." erweitert, bei der Spieler erst nach zwei Niederlagen ausscheiden.
+*   **Taktische Cricket-KI:** Die KI für Cricket-Spiele wurde verbessert. Sie analysiert nun den Punktestand und wählt strategisch zwischen dem Schließen von Feldern und dem Sammeln von Punkten.
 
 ### 🐛 Bugfixes & Stabilität
 

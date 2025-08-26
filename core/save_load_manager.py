@@ -225,6 +225,20 @@ class SaveLoadManager:
                 # Spielspezifischen Zustand wiederherstellen
                 player.state.update(p_data.get('state', {}))
 
+        # --- Zustand für Legs & Sets wiederherstellen ---
+        # Dies geschieht nach der Spieler-Wiederherstellung, um sicherzustellen,
+        # dass die Game-Instanz korrekt konfiguriert ist.
+        if game.is_leg_set_match:
+            # Die Schlüssel in den geladenen Dictionaries sind Strings (wegen JSON),
+            # wir müssen sie wieder in Integer (player.id) umwandeln.
+            raw_leg_scores = data.get('player_leg_scores', {})
+            game.player_leg_scores = {int(k): v for k, v in raw_leg_scores.items()}
+
+            raw_set_scores = data.get('player_set_scores', {})
+            game.player_set_scores = {int(k): v for k, v in raw_set_scores.items()}
+            
+            game.leg_start_player_index = data.get('leg_start_player_index', 0)
+
         # --- UI-Zustand nach dem Laden wiederherstellen ---
         for player in game.players:
             if player.sb and player.sb.score_window.winfo_exists():

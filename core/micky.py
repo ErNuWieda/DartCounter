@@ -155,5 +155,5 @@ class Micky(GameLogicBase):
 		# --- Weiter / Nächster Spieler ---
 		if len(player.throws) == 3:
 		    # Turn ends
-		    return None
-		return None
+		    return ('ok', None)
+		return ('ok', None) # Throw processed, turn continues

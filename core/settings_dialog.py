@@ -40,8 +40,17 @@ class AppSettingsDialog(tk.Toplevel):
 
     def _create_sound_settings(self, parent):
         self.sound_enabled_var = tk.BooleanVar(value=self.sound_manager.sounds_enabled)
-        self.sound_checkbutton = ttk.Checkbutton(parent, text="Soundeffekte aktivieren", variable=self.sound_enabled_var, command=lambda: self.sound_manager.toggle_sounds(self.sound_enabled_var.get()))
+        self.sound_checkbutton = ttk.Checkbutton(
+            parent,
+            text="Soundeffekte aktivieren",
+            variable=self.sound_enabled_var,
+            command=self._on_sound_toggle
+        )
         self.sound_checkbutton.pack(pady=10, padx=20, anchor="w")
+
+    def _on_sound_toggle(self):
+        """Callback-Methode, die aufgerufen wird, wenn der Sound-Checkbutton umgeschaltet wird."""
+        self.sound_manager.toggle_sounds(self.sound_enabled_var.get())
 
     def _create_theme_settings(self, parent):
         theme_frame = ttk.LabelFrame(parent, text="Design")

@@ -1,89 +1,43 @@
 import pytest
 from unittest.mock import MagicMock
-import sys
-import os
-import tkinter as tk
-
-# Füge das Hauptverzeichnis zum Python-Pfad hinzu
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core.game import Game
 from core.game_options import GameOptions
 
 @pytest.fixture
-def tk_root():
-    """Erstellt eine einzige, versteckte Tk-Wurzel für alle Integrationstests in dieser Klasse."""
-    root = tk.Tk()
-    root.withdraw()
-    yield root
-    if root and root.winfo_exists():
-        root.destroy()
-
-@pytest.fixture
-def _game_factory(tk_root, monkeypatch):
-    """
-    Eine "private" Factory-Fixture, die die Erstellung von Spielinstanzen für
-    Cricket-Varianten zentralisiert und die Duplizierung von Code reduziert.
-    """
-    created_games = []
-
-    def _create_game(game_name: str):
-        # UI-Utility-Funktionen patchen
-        monkeypatch.setattr('core.game.ui_utils.show_message', MagicMock())
-        monkeypatch.setattr('core.game.ui_utils.ask_question', MagicMock())
-
-        # Manager-Abhängigkeiten mocken
-        mock_sound_manager = MagicMock()
-        mock_highscore_manager = MagicMock()
-        mock_player_stats_manager = MagicMock()
-
-        player_names = ["Alice", "Bob"]
-        game_options = {
-            "name": game_name,
-            "opt_in": "Single", "opt_out": "Single", "opt_atc": "Single",
-            "count_to": 301, "lifes": 3, "rounds": 7
-        }
-        game_options_obj = GameOptions.from_dict(game_options)
-        
-        game = Game(
-            tk_root, 
-            game_options_obj, 
-            player_names, 
-            mock_sound_manager, 
-            mock_highscore_manager, 
-            mock_player_stats_manager
-        )
-        created_games.append(game)
-        
-        # Scoreboards manuell mocken
+def _cricket_game_factory(game_factory):
+    """Private factory to create a cricket game and mock its scoreboards."""
+    def _factory(game_options, player_names):
+        game = game_factory(game_options, player_names)
         for p in game.players:
             p.sb = MagicMock()
-
-        return game, mock_highscore_manager
-
-    yield _create_game
-
-    # Nach dem Test alle erstellten Spielinstanzen sicher bereinigen
-    for game in created_games:
-        if game:
-            game.destroy()
+        return game
+    return _factory
 
 @pytest.fixture
-def game_setup(_game_factory):
+def cricket_game(_cricket_game_factory):
     """Richtet für jeden Test eine neue Cricket-Spielinstanz ein."""
-    return _game_factory("Cricket")
+    game_options = {
+        "name": "Cricket", "opt_in": "Single", "opt_out": "Single", "count_to": 301,
+        "legs_to_win": 1, "sets_to_win": 1, "opt_atc": "Single", "lifes": 3, "rounds": 7
+    }
+    return _cricket_game_factory(game_options, ["Alice", "Bob"])
 
 @pytest.fixture
-def cut_throat_game_setup(_game_factory):
+def cut_throat_game(_cricket_game_factory):
     """Richtet für jeden Test eine neue Cut Throat-Spielinstanz ein."""
-    return _game_factory("Cut Throat")
+    game_options = {
+        "name": "Cut Throat", "opt_in": "Single", "opt_out": "Single", "count_to": 301,
+        "legs_to_win": 1, "sets_to_win": 1, "opt_atc": "Single", "lifes": 3, "rounds": 7
+    }
+    return _cricket_game_factory(game_options, ["Alice", "Bob"])
 
 
 class TestGameWithCricket:
 
-    def test_initial_state(self, game_setup):
+    def test_initial_state(self, cricket_game):
         """Testet den korrekten Anfangszustand eines Cricket-Spiels."""
-        game, _ = game_setup
+        game = cricket_game
         assert game.options.name == "Cricket"
         assert len(game.players) == 2
         
@@ -94,9 +48,9 @@ class TestGameWithCricket:
             assert '15' in player.state['hits']
             assert '14' not in player.state['hits']
 
-    def test_hit_records_marks_and_scores_points(self, game_setup):
+    def test_hit_records_marks_and_scores_points(self, cricket_game):
         """Simuliert das Schließen eines Ziels und das anschließende Punkten."""
-        game, _ = game_setup
+        game = cricket_game
         alice = game.current_player()
         
         # 1. Wurf: Alice trifft T20 und schließt damit die 20
@@ -109,9 +63,10 @@ class TestGameWithCricket:
         assert alice.state['hits']['20'] == 4
         assert alice.score == 20
 
-    def test_win_condition(self, game_setup):
+    def test_win_condition(self, cricket_game):
         """Testet die Gewinnbedingung (alle Ziele zu, höchste Punktzahl)."""
-        game, mock_highscore_manager = game_setup
+        game = cricket_game
+        mock_highscore_manager = game.highscore_manager
         alice, bob = game.players
 
         # Simuliere, dass Alice alle Ziele bis auf die 15 geschlossen hat und führt.
@@ -134,9 +89,9 @@ class TestGameWithCricket:
         # Dies testet auch, ob die Statistik-Updates im Gewinnfall korrekt sind.
         mock_highscore_manager.add_score.assert_called_once_with("Cricket", "Alice", pytest.approx(3.0))
 
-    def test_undo_scoring_hit_restores_state(self, game_setup):
+    def test_undo_scoring_hit_restores_state(self, cricket_game):
         """Testet, ob das Rückgängigmachen eines punktenden Wurfs den Zustand wiederherstellt."""
-        game, _ = game_setup
+        game = cricket_game
         alice = game.current_player()
         alice.state['hits']['20'] = 3 # Alice hat die 20 bereits geschlossen
 
@@ -147,3 +102,20 @@ class TestGameWithCricket:
         game.undo()
         assert alice.score == 0, "Der Punktestand sollte nach dem Undo zurückgesetzt sein."
         assert alice.state['hits']['20'] == 3, "Die Anzahl der Marks sollte nach dem Undo zurückgesetzt sein."
+
+    def test_cut_throat_scoring_adds_points_to_opponent(self, cut_throat_game):
+        """Simuliert das Punkten bei Cut Throat, was dem Gegner Punkte hinzufügt."""
+        game = cut_throat_game
+        alice = game.current_player()
+        bob = game.players[1]
+        
+        # Alice schließt die 20
+        game.throw("Triple", 20)
+        assert alice.state['hits']['20'] == 3
+        assert alice.score == 0
+        assert bob.score == 0
+
+        # Alice wirft eine weitere S20. Bob sollte die Punkte bekommen.
+        game.throw("Single", 20)
+        assert alice.score == 0
+        assert bob.score == 20

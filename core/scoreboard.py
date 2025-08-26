@@ -136,6 +136,27 @@ class X01ScoreBoard(BaseScoreBoard):
 
     def _create_extra_widgets(self, parent):
         """Fügt die X01-spezifischen Statistik-Widgets in den übergebenen Parent-Frame ein."""
+        # --- Leg/Set-Anzeige für X01-Matches ---
+        # Wird nur angezeigt, wenn es sich um ein Leg/Set-Match handelt.
+        if self.game.is_leg_set_match:
+            leg_set_frame = ttk.Frame(parent)
+            leg_set_frame.pack(pady=(0, 5), fill='x')
+            # Zentriert die beiden inneren Frames (Sätze, Legs)
+            leg_set_frame.columnconfigure(0, weight=1)
+            leg_set_frame.columnconfigure(1, weight=1)
+
+            set_frame = ttk.Frame(leg_set_frame)
+            set_frame.grid(row=0, column=0, sticky="e", padx=(0,10))
+            ttk.Label(set_frame, text="Sätze:", font=("Arial", 10)).pack(side='left')
+            self.set_score_var = tk.StringVar(value="0")
+            ttk.Label(set_frame, textvariable=self.set_score_var, font=("Arial", 14, "bold")).pack(side='left', padx=5)
+
+            leg_frame = ttk.Frame(leg_set_frame)
+            leg_frame.grid(row=0, column=1, sticky="w", padx=(10,0))
+            ttk.Label(leg_frame, text="Legs:", font=("Arial", 10)).pack(side='left')
+            self.leg_score_var = tk.StringVar(value="0")
+            ttk.Label(leg_frame, textvariable=self.leg_score_var, font=("Arial", 14, "bold")).pack(side='left', padx=5)
+
         avg_frame = ttk.Frame(parent)
         avg_frame.pack(pady=(0, 5))
         ttk.Label(avg_frame, text="3-Dart-Avg:", font=("Arial", 10)).pack()
@@ -165,11 +186,23 @@ class X01ScoreBoard(BaseScoreBoard):
     def update_checkout_suggestion(self, suggestion):
         self.checkout_suggestion_var.set(suggestion)
 
+    def update_leg_set_scores(self, leg_score, set_score):
+        """Aktualisiert die Anzeige für Leg- und Set-Stände."""
+        if hasattr(self, 'leg_score_var'):
+            self.leg_score_var.set(str(leg_score))
+        if hasattr(self, 'set_score_var'):
+            self.set_score_var.set(str(set_score))
+
     def update_score(self, score):
         super().update_score(score)
         self.avg_var.set(f"{self.player.get_average():.2f}")
         self.hf_var.set(str(self.player.stats['highest_finish']))
         self.co_var.set(f"{self.player.get_checkout_percentage():.1f}%")
+        # Initialisiert oder aktualisiert die Leg/Set-Anzeige, falls zutreffend.
+        if self.game.is_leg_set_match:
+            leg_score = self.game.player_leg_scores.get(self.player_id, 0)
+            set_score = self.game.player_set_scores.get(self.player_id, 0)
+            self.update_leg_set_scores(leg_score, set_score)
 
 class TargetBasedScoreBoard(BaseScoreBoard):
     """Ein spezialisiertes Scoreboard für zielbasierte Spiele (Cricket, Micky, etc.)."""

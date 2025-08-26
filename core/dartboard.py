@@ -52,6 +52,11 @@ class DartBoard:
     DARTBOARD_PATH = ASSETS_BASE_DIR / "dartboard.png"
     DART_PATH = ASSETS_BASE_DIR / "dart_mask.png" # Geändert auf die Maske
 
+    # This constant represents the pixel offset of the dartboard's geometric center
+    # from the image file's center. This was previously a "magic number" correction
+    # applied to every click. By defining it here, we make the code self-documenting.
+    BOARD_CENTER_OFFSET = (6, 6)
+
     RING_DEFINITIONS = [
         # (Ring-Name, innerer Radius-Key, äußerer Radius-Key)
         # Die Reihenfolge von innen nach außen ist wichtig.
@@ -251,11 +256,17 @@ class DartBoard:
         idx = int((angle + 9) // 18) % 20
         segment = DartboardGeometry.SEGMENTS[idx]
 
+        # Sonderfall: Ein Wurf genau in die Mitte ist immer ein Bullseye.
+        if dist <= self.skaliert.get("bullseye", 0):
+            return "Bullseye", 50
+
         for ring_name, inner_key, outer_key in self.RING_DEFINITIONS:
             inner_radius = self.skaliert.get(inner_key, 0) if inner_key else 0
             outer_radius = self.skaliert.get(outer_key, float('inf')) if outer_key else float('inf')
 
             if inner_radius < dist <= outer_radius:
+                # Miss hat keinen Segmentwert
+                if ring_name == "Miss": return "Miss", 0
                 # Bullseye und Bull haben feste Segmentwerte
                 if ring_name == "Bullseye": return "Bullseye", 50
                 if ring_name == "Bull": return "Bull", 25
@@ -297,11 +308,7 @@ class DartBoard:
         if self._dart_photo_image and self.canvas:
             dart_id = self.canvas.create_image(x - 5, y - 20, image=self._dart_photo_image)
             self.dart_image_ids_on_canvas.append(dart_id)
-        # Korrektur der x,y Koordinaten zwingend erforderlich zur korrekten Wurf-Ermittlung
-        # NICHT ENTERNEN!!!
-        x += 6
-        y += 6
-        # Schritt 1: Ermittle den Wurf
+
         ring, segment = self.get_ring_segment(x, y)
 
         # Schritt 1.5: Normalisiere die Klick-Koordinaten für die Heatmap
@@ -369,7 +376,9 @@ class DartBoard:
         image = Image.open(self.dartboard_path)
         # Bild skalieren
         new_size = (int(image.width * SCALE), int(image.height * SCALE))
-        self.center_x, self.center_y = new_size[0] // 2, new_size[1] // 2
+        # Berechne den Mittelpunkt einmalig und korrigiere ihn mit dem Offset.
+        self.center_x = (new_size[0] // 2) + self.BOARD_CENTER_OFFSET[0]
+        self.center_y = (new_size[1] // 2) + self.BOARD_CENTER_OFFSET[1]
         resized = image.resize(new_size, Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(resized)
         # Canvas erstellen
@@ -414,7 +423,6 @@ class DartBoard:
 
         player = self.spiel.current_player()
         num_throws = len(player.throws)
-
         # 'Weiter'-Button: Aktiv, wenn 3 Würfe gemacht wurden, der Zug durch
         # einen Bust beendet ist oder das Spiel insgesamt zu Ende ist.
         if num_throws >= 3 or player.turn_is_over or self.spiel.end:

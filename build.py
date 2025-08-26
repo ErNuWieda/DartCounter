@@ -27,25 +27,45 @@ from core._version import __version__
 VERSION = __version__
 APP_NAME = "DartCounter"
 SCRIPT_NAME = pathlib.Path("main.py")
+DIST_DIR = pathlib.Path("dist")
 ASSETS_DIR = pathlib.Path("assets")
 
 def run_tests():
     """Führt die Test-Suite aus und bricht bei Fehlern ab."""
     print("\n>>> Schritt 0.5: Führe Test-Suite aus...")
     try:
-        # -s: Gibt print() ausgaben aus
-        # -v: Verbose output
-        # --ignore=... : Ignoriert das venv-Verzeichnis, um Konflikte zu vermeiden
-        test_command = [sys.executable, "-m", "pytest", "-sv", "--ignore=.venv"]
+        # Die Konfiguration für Coverage etc. wird jetzt aus der pytest.ini gelesen.
+        # Wir behalten nur die Flags, die wir speziell für den Build-Prozess wollen.
+        test_command = [
+            sys.executable, "-m", "pytest",
+            "-sv", # -s: print() ausgeben, -v: verbose. Gut für Build-Logs.
+        ]
         subprocess.run(test_command, check=True)
         print(">>> Alle Tests erfolgreich bestanden.")
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
         print("\n" + "="*50)
-        print("FEHLER: Die Test-Suite ist fehlgeschlagen oder pytest wurde nicht gefunden.")
-        print("Bitte beheben Sie die Testfehler, bevor Sie einen Build erstellen.")
+        print("FEHLER: Die Test-Suite ist fehlgeschlagen.")
+        print("Mögliche Ursachen:")
+        print("  - Ein oder mehrere Tests sind nicht erfolgreich.")
+        print("  - Die Test-Abhängigkeiten (pytest, pytest-cov) sind nicht installiert.")
+        print("Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:")
+        print("  pip install -r requirements-dev.txt")
         print("="*50 + "\n")
         return False
+
+def clean_previous_builds(release_dir: pathlib.Path):
+    """Entfernt alte Build-Artefakte, um einen sauberen Build zu gewährleisten."""
+    print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
+    zip_file = release_dir.with_suffix('.zip')
+    spec_file = pathlib.Path(f"{APP_NAME}.spec")
+
+    for path in [release_dir, zip_file, pathlib.Path("build"), DIST_DIR, spec_file]:
+        if path.is_dir():
+            shutil.rmtree(path, ignore_errors=True)
+        elif path.is_file():
+            try: path.unlink()
+            except OSError: pass
 
 def main():
     """Führt den plattformspezifischen Build-Prozess aus."""
@@ -73,35 +93,16 @@ def main():
     if not run_tests():
         sys.exit(1)
 
-    # --- Plattformspezifisches Setup ---
+    # --- Plattform- und Artefakt-Setup ---
     system = platform.system()
-    if system == "Windows":
-        data_separator = ";"
-        icon_extension = ".ico"
-    elif system == "Darwin":  # macOS
-        data_separator = ":"
-        icon_extension = ".icns"
-    else:  # Linux ist das einzig andere unterstützte System
-        data_separator = ":"
-        icon_extension = None # Kein Standard-Icon-Format für ausführbare Linux-Dateien
-
-    # Artefakt-Namen zentral definieren
+    data_separator = ";" if system == "Windows" else ":"
     dist_artifact_name = f"{APP_NAME}.exe" if system == "Windows" else (f"{APP_NAME}.app" if system == "Darwin" else APP_NAME)
     release_dir = pathlib.Path(f"{APP_NAME}_{system}_v{VERSION}")
-    zip_filename_base = str(release_dir)
+    icon_extension = ".ico" if system == "Windows" else ".icns" if system == "Darwin" else None
 
     print(f"\n>>> Erstelle Release für {system} v{VERSION}...")
 
-    # --- Schritt 1: Alte Build-Artefakte bereinigen ---
-    print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
-    for path in [release_dir, pathlib.Path(f"{zip_filename_base}.zip"), pathlib.Path("build"), pathlib.Path("dist"), pathlib.Path(f"{APP_NAME}.spec")]:
-        if path.is_dir():
-            shutil.rmtree(path, ignore_errors=True)
-        elif path.is_file():
-            try:
-                path.unlink()
-            except OSError:
-                pass  # Fehler ignorieren, wenn Datei in Gebrauch ist
+    clean_previous_builds(release_dir)
 
     # --- Schritt 2: Anwendung mit PyInstaller bauen ---
     print("\n>>> Schritt 2: Anwendung mit PyInstaller bauen...")
@@ -113,8 +114,8 @@ def main():
         "--onefile",
         "--windowed",
         f"--name={APP_NAME}",
+        # Notwendig, damit PyInstaller die Brücke zwischen Pillow und Tkinter korrekt einbindet.
         "--hidden-import=PIL._tkinter_finder",
-        "--hidden-import=mx.DateTime",
     ]
 
     # Plattformspezifisches Icon hinzufügen (sauberere Logik)
@@ -123,14 +124,14 @@ def main():
         if icon_path.is_file():
             pyinstaller_command.append(f"--icon={icon_path}")
 
-    # Zentralisierte Liste der Daten, die in den Build aufgenommen werden sollen.
-    # Das macht das Hinzufügen neuer Dateien übersichtlicher.
+    # Daten, die direkt in die ausführbare Datei gebündelt werden sollen.
     data_to_add = [
         (ASSETS_DIR, ASSETS_DIR),
         (pathlib.Path("game_config.json"), pathlib.Path(".")),
         (pathlib.Path("core/checkout_paths.json"), pathlib.Path("core")),
-        (pathlib.Path("config.ini.example"), pathlib.Path(".")),
-        (pathlib.Path("README.md"), pathlib.Path(".")),
+        # Alembic für Datenbank-Migrationen hinzufügen
+        (pathlib.Path("alembic.ini"), pathlib.Path(".")),
+        (pathlib.Path("alembic"), pathlib.Path("alembic")),
     ]
     for src, dest in data_to_add:
         pyinstaller_command.append(f"--add-data={src}{data_separator}{dest}")
@@ -157,12 +158,22 @@ def main():
     print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
     release_dir.mkdir(exist_ok=True)
 
-    source_artifact = pathlib.Path("dist") / dist_artifact_name
+    # Haupt-Artefakt verschieben
+    source_artifact = DIST_DIR / dist_artifact_name
     if source_artifact.exists():
+        print(f"  -> Verschiebe Artefakt: '{source_artifact}' -> '{release_dir}'")
         shutil.move(str(source_artifact), str(release_dir / dist_artifact_name))
     else:
         print(f"FEHLER: Build-Artefakt '{source_artifact}' wurde nicht gefunden!")
         sys.exit(1)
+
+    # 3.2: Zusätzliche, für den Benutzer nützliche Dateien kopieren
+    files_to_copy = ["README.md", "config.ini.example"]
+    for filename in files_to_copy:
+        src = pathlib.Path(filename)
+        if src.exists():
+            print(f"  -> Kopiere '{src}' nach '{release_dir}'")
+            shutil.copy(src, release_dir)
 
     # --- Schritt 4 & 5: Finalisieren (ZIP oder für Installer vorbereiten) ---
     # Im CI-Kontext auf Windows überspringen wir das Zippen und Aufräumen,
@@ -172,17 +183,20 @@ def main():
         print(f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'")
     else:
         # --- Schritt 4: ZIP-Archiv erstellen (lokaler Build) ---
-        print(f"\n>>> Schritt 4: ZIP-Archiv '{zip_filename_base}.zip' erstellen...")
-        shutil.make_archive(zip_filename_base, 'zip', root_dir='.', base_dir=str(release_dir))
+        print(f"\n>>> Schritt 4: ZIP-Archiv '{release_dir}.zip' erstellen...")
+        shutil.make_archive(str(release_dir), 'zip', root_dir='.', base_dir=str(release_dir))
 
         # --- Schritt 5: Temporäre Build-Artefakte bereinigen (lokaler Build) ---
         print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
         shutil.rmtree("build")
-        shutil.rmtree("dist")
+        shutil.rmtree(DIST_DIR)
         pathlib.Path(f"{APP_NAME}.spec").unlink()
         shutil.rmtree(release_dir)
 
-    print(f"\n{'='*50}\n✅ Build-Prozess abgeschlossen.\n{'='*50}")
+    print(f"\n{'='*50}")
+    print("✅ Build-Prozess erfolgreich abgeschlossen.")
+    print(f"Das finale ZIP-Archiv finden Sie hier: {release_dir}.zip")
+    print(f"{'='*50}")
 
 if __name__ == "__main__":
     main()

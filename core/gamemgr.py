@@ -74,6 +74,8 @@ class GameSettingsDialog(tk.Toplevel):
         self.opt_out_var = tk.StringVar(value="Single")
         self.opt_atc_var = tk.StringVar(value="Single")
         self.lifes_var = tk.StringVar(value="3")
+        self.legs_to_win_var = tk.StringVar(value="1") # Neu für Legs
+        self.sets_to_win_var = tk.StringVar(value="1") # Neu für Sets
         self.rounds_var = tk.StringVar(value="7")
         self.player_count_var = tk.StringVar(value="1")
 
@@ -86,6 +88,8 @@ class GameSettingsDialog(tk.Toplevel):
             "count_to": self.count_to_var,
             "lifes": self.lifes_var,
             "rounds": self.rounds_var,
+            "legs_to_win": self.legs_to_win_var,
+            "sets_to_win": self.sets_to_win_var,
         }
         # --- Konfiguration für die dynamisch erstellten Options-Frames ---
         # Zentralisiert die UI-Definition für Spieloptionen, um die Wartbarkeit zu verbessern.
@@ -93,6 +97,8 @@ class GameSettingsDialog(tk.Toplevel):
             "x01_options": [
                 {"label": "Opt In", "values": ["Single", "Double", "Masters"], "variable": self.opt_in_var},
                 {"label": "Opt Out", "values": ["Single", "Double", "Masters"], "variable": self.opt_out_var},
+                {"label": "Legs pro Satz", "values": ["1", "3", "5"], "variable": self.legs_to_win_var},
+                {"label": "Sätze pro Match", "values": ["1", "3", "5"], "variable": self.sets_to_win_var},
             ],
             "atc_options": [
                 {"label": "Around The Clock Variante", "values": ["Single", "Double", "Triple"], "variable": self.opt_atc_var},
@@ -143,7 +149,7 @@ class GameSettingsDialog(tk.Toplevel):
 
     def _on_start(self):
         """Entspricht der alten 'run'-Methode."""
-        num_players = int(self.player_select.get())
+        num_players = int(self.player_count_var.get())
         player_names = [entry.get().strip() for entry in self.player_name_entries[:num_players]]
 
         # --- Validierung (analog zum TournamentSettingsDialog) ---
@@ -160,17 +166,13 @@ class GameSettingsDialog(tk.Toplevel):
             last_names_to_save = [entry.get() for entry in self.player_name_entries]
             self.settings_manager.set('last_player_names', last_names_to_save)
 
-        # Sammle alle Einstellungen in einem Dictionary
+        # Sammle alle Einstellungen dynamisch aus den Variablen in einem Dictionary
         self.result = {
             "game": self.game_var.get(),
-            "count_to": self.count_to_var.get(),
-            "opt_in": self.opt_in_var.get(),
-            "opt_out": self.opt_out_var.get(),
-            "opt_atc": self.opt_atc_var.get(),
-            "lifes": self.lifes_var.get(),
-            "rounds": self.rounds_var.get(),
             "players": player_names
         }
+        for key, var in self.option_vars.items():
+            self.result[key] = var.get()
 
         self.was_started = True
         self.destroy()
@@ -245,7 +247,7 @@ class GameSettingsDialog(tk.Toplevel):
             combo.bind("<<ComboboxSelected>>", self._update_available_profiles)
             combo.bind("<FocusOut>", self._update_available_profiles)
             self.player_name_entries[i] = combo # type: ignore
-            if i >= int(self.player_select.get()):
+            if i >= int(self.player_count_var.get()):
                 self.player_name_entries[i].config(state="disabled")
 
         # Button zur direkten Verwaltung der Profile hinzufügen

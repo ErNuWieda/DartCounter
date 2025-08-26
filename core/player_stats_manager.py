@@ -21,7 +21,14 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from .database_manager import DatabaseManager
 from .heatmap_generator import HeatmapGenerator
+from .dartboard_geometry import DartboardGeometry
 from PIL import ImageTk
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
 
 try:
     from matplotlib.figure import Figure
@@ -107,6 +114,31 @@ class PlayerStatsManager:
         ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(side="left", padx=5)
 
+    def _calculate_streaks(self, records: list[dict]) -> dict:
+        """
+        Berechnet verschiedene "Serien"-Statistiken aus einer Liste von Spiel-Datensätzen.
+        """
+        if not records:
+            return {'best_win_streak': 0}
+
+        # Datensätze sind von der DB absteigend nach Datum sortiert, für die Analyse brauchen wir sie aufsteigend.
+        sorted_records = sorted(records, key=lambda r: r['game_date'])
+
+        max_win_streak = 0
+        current_win_streak = 0
+
+        for record in sorted_records:
+            if record.get('is_win'):
+                current_win_streak += 1
+            else:
+                max_win_streak = max(max_win_streak, current_win_streak)
+                current_win_streak = 0
+        
+        # Nach der Schleife noch einmal prüfen, falls die Serie bis zum letzten Spiel andauert.
+        max_win_streak = max(max_win_streak, current_win_streak)
+
+        return {'best_win_streak': max_win_streak}
+
     def update_accuracy_model(self, player_name: str, parent_window=None):
         """
         Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es.
@@ -191,6 +223,15 @@ class PlayerStatsManager:
         game_mode_select = ttk.Combobox(control_frame, state="disabled")
         game_mode_select.pack(side='left')
 
+        # --- Zusammenfassung (NEU) ---
+        summary_frame = ttk.LabelFrame(win, text="Rekorde & Serien", padding=10)
+        summary_frame.pack(side='top', fill='x', padx=10, pady=(5, 0))
+        summary_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(summary_frame, text="Beste Siegesserie:").grid(row=0, column=0, sticky="w")
+        best_streak_var = tk.StringVar(value="-")
+        ttk.Label(summary_frame, textvariable=best_streak_var, font=("Arial", 12, "bold")).grid(row=0, column=1, sticky="w", padx=5)
+
         # --- Button Frame (ganz unten) ---
         # Wird vor den expandierenden Widgets gepackt, damit er immer sichtbar ist.
         bottom_frame = ttk.Frame(win, padding=10)
@@ -246,12 +287,14 @@ class PlayerStatsManager:
                 metric_key, metric_label = 'average', "3-Dart-Average"
             elif selected_mode in ('Cricket', 'Cut Throat', 'Tactics'):
                 metric_key, metric_label = 'mpr', "Marks Per Round (MPR)"
-
+            
             # Spiele für das Diagramm filtern und sortieren
             plot_games = sorted(
                 [g for g in games_to_display if g.get(metric_key) is not None],
                 key=lambda x: x['game_date']
             )
+            # Daten für die Hover-Funktion aktualisieren
+            plot_data.update({'games': plot_games, 'metric_key': metric_key, 'metric_label': metric_label})
 
             if plot_games and metric_key:
                 dates = [g['game_date'] for g in plot_games]
@@ -278,6 +321,10 @@ class PlayerStatsManager:
             # Daten aus der DB holen und cachen
             player_games_cache = self.db_manager.get_records_for_player(player_name)
             
+            # NEU: Streak-Berechnung
+            streak_stats = self._calculate_streaks(player_games_cache)
+            best_streak_var.set(f"{streak_stats.get('best_win_streak', 0)} Spiele")
+
             # Spielmodus-Filter aktualisieren
             modes = sorted(list(set(g['game_mode'] for g in player_games_cache)))
             game_mode_select['values'] = ["Alle Spiele"] + modes
@@ -298,6 +345,53 @@ class PlayerStatsManager:
 
         player_select.bind("<<ComboboxSelected>>", on_player_select)
         game_mode_select.bind("<<ComboboxSelected>>", on_game_mode_select)
+
+        # --- Interaktiver Tooltip für das Diagramm ---
+        # Gemeinsamer Zustand für die Hover-Funktion
+        plot_data = {'games': [], 'metric_key': '', 'metric_label': ''}
+
+        # Das Annotation-Objekt, das als Tooltip dient.
+        annot = ax.annotate("", xy=(0,0), xytext=(20,20), textcoords="offset points",
+                            bbox=dict(boxstyle="round,pad=0.4", fc="#ffffe0", ec="black", lw=0.5),
+                            arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=0.1"))
+        annot.set_visible(False)
+
+        def update_annot(ind):
+            """Aktualisiert den Text und die Position der Annotation."""
+            # Hole die Daten des ausgewählten Punktes
+            game_data = plot_data['games'][ind["ind"][0]]
+            pos = ax.lines[0].get_xydata()[ind["ind"][0]]
+            annot.xy = pos
+            
+            # Formatiere den Tooltip-Text
+            date_str = game_data['game_date'].strftime('%d.%m.%Y %H:%M')
+            metric_val = game_data.get(plot_data['metric_key'], 0)
+            win_str = "Sieg" if game_data.get('is_win') else "Niederlage"
+            text = (f"Datum: {date_str}\n"
+                    f"Spiel: {game_data['game_mode']}\n"
+                    f"{plot_data['metric_label']}: {metric_val:.2f}\n"
+                    f"Ergebnis: {win_str}")
+            annot.set_text(text)
+
+        def on_hover(event):
+            """Wird aufgerufen, wenn die Maus sich über dem Diagramm bewegt."""
+            # Prüfen, ob die Annotation sichtbar ist
+            vis = annot.get_visible()
+            # Nur reagieren, wenn die Maus im Diagramm-Bereich ist
+            if event.inaxes == ax:
+                # Prüfen, ob die Maus über einem Datenpunkt der Linie ist
+                line = ax.lines[0] if ax.lines else None
+                if line:
+                    cont, ind = line.contains(event)
+                    if cont:
+                        update_annot(ind)
+                        annot.set_visible(True)
+                        fig.canvas.draw_idle()
+                    elif vis: # Maus ist nicht mehr über einem Punkt
+                        annot.set_visible(False)
+                        fig.canvas.draw_idle()
+
+        canvas.mpl_connect("motion_notify_event", on_hover)
 
     def _show_heatmap(self, parent, player_name):
         """Sammelt alle Koordinaten für einen Spieler und zeigt die Heatmap an."""

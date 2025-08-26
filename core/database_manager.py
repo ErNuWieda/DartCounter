@@ -37,10 +37,12 @@ from datetime import date
 from pathlib import Path
 import shutil
 import psycopg2
-import json
-from sqlalchemy import create_engine, desc, asc
+import json, logging
+from sqlalchemy import create_engine, desc, asc, func
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from alembic.config import Config
+from alembic import command
 
 from .settings_manager import get_app_data_dir, get_application_root_dir
 from .db_models import Base, Highscore, PlayerProfile, GameRecord
@@ -76,7 +78,7 @@ class DatabaseManager:
         if config:
             self._connect_to_db(config)
             if self.is_connected:
-                self._create_tables_if_not_exist()
+                self._run_migrations()
 
     def _load_config(self):
         """Sucht und lädt die config.ini-Datei."""
@@ -137,15 +139,24 @@ class DatabaseManager:
             logger.error(f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}", exc_info=True)
             self.is_connected = False
 
-    def _create_tables_if_not_exist(self):
-        """Erstellt alle im Base-Metadaten-Objekt definierten Tabellen, falls sie nicht existieren."""
+    def _run_migrations(self):
+        """Führt Alembic-Migrationen aus, um die Datenbank auf den neuesten Stand zu bringen."""
         if not self.engine: return
         try:
-            # HINWEIS: create_all fügt keine Spalten hinzu oder migriert Tabellen.
-            # Dafür wäre ein Migrationstool wie Alembic notwendig.
-            Base.metadata.create_all(self.engine)
+            # Der Pfad zur alembic.ini relativ zum Projekt-Root
+            alembic_ini_path = get_application_root_dir() / 'alembic.ini'
+            logger.info("Prüfe und führe Datenbank-Migrationen aus...")
+            
+            # Erstelle eine Alembic-Konfiguration und setze den Pfad zur .ini-Datei
+            alembic_cfg = Config(str(alembic_ini_path))
+            
+            # Führe den 'upgrade head'-Befehl aus
+            command.upgrade(alembic_cfg, "head")
+            
+            logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
         except SQLAlchemyError as e:
-            logger.error(f"Fehler beim Erstellen der Tabellen: {e}", exc_info=True)
+            # Fängt Fehler ab, die während der Migration auftreten können
+            logger.error(f"Fehler während der Datenbank-Migration: {e}", exc_info=True)
             self.is_connected = False
 
     def get_scores(self, game_mode):
@@ -167,6 +178,32 @@ class DatabaseManager:
         except SQLAlchemyError as e:
             logger.error(f"Fehler beim Abrufen der Highscores für '{game_mode}': {e}", exc_info=True)
             return []
+
+    def get_personal_bests_for_mode(self, game_mode: str) -> dict[str, float]:
+        """
+        Ruft die persönliche Bestleistung für jeden Spieler in einem bestimmten Modus ab.
+        """
+        if not self.Session: return {}
+        
+        # Bestimme die Aggregationsfunktion basierend auf dem Spielmodus
+        if game_mode in ("Cricket", "Cut Throat", "Tactics"):
+            agg_func = func.max(Highscore.score_metric)
+        else: # X01
+            agg_func = func.min(Highscore.score_metric)
+
+        with self.Session() as session:
+            try:
+                results = (
+                    session.query(Highscore.player_name, agg_func)
+                    .filter(Highscore.game_mode == game_mode)
+                    .group_by(Highscore.player_name)
+                    .all()
+                )
+                # Konvertiere die Ergebnisliste von Tupeln in ein Dictionary
+                return {player_name: best_score for player_name, best_score in results}
+            except SQLAlchemyError as e:
+                logger.error(f"Fehler beim Abrufen der persönlichen Bestleistungen für '{game_mode}': {e}", exc_info=True)
+                return {}
 
     def add_score(self, game_mode, player_name, score_metric):
         """Fügt einen neuen Highscore-Eintrag hinzu."""

@@ -1,117 +1,66 @@
-name: Python CI/CD
+# .github/workflows/ci.yml
+
+name: CI - Test and Lint
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
-  release:
-    types: [created] # Wird ausgelöst, wenn ein neues Release auf GitHub veröffentlicht wird
+    branches: [ "main", "develop" ]
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    steps:
-    - name: Code auschecken
-      uses: actions/checkout@v4
-
-    - name: Python 3.11 einrichten
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Systemabhängigkeiten für GUI-Tests installieren
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-tk xvfb
-
-    - name: Python-Abhängigkeiten installieren
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
-
-    - name: Tests mit virtuellem Display ausführen
-      run: |
-        xvfb-run python -m pytest -sv
-
-  build_release:
-    name: Build for ${{ matrix.os_name }}
-    # Dieser Job wird nur ausgeführt, wenn ein neues Release auf GitHub erstellt wird
-    if: github.event_name == 'release'
-    needs: test # Stellt sicher, dass die Tests vor dem Build erfolgreich waren
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            os_name: Linux
-          - os: windows-latest
-            os_name: Windows
+        python-version: ["3.9", "3.10", "3.11"]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-    - name: Code auschecken
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Version aus Tag extrahieren
-      id: get_version
-      # Entfernt das 'v' vom Tag-Namen, z.B. v1.2.0 -> 1.2.0
-      shell: bash # Explizit angeben, um sicherzustellen, dass die Syntax funktioniert
-      run: |
-        TAG="${{ github.event.release.tag_name }}"
-        echo "VERSION=${TAG#v}" >> $GITHUB_ENV
-
-    - name: Python 3.11 einrichten
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: ${{ matrix.python-version }}
 
-    - name: Version in _version.py aktualisieren
+    - name: Get pip cache dir
+      id: pip-cache
       run: |
-        echo "__version__ = \"${{ env.VERSION }}\"" > core/_version.py
-        
-    - name: Systemabhängigkeiten installieren (nur für Linux)
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt -r requirements-dev.txt
+
+    - name: Install Tkinter on Linux
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-tk
+        sudo apt-get install -y python3-tk python3-pil.imagetk
 
-    - name: Python-Abhängigkeiten installieren
+    - name: Lint with flake8
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Anwendung bauen
-      run: python build.py
-
-    - name: Windows Installer erstellen (nur für Windows)
-      if: runner.os == 'Windows'
-      uses: Minionguy/setup-inno-setup@v1.0
-      with:
-        version: 6.2.2 # Oder eine andere gewünschte Inno Setup Version
-
-    - name: Installer-Skript kompilieren (nur für Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
+    - name: Test with pytest
       run: |
-        # Pfad zum Build-Verzeichnis definieren
-        $SourcePath = "DartCounter_Windows_v${{ env.VERSION }}"
-        $IssFile = "installer/create_installer.iss"
-        
-        # Inno Setup Skript mit den korrekten Werten aktualisieren
-        (Get-Content $IssFile) -replace '!define AppVersion ".*"', '!define AppVersion "${{ env.VERSION }}"' | Set-Content $IssFile
-        (Get-Content $IssFile) -replace 'Source: ".*"', 'Source: "' + $SourcePath + '\*"' | Set-Content $IssFile
-        
-        # Inno Setup Compiler ausführen
-        iscc.exe $IssFile
+        # Führt pytest aus. Die Optionen (--cov, etc.) werden aus der pytest.ini geladen.
+        python -m pytest
 
-    - name: Release-Artefakt hochladen
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        # Lade entweder die ZIP-Datei (Linux) oder die Setup.exe (Windows) hoch
-        asset_path: ./${{ runner.os == 'Windows' && format('installer/Output/DartCounter-v{0}-setup.exe', env.VERSION) || format('DartCounter_{0}_v{1}.zip', matrix.os_name, env.VERSION) }}
-        asset_name: DartCounter_${{ matrix.os_name }}_v${{ env.VERSION }}_setup.${{ runner.os == 'Windows' && 'exe' || 'zip' }}
-        asset_content_type: ${{ runner.os == 'Windows' && 'application/vnd.microsoft.portable-executable' || 'application/zip' }}
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4

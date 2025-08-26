@@ -163,7 +163,6 @@ class Killer(GameLogicBase):
 	def _handle_killer_phase(self, player, ring, segment, players):
 		"""Behandelt die Phase, in der ein Spieler als Killer agiert."""
 		victim = None
-		win_msg = None
 
 		for p in self._get_active_players():
 			is_hit_on_life_segment = (p.state['life_segment'] == "Bull" and ring in ("Bull", "Bullseye")) or \
@@ -186,11 +185,13 @@ class Killer(GameLogicBase):
 			if victim.score > 0:
 				return ('info', f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.")
 			else:
-				win_msg = self._check_and_handle_win_condition()
-				return ('info', f"{player.name} hat {opp_name} eliminiert!")
+				win_result = self._check_and_handle_win_condition()
+				if win_result:
+					return win_result # Gibt das ('win', 'message') Tupel zurück
+				return ('info', f"{player.name} hat {opp_name} eliminiert!") # Kein Sieger, nur eliminiert
 
 		player.sb.update_score(player.score)
-		return ('win', win_msg) if win_msg else ('ok', None)
+		return ('ok', None)
 
 	def _handle_throw(self, player, ring, segment, players):
 		"""
