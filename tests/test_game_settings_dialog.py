@@ -25,6 +25,19 @@ def dialog_setup(tk_root, monkeypatch):
     # Profile-Manager-Dialog geöffnet wird.
     monkeypatch.setattr(tk.Toplevel, 'wait_window', lambda self, window: None)
 
+    # Patch die globale Spielkonfiguration, um den Test vom Dateisystem zu entkoppeln.
+    # Dies stellt sicher, dass die Tests auch in einer CI-Umgebung, in der die
+    # Konfigurationsdatei möglicherweise nicht gefunden wird, zuverlässig laufen.
+    mock_game_config = {
+        "301": {"frame": "x01_options", "defaults": {"count_to": "301"}, "min_players": 1},
+        "501": {"frame": "x01_options", "defaults": {"count_to": "501"}, "min_players": 1},
+        "701": {"frame": "x01_options", "defaults": {"count_to": "701"}, "min_players": 1},
+        "Killer": {"frame": "killer_options", "defaults": {"lifes": "3"}, "min_players": 2},
+        "Shanghai": {"frame": "shanghai_options", "defaults": {"rounds": "7"}, "min_players": 1},
+        # Füge hier bei Bedarf weitere Spielmodi für Tests hinzu.
+    }
+    monkeypatch.setattr('core.gamemgr.GAME_CONFIG', mock_game_config)
+
     mock_settings_manager = MagicMock()
     mock_settings_manager.get.return_value = ["P1", "P2", "", ""] # für last_player_names
 
