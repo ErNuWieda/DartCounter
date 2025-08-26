@@ -30,6 +30,7 @@ jobs:
       id: pip-cache
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+      shell: bash
 
     - name: Cache pip dependencies
       uses: actions/cache@v4
@@ -48,7 +49,8 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-tk python3-pil.imagetk
+        # xvfb wird für die GUI-Tests in einer "kopf-losen" Umgebung benötigt
+        sudo apt-get install -y python3-tk python3-pil.imagetk xvfb
 
     - name: Lint with flake8
       run: |
@@ -57,10 +59,14 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Test with pytest
+    - name: Test with pytest (with virtual display on Linux)
       run: |
         # Führt pytest aus. Die Optionen (--cov, etc.) werden aus der pytest.ini geladen.
-        python -m pytest
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          xvfb-run python -m pytest
+        else
+          python -m pytest
+        fi
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
