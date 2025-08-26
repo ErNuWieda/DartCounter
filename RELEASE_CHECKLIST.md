@@ -1,4 +1,4 @@
- # Release Checklist für Dartcounter vX.Y.Z
+ # Release Checklist für Dartcounter v1.3.0
 
 Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-Prozess sicher.
 
@@ -12,7 +12,7 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
 - [ ] **CI-Pipeline prüfen:** Sicherstellen, dass die CI-Pipeline (GitHub Actions) auf dem Release-Branch erfolgreich durchläuft.
 - [ ] **Datenbank-Migrationen finalisieren:** Sicherstellen, dass alle Modell-Änderungen in einer Alembic-Migration erfasst sind.
   ```bash
-  alembic revision --autogenerate -m "Final changes for vX.Y.Z"
+  alembic revision --autogenerate -m "Final changes for v1.3.0"
   ```
 - [ ] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle Tests erfolgreich sind.
   ```bash
@@ -23,7 +23,7 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
 ## 2. Dokumentation & Versionierung
 - [ ] **Release vorbereiten (automatisiert):** Das `prepare_release.py`-Skript ausführen, um die Versionsnummer zu erhöhen und das Changelog vorzubereiten.
   ```bash
-  python3 prepare_release.py X.Y.Z
+  python3 prepare_release.py 1.3.0
   ```
 - [ ] **Änderungen überprüfen:** Die vom Skript vorgenommenen Änderungen in `core/_version.py` und `CHANGELOG.md` überprüfen und committen.
 - [ ] **`README.md` überprüfen:** Das `README.md` durchlesen, um sicherzustellen, dass alle Anleitungen (Installation, Build, Nutzung) korrekt und aktuell sind.
@@ -69,8 +69,8 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
 
 - [ ] **Git-Tag erstellen:** Einen neuen Git-Tag für das Release erstellen.
   ```bash
-  git tag -a vX.Y.Z -m "Release version X.Y.Z"
-  git push origin vX.Y.Z
+  git tag -a v1.3.0 -m "Release version 1.3.0"
+  git push origin v1.3.0
   ```
 - [ ] **GitHub-Release erstellen:**
     - [ ] Zur "Releases"-Sektion des GitHub-Repositories gehen.

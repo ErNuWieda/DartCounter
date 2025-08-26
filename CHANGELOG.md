@@ -14,35 +14,23 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.3.0] - 2025-08-09
+## [1.3.0] - 2025-08-26
 
 ### ✨ Features & Verbesserungen
+*   **Professioneller Match-Modus:** X01-Spiele können nun im "Best of Legs / Best of Sets"-Format gespielt werden.
+*   **Doppel-K.o.-Turniere:** Der Turniermodus unterstützt jetzt das Doppel-K.o.-System mit Winners & Losers Bracket.
+*   **Intelligentere KI:** Die KI-Strategien für X01 (Setup-Würfe) und Cricket (taktische Zielwahl) wurden erheblich verbessert.
+*   **Stabile CI/CD-Pipeline:** Die GitHub Actions wurden repariert und optimiert, um zuverlässige Tests auf allen Plattformen zu gewährleisten.
+*   **Verbesserte UI:** Der Turnierbaum und der Profil-Manager wurden optisch und funktional aufgewertet.
 
 ### 🐛 Bugfixes & Stabilität
 
----
-
-## [1.3.0] - 2025-08-09
-
-### ✨ Features & Verbesserungen
-
-*   **KI-Logik:** Die strategische Zielauswahl der KI-Spieler wurde grundlegend überarbeitet. Sie agiert jetzt im Finish-Bereich deutlich menschlicher, versucht gezielt Setup-Würfe zu spielen und vermeidet unsinnige Würfe auf die 20.
-*   **Profil-Manager UI:** Der Dialog zur Verwaltung der Spielerprofile wurde überarbeitet. Er gruppiert und sortiert die Spieler nun logisch (Menschen zuerst, dann KI nach Stärke) und passt seine Fenstergröße dynamisch an den Inhalt an.
-*   **Turnierbaum-Visualisierung:** Die Darstellung des Turnierbaums wurde verbessert. Verbindungslinien sind nun pixelgenau, und der Turniersieger wird am Ende prominent mit einem Trophäen-Symbol hervorgehoben.
-*   **Legs & Sets für X01-Spiele:** X01-Spiele können nun im professionellen "Best of Legs / Best of Sets"-Modus gespielt werden, um vollwertige Matches zu simulieren.
-*   **Doppel-K.o.-Turniere:** Der Turniermodus wurde um die Option "Doppel-K.o." erweitert, bei der Spieler erst nach zwei Niederlagen ausscheiden.
-*   **Taktische Cricket-KI:** Die KI für Cricket-Spiele wurde verbessert. Sie analysiert nun den Punktestand und wählt strategisch zwischen dem Schließen von Feldern und dem Sammeln von Punkten.
-
-### 🐛 Bugfixes & Stabilität
-
-*   **Turnier-Logik:** Mehrere kritische Fehler im Turniermodus wurden behoben, die zu Endlosschleifen, falschen Spielerzuweisungen in Folgerunden und einer fehlerhaften Finaldarstellung führten.
-*   **Statistik-Heatmap:** Die Wurf-Heatmap im Statistik-Fenster wird jetzt korrekt skaliert und passt sich der Bildschirmgröße an, analog zum Haupt-Dartboard.
+*   **Turnier-Logik:** Kritische Fehler im Turniermodus wurden behoben, die zu Endlosschleifen und falschen Spielerzuweisungen führten.
+*   **Test-Suite:** Die gesamte Test-Suite wurde stabilisiert. Alle Tests laufen jetzt zuverlässig und sind vom Dateisystem entkoppelt.
 
 ---
 
-## [1.2.0] - 2025-XX-XX
-
-Dies ist ein großes Release, das den Dartcounter von einem einfachen Prototyp zu einer vollwertigen, robusten Anwendung weiterentwickelt. Der Fokus lag auf der Implementierung zahlreicher neuer Spielmodi, der Verbesserung der Code-Qualität durch Refactoring und der Einführung einer umfassenden Test-Suite.
+## [1.2.0] - 2025-08-01
 
 ### ✨ Features & Verbesserungen
 
