@@ -13,7 +13,7 @@ Die Anwendung ist in logische, entkoppelte Komponenten mit klar definierten Aufg
 *   Sie ist verantwortlich für die Initialisierung des Hauptfensters, der Menüs und aller globalen "Manager"-Klassen (z.B. `SettingsManager`, `SoundManager`).
 *   Sie steuert den Lebenszyklus der Anwendung, reagiert auf Menü-Events (z.B. "Neues Spiel", "Laden") und delegiert die Aufgaben an die zuständigen Komponenten. Sie enthält selbst keine detaillierte Spiellogik oder UI-Dialog-Logik.
 
-#### **GameSettingsDialog** (in `core/gamemgr.py`) - Die Spielkonfiguration
+#### **GameSettingsDialog** (in `core/game_settings_dialog.py`) - Die Spielkonfiguration
 *   Dies ist eine eigenständige, gekapselte UI-Komponente (`Toplevel`-Dialog), die alle Widgets und die Logik zur Auswahl von Spielmodus, Spielern und Optionen enthält.
 *   Sie wird direkt von der `App`-Klasse aufgerufen und gibt die gewählten Einstellungen als Dictionary zurück, wenn der Benutzer auf "Spiel starten" klickt.
 

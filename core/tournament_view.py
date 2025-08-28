@@ -218,7 +218,7 @@ class TournamentView(tk.Toplevel):
 
     def update_bracket_tree(self):
         """Aktualisiert die Anzeige aller Brackets und Steuerelemente."""
-        tournament_winner = self.manager.get_tournament_winner()
+        tournament_winner = self.manager.winner
 
         if tournament_winner:
             self._show_podium()

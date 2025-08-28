@@ -119,7 +119,9 @@ class SettingsManager:
             'sound_enabled': True,
             'theme': 'light',
             'last_player_names': ["Sp1", "Sp2", "Sp3", "Sp4"],
-            'last_tournament_players': []
+            'last_tournament_players': [],
+            'ai_throw_delay': 1000,
+            'sound_volume': 0.5
         }
 
     def _load_settings(self, filepath):

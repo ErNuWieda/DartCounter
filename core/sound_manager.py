@@ -73,6 +73,7 @@ class SoundManager:
         self.settings_manager = settings_manager
         self.root = root
         self.loading_errors = [] # To collect errors for a single messagebox
+        self.loaded_sounds = [] # To store all sound objects
 
         if not PYGAME_AVAILABLE:
             logger.warning("pygame ist nicht installiert. Soundeffekte sind deaktiviert.")
@@ -81,6 +82,7 @@ class SoundManager:
 
         # Lade den initialen Zustand aus dem SettingsManager
         self.sounds_enabled = self.settings_manager.get('sound_enabled', True)
+        self.volume = self.settings_manager.get('sound_volume', 0.5)
 
         if not self.sounds_enabled:
             return # Don't initialize mixer or load sounds if disabled from settings
@@ -145,12 +147,30 @@ class SoundManager:
             self.loading_errors.append(msg)
             return None
         try:
-            return pygame.mixer.Sound(path)
+            sound = pygame.mixer.Sound(path)
+            sound.set_volume(self.volume)
+            self.loaded_sounds.append(sound)
+            return sound
         except pygame.error as e:
             msg = f"Fehler beim Laden von {path.name}: {e}"
             logger.error(msg, exc_info=True)
             self.loading_errors.append(msg)
             return None
+
+    def set_global_volume(self, volume: float):
+        """
+        Setzt die Lautstärke für alle geladenen Soundeffekte.
+
+        Args:
+            volume (float): Die Lautstärke als Wert zwischen 0.0 und 1.0.
+        """
+        self.volume = volume
+        if not PYGAME_AVAILABLE or not self.sounds_enabled:
+            return
+        
+        for sound in self.loaded_sounds:
+            if sound:
+                sound.set_volume(self.volume)
 
     def toggle_sounds(self, enabled):
         """

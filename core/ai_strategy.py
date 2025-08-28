@@ -73,13 +73,8 @@ class X01AIStrategy(AIStrategy):
             # Die Reihenfolge spiegelt eine menschliche Strategie wider:
             # T20/T19 für die höchsten Punkte, dann das sichere Bullseye,
             # dann andere "gute" Triple. Die riskante T17 kommt zum Schluss.
-            ("Triple", 20), 
-            ("Triple", 19), 
-            ("Bullseye", 50),
-            ("Triple", 18), 
-            ("Triple", 16), 
-            ("Triple", 15), 
-            ("Triple", 17)
+            ("Triple", 20), ("Triple", 19), ("Bullseye", 50),
+            ("Triple", 18), ("Triple", 16), ("Triple", 15), ("Triple", 17)
         ]
 
         for ring, segment in power_throws:
@@ -92,16 +87,13 @@ class X01AIStrategy(AIStrategy):
             # Prüfe, ob der Rest eine Bogey-Nummer ist
             remainder = score - throw_value
             if remainder not in self.BOGEY_NUMBERS:
-                # Dies ist ein sicherer, hochpunktender Wurf
                 return ring, segment
 
         # 3. Fallback: Wenn alle Triple-Würfe zu einem Bogey führen,
         #    wirf auf das größte Single-Feld, das keinen Bust UND keinen Bogey verursacht.
         for segment in range(20, 0, -1):
-            # Check for bust
             if score - segment < 2:
                 continue
-            # Check for bogey
             if (score - segment) not in self.BOGEY_NUMBERS:
                 return "Single", segment
 
@@ -146,7 +138,9 @@ class KillerAIStrategy(AIStrategy):
             preferred = [str(i) for i in range(20, 14, -1)] + ["Bull"]
             for target in preferred:
                 if target not in taken:
-                    return "Single", int(target) if target != "Bull" else 25
+                    # KORREKTUR: "Bull" muss als ("Bull", 25) zurückgegeben werden,
+                    # nicht als ("Single", 25), da dies von der Spiellogik erwartet wird.
+                    return ("Bull", 25) if target == "Bull" else ("Single", int(target))
             return "Single", 1 # Fallback
 
         # Phase 2: Killer werden
