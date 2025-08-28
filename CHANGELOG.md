@@ -11,6 +11,12 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### ✨ Features & Verbesserungen
 
 ### 🐛 Bugfixes & Stabilität
+
+---
+
+## [1.3.1] - 2025-08-28
+
+### 🐛 Bugfixes & Stabilität
 *   **Test-Suite:** Alle 250 Tests laufen jetzt wieder erfolgreich. Ein Fehler im Test-Setup für den `AIPlayer` wurde behoben, der zu 20 fehlschlagenden Tests führte.
 *   **Checkout-Logik:** Die Logik im `CheckoutCalculator` wurde verfeinert, um in allen Fällen die optimalen Finish-Wege zu berechnen. Veraltete Testfälle wurden entsprechend aktualisiert.
 
