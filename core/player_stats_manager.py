@@ -164,8 +164,15 @@ class PlayerStatsManager:
             
             # Leite das getroffene Segment ab
             segment = DartboardGeometry.get_segment_from_coords(x, y)
-            target_key = f"T{segment}" # Wir nehmen an, dass auf das Triple gezielt wurde
-
+            # Leite den Ziel-Schlüssel ab. Für die Analyse nehmen wir an, dass der Spieler
+            # immer auf das Triple des getroffenen Segments gezielt hat.
+            if segment in ("Bull", "Bullseye"):
+                target_key = "BE" if segment == "Bullseye" else "B"
+            elif segment == "Miss":
+                continue # Misses werden für das Genauigkeitsmodell ignoriert
+            else:
+                target_key = f"T{segment}"
+                
             if target_key not in throws_by_target:
                 throws_by_target[target_key] = []
             throws_by_target[target_key].append((x, y))
@@ -193,11 +200,13 @@ class PlayerStatsManager:
                 'data_points': len(coords_list)
             }
 
-        # 4. Modell in der Datenbank speichern
+        # 4. Modell in der Datenbank speichern und Erfolg zurückgeben
         if self.db_manager.update_profile_accuracy_model(player_name, accuracy_model):
             messagebox.showinfo("Erfolg", f"Genauigkeitsmodell für '{player_name}' wurde erfolgreich berechnet und gespeichert.", parent=parent_window)
+            return True
         else:
             messagebox.showerror("Fehler", "Das Genauigkeitsmodell konnte nicht gespeichert werden.", parent=parent_window)
+            return False
 
     def show_stats_window(self, parent):
         """Erstellt und zeigt das Fenster für die Spielerstatistiken an."""

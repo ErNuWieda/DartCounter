@@ -26,6 +26,10 @@ class PlayerProfileManager:
         self.db_manager = db_manager
         self.profiles = self._load_profiles_from_db()
 
+    def reload_profiles(self):
+        """Erzwingt ein Neuladen aller Profile aus der Datenbank."""
+        self.profiles = self._load_profiles_from_db()
+
     def _load_profiles_from_db(self) -> list[PlayerProfile]:
         """Lädt die Profile aus der Datenbank."""
         if not self.db_manager.is_connected:

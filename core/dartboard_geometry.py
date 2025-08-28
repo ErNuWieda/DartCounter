@@ -53,6 +53,9 @@ class DartboardGeometry:
             return "Miss"
         if dist <= DartboardGeometry.RADIEN["bullseye"]:
             return "Bullseye"
+        # FIX: Add check for Bull, which was previously missed.
+        if dist <= DartboardGeometry.RADIEN["bull"]:
+            return "Bull"
 
         angle = (math.degrees(math.atan2(center - y, x - center)) + 360) % 360
         idx = int((angle + 9) // 18) % 20
@@ -72,11 +75,9 @@ class DartboardGeometry:
         """
         target_name = target_name.upper().strip()
 
-        if target_name == "BE":
+        # For both Bull and Bullseye, the geometric aiming point is the center of the board.
+        if target_name in ("BE", "B"):
             return (DartboardGeometry.CENTER, DartboardGeometry.CENTER)
-        if target_name == "B":
-            radius = (DartboardGeometry.RADIEN["bullseye"] + DartboardGeometry.RADIEN["bull"]) / 2
-            return DartboardGeometry._polar_to_cartesian(radius, 0)
 
         try:
             ring_char = target_name[0]

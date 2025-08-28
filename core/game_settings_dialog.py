@@ -57,8 +57,6 @@ def _load_game_config():
 # Die Spielkonfiguration wird nur einmal beim Import des Moduls geladen.
 GAME_CONFIG = _load_game_config()
 
-# Neue, UI-fokussierte Klasse für den Einstellungsdialog.
-# Diese Klasse ist noch nicht integriert und dient als erster Schritt des Refactorings.
 class GameSettingsDialog(tk.Toplevel):
     """Ein modaler Dialog zur Konfiguration und zum Start eines neuen Spiels."""
     def __init__(self, parent, settings_manager=None, profile_manager=None):

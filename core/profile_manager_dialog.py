@@ -40,13 +40,20 @@ class ProfileManagerDialog(tk.Toplevel):
         # UI aktualisieren, damit Tkinter die benötigte Breite berechnen kann
         self.update_idletasks()
         # Die berechnete Breite verwenden und eine feste Höhe beibehalten
-        self.geometry(f"{self.winfo_reqwidth()}x375")
+        self.geometry(f"{self.winfo_reqwidth()}x425")
         self.grab_set()
 
     def _setup_widgets(self):
         main_frame = ttk.Frame(self, padding=10)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        # --- Button Frame (ganz unten) ---
+        # Dieser Frame wird zuerst gepackt, damit er seinen Platz am unteren Rand reserviert,
+        # bevor der List-Frame den restlichen Platz einnimmt.
+        button_frame = ttk.Frame(main_frame, padding=(0, 10))
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
+
+        # --- List Frame (füllt den restlichen Platz) ---
         list_frame = ttk.LabelFrame(main_frame, text="Gespeicherte Profile")
         list_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
@@ -70,9 +77,7 @@ class ProfileManagerDialog(tk.Toplevel):
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.config(yscrollcommand=scrollbar.set)
 
-        button_frame = ttk.Frame(main_frame, padding=(0, 10))
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
-
+        # --- Buttons im Button Frame ---
         ttk.Button(button_frame, text="Neues Profil", command=self._add_new_profile).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Profil bearbeiten", command=self._edit_selected_profile).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Profil löschen", command=self._delete_selected_profile).pack(side=tk.LEFT, padx=5)
@@ -184,4 +189,9 @@ class ProfileManagerDialog(tk.Toplevel):
             return
 
         if messagebox.askyesno("Bestätigung", f"Möchten Sie das Genauigkeitsmodell für '{profile_name}' jetzt neu berechnen?\n\nDieser Vorgang analysiert alle gespeicherten Würfe und kann einen Moment dauern.", parent=self):
-            self.player_stats_manager.update_accuracy_model(profile_name, parent_window=self)
+            success = self.player_stats_manager.update_accuracy_model(profile_name, parent_window=self)
+            if success:
+                # Erzwinge, dass der Manager seine interne Liste aus der DB neu lädt
+                self.profile_manager.reload_profiles()
+                # Aktualisiere die Treeview-Anzeige in diesem Dialog
+                self._populate_profile_list()

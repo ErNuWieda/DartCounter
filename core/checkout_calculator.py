@@ -75,36 +75,34 @@ _ORDERED_THROWS = (
     [(f"{i}", i) for i in range(20, 0, -1)]
 )
 
+def _get_single_dart_throw(score: int) -> str | None:
+    """
+    Ermittelt den besten Wurf, um einen Score mit einem einzelnen Dart zu erzielen,
+    indem eine vorberechnete Map für einen schnellen Lookup verwendet wird.
+    Gibt None zurück, wenn der Score nicht mit einem einzelnen Dart machbar ist.
+    """
+    return _SINGLE_DART_FINISH_MAP.get(score)
+
+def _get_two_dart_setup(score: int) -> tuple[str, str] | None:
+    """
+    Ermittelt den besten Zwei-Dart-Weg, um einen Setup-Score zu erzielen.
+    Priorisiert hohe Würfe, um den Rest schnell zu reduzieren.
+    """
+    # Nutze die vordefinierte Klassenkonstante
+    for first_throw_str, first_throw_score in _ORDERED_THROWS:
+        if first_throw_score <= score:
+            remainder = score - first_throw_score
+            second_throw_str = _get_single_dart_throw(remainder)
+            if second_throw_str:
+                return first_throw_str, second_throw_str
+    return None
+
 class CheckoutCalculator:
     """
     Eine Utility-Klasse zur Berechnung von Finish-Wegen für X01-Spiele.
     Nutzt eine Hybrid-Strategie: Berechnet zuerst einen Weg zum bevorzugten Double,
     greift andernfalls auf eine kuratierte Liste von Standard-Finishwegen zurück.
     """
-    @staticmethod
-    def _get_single_dart_throw(score: int) -> str | None:
-        """
-        Ermittelt den besten Wurf, um einen Score mit einem einzelnen Dart zu erzielen,
-        indem eine vorberechnete Map für einen schnellen Lookup verwendet wird.
-        Gibt None zurück, wenn der Score nicht mit einem einzelnen Dart machbar ist.
-        """
-        return CheckoutCalculator._SINGLE_DART_FINISH_MAP.get(score)
-
-    @staticmethod
-    def _get_two_dart_setup(score: int) -> tuple[str, str] | None:
-        """
-        Ermittelt den besten Zwei-Dart-Weg, um einen Setup-Score zu erzielen.
-        Priorisiert hohe Würfe, um den Rest schnell zu reduzieren.
-        """
-        # Nutze die vordefinierte Klassenkonstante
-        for first_throw_str, first_throw_score in CheckoutCalculator._ORDERED_THROWS:
-            if first_throw_score <= score:
-                remainder = score - first_throw_score
-                second_throw_str = CheckoutCalculator._get_single_dart_throw(remainder)
-                if second_throw_str:
-                    return first_throw_str, second_throw_str
-        return None
-
     @staticmethod
     def _calculate_path_for_preferred_double(score: int, darts_left: int, preferred_double: int) -> str | None:
         """Berechnet einen Checkout-Pfad, der auf dem bevorzugten Double endet."""
@@ -122,13 +120,13 @@ class CheckoutCalculator:
 
         # 2-Dart-Finish (1 Setup-Dart + Double)
         if darts_left >= 2:
-            setup_throw = CheckoutCalculator._get_single_dart_throw(setup_score)
+            setup_throw = _get_single_dart_throw(setup_score)
             if setup_throw:
                 return f"{setup_throw}, {double_str}"
 
         # 3-Dart-Finish (2 Setup-Darts + Double)
         if darts_left >= 3:
-            setup_throws = CheckoutCalculator._get_two_dart_setup(setup_score)
+            setup_throws = _get_two_dart_setup(setup_score)
             if setup_throws:
                 return f"{setup_throws[0]}, {setup_throws[1]}, {double_str}"
 
@@ -155,21 +153,28 @@ class CheckoutCalculator:
             return "-"
         
         # Bogey-Nummern (nicht finishbar mit 3 Darts)
-        if score in (169, 168, 166, 165, 163, 162, 159):
+        if darts_left == 3 and score in (169, 168, 166, 165, 163, 162, 159):
             return "-"
 
         # Maximale Finish-Scores pro Dart-Anzahl
         if (darts_left == 3 and score > 170) or \
-           (darts_left == 2 and score > 110) or \
-           (darts_left == 1 and (score > 50 or (score % 2 != 0 and score != 25))):
+           (darts_left == 2 and score > 110): # 1-Dart-Finish wird separat geprüft
+            return "-"
+        if darts_left == 1 and opt_out in ("Double", "Masters") and (score > 50 or (score % 2 != 0 and score != 25)):
             return "-"
 
         # Für "Single Out" (einfachster Fall)
         if opt_out == "Single":
-            # Für Single-Out ist der Standard-Pfad aus der JSON-Datei ausreichend und am verständlichsten.
-            path = CHECKOUT_PATHS.get(score)
-            if isinstance(path, list): path = path[0] # Nimm den ersten Pfad, falls mehrere existieren
-            return path.replace(" ", ", ") if path else "-"
+            # Prüfe von der besten (1 Dart) zur schlechtesten (3 Darts) Option
+            if darts_left >= 1:
+                if path := _get_single_dart_throw(score): return path
+            if darts_left >= 2:
+                if path_tuple := _get_two_dart_setup(score): return f"{path_tuple[0]}, {path_tuple[1]}"
+            if darts_left >= 3:
+                path = CHECKOUT_PATHS.get(score)
+                if isinstance(path, list): path = path[0]
+                if path: return path.replace(" ", ", ")
+            return "-"
 
         # --- Logik für "Double Out" / "Masters Out" ---
         if opt_out in ("Double", "Masters"):

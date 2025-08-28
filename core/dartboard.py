@@ -55,19 +55,9 @@ class DartBoard:
     # This constant represents the pixel offset of the dartboard's geometric center
     # from the image file's center. This was previously a "magic number" correction
     # applied to every click. By defining it here, we make the code self-documenting.
-    BOARD_CENTER_OFFSET = (6, 6)
-
-    RING_DEFINITIONS = [
-        # (Ring-Name, innerer Radius-Key, äußerer Radius-Key)
-        # Die Reihenfolge von innen nach außen ist wichtig.
-        ("Bullseye", None, "bullseye"),
-        ("Bull", "bullseye", "bull"),
-        ("Single", "bull", "triple_inner"), # Inneres Single-Feld
-        ("Triple", "triple_inner", "triple_outer"),
-        ("Single", "triple_outer", "double_inner"), # Äußeres Single-Feld
-        ("Double", "double_inner", "double_outer"),
-        ("Miss", "double_outer", None) # Alles außerhalb ist ein Miss
-    ]
+    # Setting this to (0,0) assumes a perfectly centered image, which is more robust
+    # and fixes inconsistencies between click detection and AI targeting.
+    BOARD_CENTER_OFFSET = (0, 0)
 
     def __init__(self, spiel):
         """
@@ -241,38 +231,31 @@ class DartBoard:
 
     # RING + SEGMENT ERMITTELN
     def get_ring_segment(self,x, y):
-        """
-        Ermittelt den getroffenen Ring und das Segment basierend auf Klickkoordinaten.
-
-        Args:
-            x (int): Die x-Koordinate des Klicks.
-            y (int): Die y-Koordinate des Klicks.
-
-        Returns:
-            tuple[str, int]: Ein Tupel bestehend aus dem Namen des Rings und dem Zahlenwert des Segments.
-        """
+        """Ermittelt den getroffenen Ring und das Segment basierend auf Klickkoordinaten."""
         dist = self.distance(x, y)
+
+        # Prüfe die Ringe von innen nach außen. Diese Logik ist klarer und weniger
+        # fehleranfällig als die vorherige Kombination aus Sonderfall und Schleife.
+        if dist <= self.skaliert["bullseye"]:
+            return "Bullseye", 50
+        if dist <= self.skaliert["bull"]:
+            return "Bull", 25
+
+        # Wenn es nicht Bull oder Bullseye ist, benötigen wir den Winkel für das Segment.
         angle = self.polar_angle(x, y)
         idx = int((angle + 9) // 18) % 20
         segment = DartboardGeometry.SEGMENTS[idx]
 
-        # Sonderfall: Ein Wurf genau in die Mitte ist immer ein Bullseye.
-        if dist <= self.skaliert.get("bullseye", 0):
-            return "Bullseye", 50
+        if dist <= self.skaliert["triple_inner"]:
+            return "Single", segment
+        if dist <= self.skaliert["triple_outer"]:
+            return "Triple", segment
+        if dist <= self.skaliert["double_inner"]:
+            return "Single", segment
+        if dist <= self.skaliert["double_outer"]:
+            return "Double", segment
 
-        for ring_name, inner_key, outer_key in self.RING_DEFINITIONS:
-            inner_radius = self.skaliert.get(inner_key, 0) if inner_key else 0
-            outer_radius = self.skaliert.get(outer_key, float('inf')) if outer_key else float('inf')
-
-            if inner_radius < dist <= outer_radius:
-                # Miss hat keinen Segmentwert
-                if ring_name == "Miss": return "Miss", 0
-                # Bullseye und Bull haben feste Segmentwerte
-                if ring_name == "Bullseye": return "Bullseye", 50
-                if ring_name == "Bull": return "Bull", 25
-                return ring_name, segment
-
-        return "Miss", 0 # Fallback
+        return "Miss", 0
 
     def on_click(self, event):
         """

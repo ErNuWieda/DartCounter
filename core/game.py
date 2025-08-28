@@ -71,7 +71,7 @@ class Game:
       Delegation an die zuständigen Methoden oder Logik-Handler.
     - Bereinigung aller Ressourcen nach Spielende.
     """
-    def __init__(self, root, game_options: GameOptions, player_names, on_throw_processed_callback, highscore_manager=None, player_stats_manager=None, profile_manager=None, is_tournament_match=False):
+    def __init__(self, root, game_options: GameOptions, player_names, on_throw_processed_callback, highscore_manager=None, player_stats_manager=None, profile_manager=None, settings_manager=None, is_tournament_match=False):
         """
         Initialisiert eine neue Spielinstanz.
 
@@ -83,6 +83,7 @@ class Game:
             highscore_manager (HighscoreManager, optional): Instanz zur Verwaltung von Highscores.
             player_stats_manager (PlayerStatsManager, optional): Instanz zur Verwaltung von Spielerstatistiken.
             profile_manager (PlayerProfileManager, optional): Instanz zur Verwaltung von Spielerprofilen.
+            settings_manager (SettingsManager, optional): Instanz zur Verwaltung von App-Einstellungen.
             is_tournament_match (bool): True, wenn das Spiel Teil eines Turniers ist.
         """
         self.root = root
@@ -90,6 +91,7 @@ class Game:
         self.highscore_manager = highscore_manager
         self.player_stats_manager = player_stats_manager
         self.profile_manager = profile_manager
+        self.settings_manager = settings_manager
         self.options = game_options
         self.current = 0
         self.round = 1

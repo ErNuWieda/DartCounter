@@ -38,11 +38,11 @@ class AIPlayer(Player):
     # Definiert die Streuung für jeden Schwierigkeitsgrad.
     # Der Wert ist der maximale Radius (in Pixeln) vom Zielpunkt.
     DIFFICULTY_SETTINGS = {
-        'Anfänger':       {'radius': 150, 'delay': 1000}, # Easiest
-        'Fortgeschritten':{'radius': 60,  'delay': 1000},
-        'Amateur':        {'radius': 40,  'delay': 1000}, # Between Fortgeschritten and Profi
-        'Profi':          {'radius': 25,  'delay': 1000},
-        'Champion':       {'radius': 10,  'delay': 1000}  # Hardest
+        'Anfänger':       {'radius': 150},
+        'Fortgeschritten':{'radius': 60},
+        'Amateur':        {'radius': 40},
+        'Profi':          {'radius': 25},
+        'Champion':       {'radius': 10}
         # 'Adaptive' wird hier nicht benötigt, da es seine Daten aus dem Profil lädt.
     }
 
@@ -61,7 +61,16 @@ class AIPlayer(Player):
     def __init__(self, name, game, profile=None):
         super().__init__(name, game, profile)
         self.difficulty = profile.difficulty if profile else 'Anfänger'
-        self.settings = self.DIFFICULTY_SETTINGS.get(self.difficulty, self.DIFFICULTY_SETTINGS['Anfänger'])
+        
+        # Streuungsradius aus den Schwierigkeits-Einstellungen laden
+        difficulty_params = self.DIFFICULTY_SETTINGS.get(self.difficulty, self.DIFFICULTY_SETTINGS['Anfänger'])
+        self.throw_radius = difficulty_params['radius']
+
+        # Wurf-Verzögerung aus den globalen Einstellungen laden
+        self.throw_delay = 1000 # Fallback-Wert
+        if game.settings_manager:
+            self.throw_delay = game.settings_manager.get('ai_throw_delay', 1000)
+
         # Wählt die passende Strategie aus der Map aus oder nimmt die Default-Strategie.
         strategy_class = self._strategy_map.get(game.options.name, DefaultAIStrategy)
         self.strategy: AIStrategy = strategy_class(self)
@@ -142,7 +151,7 @@ class AIPlayer(Player):
     def take_turn(self):
         """Startet den automatischen Zug der KI."""
         if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-            self.game.dartboard.root.after(self.settings['delay'], self._execute_throw, 1)
+            self.game.dartboard.root.after(self.throw_delay, self._execute_throw, 1)
 
     def _execute_throw(self, throw_number):
         """
@@ -159,7 +168,7 @@ class AIPlayer(Player):
             # Der Zug wurde vorzeitig beendet (z.B. Bust im vorherigen Wurf),
             # also direkt zum nächsten Spieler wechseln.
             if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-                self.game.dartboard.root.after(self.settings['delay'], self.game.next_player)
+                self.game.dartboard.root.after(self.throw_delay, self.game.next_player)
             return
 
         # --- Strategische Ziel-Logik ---
@@ -186,7 +195,7 @@ class AIPlayer(Player):
             throw_x, throw_y = self._get_adaptive_throw_coords((target_x, target_y), target_name)
         else:
             # Standard-Logik mit kreisförmiger Streuung
-            radius = self.settings['radius']
+            radius = self.throw_radius
             # Sonderregel für Killer: Das Lebensfeld wird mit der "schwachen" Hand ermittelt.
             # Wir simulieren das, indem wir für diesen einen Wurf immer die Anfänger-Genauigkeit verwenden.
             if self.game.options.name == "Killer" and not self.state.get('life_segment'):
@@ -216,8 +225,8 @@ class AIPlayer(Player):
         if throw_number < 3:
             # Planen des nächsten Wurfs nach der Verzögerung
             if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-                self.game.dartboard.root.after(self.settings['delay'], self._execute_throw, throw_number + 1)
+                self.game.dartboard.root.after(self.throw_delay, self._execute_throw, throw_number + 1)
         else:
             # Nach dem dritten Wurf den Zug an den nächsten Spieler übergeben
             if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-                self.game.dartboard.root.after(self.settings['delay'], self.game.next_player)
+                self.game.dartboard.root.after(self.throw_delay, self.game.next_player)

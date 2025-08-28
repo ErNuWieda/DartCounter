@@ -3,7 +3,7 @@ import tkinter as tk # Import real tkinter
 from unittest.mock import MagicMock, ANY
 
 # Die zu testende Klasse
-from core.gamemgr import GameSettingsDialog
+from core.game_settings_dialog import GameSettingsDialog
 
 @pytest.fixture
 def tk_root():
@@ -36,7 +36,7 @@ def dialog_setup(tk_root, monkeypatch):
         "Shanghai": {"frame": "shanghai_options", "defaults": {"rounds": "7"}, "min_players": 1},
         # Füge hier bei Bedarf weitere Spielmodi für Tests hinzu.
     }
-    monkeypatch.setattr('core.gamemgr.GAME_CONFIG', mock_game_config)
+    monkeypatch.setattr('core.game_settings_dialog.GAME_CONFIG', mock_game_config)
 
     mock_settings_manager = MagicMock()
     mock_settings_manager.get.return_value = ["P1", "P2", "", ""] # für last_player_names
@@ -132,7 +132,7 @@ class TestGameSettingsDialog:
         """Testet, ob ein Fehler angezeigt wird, wenn Spielernamen doppelt sind."""
         dialog, _, _ = dialog_setup
         mock_messagebox = MagicMock()
-        monkeypatch.setattr('core.gamemgr.messagebox', mock_messagebox)
+        monkeypatch.setattr('core.game_settings_dialog.messagebox', mock_messagebox)
 
         dialog.player_count_var.set("2")
         dialog._on_player_count_changed()

@@ -27,7 +27,7 @@ import sv_ttk
 from core.settings_manager import SettingsManager
 import pathlib
 from core.game_options import GameOptions
-from core.gamemgr import GameSettingsDialog
+from core.game_settings_dialog import GameSettingsDialog
 from core.game import Game
 from core.dartboard import DartBoard
 from core.save_load_manager import SaveLoadManager
@@ -198,8 +198,9 @@ class App:
     def _initialize_game_session(self, game_options, player_names, is_tournament_match=False):
         """Erstellt die Game-Instanz, die ihre eigene UI initialisiert."""
         return Game(
-            self.root, game_options, player_names, self._on_throw_processed,
-            self.highscore_manager, self.player_stats_manager, self.profile_manager, is_tournament_match=is_tournament_match
+            root=self.root, game_options=game_options, player_names=player_names,
+            on_throw_processed_callback=self._on_throw_processed, highscore_manager=self.highscore_manager,
+            player_stats_manager=self.player_stats_manager, profile_manager=self.profile_manager, settings_manager=self.settings_manager, is_tournament_match=is_tournament_match
         )
 
     def _start_game_workflow(self, game_data: dict, is_loaded_game: bool = False):
@@ -325,8 +326,9 @@ class App:
             name=self.tournament_manager.game_mode,
             opt_in="Single",   # Standard für Turniere
             opt_out="Double",  # Standard für Turniere
-            count_to=int(self.tournament_manager.game_mode),
-            opt_atc="Single", lifes=3, rounds=7 # Irrelevant, aber von der Datenklasse benötigt
+            count_to=int(self.tournament_manager.game_mode), # type: ignore
+            opt_atc="Single", lifes=3, rounds=7, # Irrelevant, aber von der Datenklasse benötigt
+            legs_to_win=1, sets_to_win=1 # Turnierspiele sind einzelne Legs/Sets
         )
         player_names = [match['player1'], match['player2']]
         self.game_instance = self._initialize_game_session(game_options, player_names, is_tournament_match=True)

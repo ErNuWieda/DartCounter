@@ -41,6 +41,11 @@ def ai_player_with_mocks():
     mock_game.dartboard.center_y = 250
     mock_game.dartboard.get_coords_for_target.return_value = (300, 300)
 
+    # FIX: Füge das fehlende settings_manager-Attribut hinzu, das vom AIPlayer-Konstruktor benötigt wird.
+    mock_game.settings_manager = MagicMock()
+    mock_game.settings_manager.get.return_value = 1000 # Standard-Verzögerung für Tests
+
+
     mock_game.targets = [] # Fehlendes Attribut hinzufügen
 
     # Mock die get_score Methode, da die Strategie sie verwendet
@@ -117,9 +122,8 @@ def test_initialization(ai_player_with_mocks):
     assert ai_player.is_ai()
     assert ai_player.name == "RoboCop"
     assert ai_player.difficulty == 'Fortgeschritten'
-    assert 'radius' in ai_player.settings
-    assert ai_player.settings['radius'] == 60
-    assert ai_player.settings['delay'] == 1000
+    assert ai_player.throw_radius == 60
+    assert ai_player.throw_delay == 1000
 
 def test_get_strategic_target_for_x01_high_score(x01_ai_player):
     """Testet die Zielauswahl für X01 bei hohem Punktestand (kein Finish)."""
@@ -403,7 +407,7 @@ def test_execute_throw_stops_on_bust(ai_player_with_mocks):
     mock_game.dartboard.on_click_simulated.assert_not_called()
     # Die KI sollte sofort den nächsten Spieler aufrufen
     mock_game.dartboard.root.after.assert_called_once_with(
-        ai_player.settings['delay'],
+        ai_player.throw_delay,
         mock_game.next_player
     )
 
@@ -413,7 +417,7 @@ def test_take_turn_initiates_sequence(ai_player_with_mocks):
     ai_player.take_turn()
     # Es sollte der erste Wurf geplant werden
     mock_game.dartboard.root.after.assert_called_once_with(
-        ai_player.settings['delay'],
+        ai_player.throw_delay,
         ai_player._execute_throw,
         1
     )
