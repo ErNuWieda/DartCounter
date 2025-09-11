@@ -137,8 +137,8 @@ class DatabaseManager:
             if not all(key in db_config for key in required_keys):
                 log_msg = (
                     "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] "
-                    "Abschnitt. Datenbankfunktionen sind deaktiviert."  # noqa: E501
-                )  # noqa: E501
+                    "Abschnitt. Datenbankfunktionen sind deaktiviert."
+                )
                 logger.error(log_msg)
                 return
 
@@ -177,8 +177,8 @@ class DatabaseManager:
             # Führe den 'upgrade head'-Befehl aus
             command.upgrade(alembic_cfg, "head")
 
-            logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")  # noqa: E501
-        except SQLAlchemyError as e:  # noqa: E501
+            logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
+        except SQLAlchemyError as e:
             # Fängt Fehler ab, die während der Migration auftreten können
             logger.error(f"Fehler während der Datenbank-Migration: {e}", exc_info=True)
             self.is_connected = False
@@ -361,8 +361,8 @@ class DatabaseManager:
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
-                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen"
-                logger.warning(f"{log_msg} '{name}' zu erstellen.")  # noqa: E501
+                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen "
+                logger.warning(f"{log_msg}'{name}' zu erstellen.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -399,8 +399,8 @@ class DatabaseManager:
                 return False
             except IntegrityError:
                 session.rollback()
-                log_msg = "Versuch, ein Profil auf einen bereits existierenden Namen"
-                logger.warning(f"{log_msg} '{new_name}' zu aktualisieren.")
+                log_msg = "Versuch, ein Profil auf einen bereits existierenden Namen "
+                logger.warning(f"{log_msg}'{new_name}' zu aktualisieren.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -420,9 +420,9 @@ class DatabaseManager:
                 if profile:
                     profile.accuracy_model = model
                     session.commit()
-                    return True  # noqa: E501
-                log_msg = "Konnte Genauigkeitsmodell nicht speichern: "  # noqa: E501
-                logger.warning(f"{log_msg}Profil '{player_name}' nicht gefunden.")  # noqa: E501
+                    return True
+                log_msg = "Konnte Genauigkeitsmodell nicht speichern: "
+                logger.warning(f"{log_msg}Profil '{player_name}' nicht gefunden.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
