@@ -127,18 +127,22 @@ class TestHighscoreManager(unittest.TestCase):
         item_cricket = treeview_cricket.item(treeview_cricket.get_children()[0])
         self.assertEqual(item_cricket['values'], ['1.', 'Bob', '2.57', '2023-01-02'])
 
-    def _find_button_by_text(self, window, text):
+    def _find_button_by_text(self, window, text, retries=5, delay=100):
         """
         Sucht rekursiv nach einem Button-Widget innerhalb eines Parent-Widgets
         anhand seines Textes.
         """
-        for widget in window.winfo_children():
-            if isinstance(widget, ttk.Button) and text in widget.cget("text"):
-                return widget
-            found = self._find_button_by_text(widget, text)
-            if found:
-                return found
-        return None
+        for _ in range(retries):
+            for widget in window.winfo_children():
+                if isinstance(widget, (ttk.Button, tk.Button)) and text in str(widget.cget("text")):
+                    return widget
+                # Rekursiver Aufruf, um auch in verschachtelten Frames zu suchen
+                found = self._find_button_by_text(widget, text, retries=1)
+                if found:
+                    return found
+            window.update_idletasks()
+            window.after(delay) # Kurze Pause, damit das UI sich aufbauen kann
+        return None # Button nicht gefunden
 
     def test_prompt_and_reset_single_mode_confirmed(self):
         """Testet das Zurücksetzen eines einzelnen Modus nach Bestätigung."""
@@ -194,6 +198,7 @@ class TestHighscoreManager(unittest.TestCase):
 
         # 3. Finde den "Alle zurücksetzen"-Button und klicke ihn
         all_reset_button = self._find_button_by_text(reset_dialog, "Alle zurücksetzen")
+        self.assertIsNotNone(all_reset_button, "Button 'Alle zurücksetzen' nicht gefunden.")
         self.assertIsNotNone(all_reset_button)
         all_reset_button.invoke()
 

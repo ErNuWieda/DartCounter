@@ -56,48 +56,57 @@ class X01AIStrategy(AIStrategy):
         score = self.ai_player.score
         darts_left = 4 - throw_number
         preferred_double = self.ai_player.profile.preferred_double if self.ai_player.profile else None
-        
-        # 1. Direkten Checkout-Pfad suchen und verfolgen
+
+        # --- Phase 1: Power-Scoring (wenn Score zu hoch für ein Finish ist) ---
+        # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet maximal, um in den Finish-Bereich zu kommen.
+        if score > 170:
+            return "Triple", 20
+
+        # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist) ---
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
             score, self.game.options.opt_out, darts_left, preferred_double=preferred_double
         )
         if checkout_path_str and checkout_path_str != "-":
             targets = checkout_path_str.split(', ')
-            return self._parse_target_string(targets[0])
-        
-        # 2. Wenn kein Checkout möglich ist: Power-Scoring mit Köpfchen
-        #    Vermeide es, eine "Bogey"-Nummer zu hinterlassen.
-        
-        # Liste der bevorzugten Scoring-Würfe, von hoch nach niedrig
-        power_throws = [
-            # Die Reihenfolge spiegelt eine menschliche Strategie wider:
-            # T20/T19 für die höchsten Punkte, dann das sichere Bullseye,
-            # dann andere "gute" Triple. Die riskante T17 kommt zum Schluss.
-            ("Triple", 20), ("Triple", 19), ("Bullseye", 50),
-            ("Triple", 18), ("Triple", 16), ("Triple", 15), ("Triple", 17)
-        ]
+            target = self._parse_target_string(targets[0])
+            return target
 
-        for ring, segment in power_throws:
-            throw_value = self.game.get_score(ring, segment)
-            
-            # Prüfe, ob der Wurf zu einem Bust führen würde (Score < 2)
-            if score - throw_value < 2:
-                continue
+        # --- Phase 3: Intelligentes Setup (wenn kein direkter Checkout möglich ist) ---
 
-            # Prüfe, ob der Rest eine Bogey-Nummer ist
-            remainder = score - throw_value
-            if remainder not in self.BOGEY_NUMBERS:
-                return ring, segment
+        # Fall A: Setup für DIESE Runde (wenn noch mehr als 1 Dart übrig ist)
+        if darts_left > 1:
+            all_possible_throws = [
+                ("Triple", 20), ("Triple", 19), ("Bullseye", 50),
+                ("Triple", 18), ("Triple", 16), ("Triple", 15), ("Triple", 17)
+            ] + [("Single", s) for s in range(20, 0, -1)]
 
-        # 3. Fallback: Wenn alle Triple-Würfe zu einem Bogey führen,
-        #    wirf auf das größte Single-Feld, das keinen Bust UND keinen Bogey verursacht.
-        for segment in range(20, 0, -1):
-            if score - segment < 2:
-                continue
-            if (score - segment) not in self.BOGEY_NUMBERS:
-                return "Single", segment
+            # Versuche, ein Finish für die verbleibenden Darts zu hinterlassen
+            for ring, segment in all_possible_throws:
+                throw_value = self.game.get_score(ring, segment)
+                if score - throw_value < 2:
+                    continue
 
-        # Absoluter Notfall-Fallback (sollte nie erreicht werden)
+                remainder = score - throw_value
+                if CheckoutCalculator.get_checkout_suggestion(remainder, self.game.options.opt_out, darts_left - 1) != "-":
+                    # Vermeide es, D1 zu hinterlassen, wenn es nicht der letzte Dart ist
+                    if (darts_left - 1) > 0 and remainder == 2 and self.game.options.opt_out == "Double":
+                        continue
+                    return ring, segment
+
+        # Fall B: Setup für die NÄCHSTE Runde (letzter Dart oder kein Setup für diese Runde gefunden)
+        # Ziel: Eine "gute" gerade Zahl hinterlassen. Geworfen wird auf sichere Single-Felder.
+        safe_targets = [20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+
+        for segment_value in safe_targets:
+            if score - segment_value >= 2:
+                if (score - segment_value) % 2 == 0:
+                    return "Single", segment_value
+
+        for segment_value in safe_targets:
+            if score - segment_value >= 2:
+                return "Single", segment_value
+
+        # Absoluter Notfall-Fallback (sollte nie passieren, wenn score >= 2 ist)
         return "Single", 1
 
 class CricketAIStrategy(AIStrategy):

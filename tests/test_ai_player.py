@@ -16,13 +16,12 @@
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-
 from core.ai_player import AIPlayer
 from core.player_profile import PlayerProfile
 from core.player import Player
 from core.game import Game
 from core.ai_strategy import AIStrategy
-from core.ai_strategy import X01AIStrategy, CricketAIStrategy, DefaultAIStrategy, KillerAIStrategy
+from core.ai_strategy import X01AIStrategy, CricketAIStrategy, DefaultAIStrategy, KillerAIStrategy, ShanghaiAIStrategy
 
 @pytest.fixture
 def ai_player_with_mocks():
@@ -157,9 +156,9 @@ def test_get_strategic_target_for_x01_no_checkout_path(mock_get_suggestion, x01_
     ai_player, mock_game = x01_ai_player
     ai_player.score = 169 # Kein 2-Dart-Finish
 
-    target = ai_player.strategy.get_target(throw_number=2) # 2 Darts übrig
-    assert target == ("Triple", 20) # Fallback auf Standardstrategie
-    mock_get_suggestion.assert_called_with(169, "Double", 2, preferred_double=None)
+    target = ai_player.strategy.get_target(throw_number=2) # 2 Darts übrig, sollte auf S19 zielen (150 Rest)
+    assert target == ("Single", 19) # KI sollte auf S19 zielen, um geraden Rest zu hinterlassen
+    mock_get_suggestion.assert_any_call(169, "Double", 2, preferred_double=None)
 
 def test_apply_strategic_offset(ai_player_with_mocks):
     """
@@ -169,7 +168,6 @@ def test_apply_strategic_offset(ai_player_with_mocks):
     ai_player, _ = ai_player_with_mocks
     # --- Szenario 1: Champion zielt auf T20 (vertikal oben) ---
     ai_player.difficulty = 'Champion'
-    ai_player.settings = ai_player.DIFFICULTY_SETTINGS['Champion']
     
     # Ziel ist T20, direkt über dem Zentrum (250, 250)
     center_coords_t20 = (250, 50) 
@@ -182,7 +180,6 @@ def test_apply_strategic_offset(ai_player_with_mocks):
     
     # --- Szenario 2: Anfänger zielt auf D11 (horizontal rechts) ---
     ai_player.difficulty = 'Anfänger'
-    ai_player.settings = ai_player.DIFFICULTY_SETTINGS['Anfänger']
     
     center_coords_d11 = (450, 250)
     new_coords_beginner = ai_player._apply_strategic_offset(center_coords_d11, "Double")

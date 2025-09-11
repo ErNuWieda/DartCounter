@@ -99,17 +99,19 @@ class DatabaseManager:
             config_path_to_use = root_config_path
             logger.info(f"Lade Datenbank-Konfiguration von: {root_config_path}")
         else:
+            # Fallback: Versuche, die Beispiel-Konfiguration zu kopieren
             example_config_path = app_root_path / 'config.ini.example'
             if example_config_path.exists():
-                # --- Automatische Erstellung der Konfigurationsdatei ---
                 try:
                     shutil.copy(example_config_path, user_config_path)
-                    config_path_to_use = user_config_path
                     logger.info(f"Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}")
                     logger.info("Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen.")
+                    # Lese die gerade kopierte Konfigurationsdatei direkt
+                    config.read(user_config_path)
+                    return config
                 except Exception as e:
                     logger.error(f"Konnte die Standard-Konfigurationsdatei nicht erstellen: {e}", exc_info=True)
-        
+
         if not config_path_to_use or not config_path_to_use.exists():
             logger.info("'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis gefunden. Datenbankfunktionen sind deaktiviert.")
             return None
@@ -119,6 +121,9 @@ class DatabaseManager:
 
     def _connect_to_db(self, config):
         """Baut die Datenbankverbindung basierend auf dem Konfigurationsobjekt auf."""
+        if not config:
+            return
+
         try:
             db_config = config['postgresql']
             required_keys = ['host', 'database', 'user', 'password']
@@ -138,6 +143,10 @@ class DatabaseManager:
         except (configparser.NoSectionError, KeyError, SQLAlchemyError) as error:
             logger.error(f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}", exc_info=True)
             self.is_connected = False
+
+    def _model_to_dict(self, model_instance):
+        """Konvertiert eine SQLAlchemy-Modellinstanz in ein Dictionary."""
+        return {c.name: getattr(model_instance, c.name) for c in model_instance.__table__.columns}
 
     def _run_migrations(self):
         """Führt Alembic-Migrationen aus, um die Datenbank auf den neuesten Stand zu bringen."""
@@ -268,10 +277,7 @@ class DatabaseManager:
         if not self.Session: return []
         with self.Session() as session:
             results = session.query(PlayerProfile).order_by(PlayerProfile.name).all()
-            return [
-                {c.name: getattr(r, c.name) for c in r.__table__.columns}
-                for r in results
-            ]
+            return [self._model_to_dict(r) for r in results]
 
     def add_profile(self, name, avatar_path, dart_color, is_ai=False, difficulty=None, preferred_double=None, accuracy_model=None):
         """Fügt ein neues Spielerprofil hinzu. Gibt True bei Erfolg zurück, False bei Fehlern (z.B. doppelter Name)."""

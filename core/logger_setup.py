@@ -28,12 +28,11 @@ def setup_logging():
     """
     # Root-Logger konfigurieren
     logger = logging.getLogger()
-
-    # --- Idempotenz-Prüfung ---
-    # Verhindert, dass bei mehrmaligem Aufruf mehrere Handler hinzugefügt werden,
-    # was zu doppelten Log-Nachrichten führen würde.
+    
+    # Bereinige eventuell vorhandene, von anderen Bibliotheken gesetzte Handler,
+    # um eine saubere und kontrollierte Logging-Konfiguration sicherzustellen.
     if logger.hasHandlers():
-        return
+        logger.handlers.clear()
 
     logger.setLevel(logging.INFO)
 

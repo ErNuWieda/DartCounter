@@ -18,6 +18,7 @@
 Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
 """
+import logging
 import tkinter as tk
 from . import ui_utils
 from .game_options import GameOptions
@@ -51,6 +52,8 @@ GAME_LOGIC_MAP = {
     "Killer": Killer,
     "Shanghai": Shanghai,
 }
+
+logger = logging.getLogger(__name__)
 
 class Game:
     """

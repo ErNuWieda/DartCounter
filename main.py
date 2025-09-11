@@ -25,6 +25,7 @@ from PIL import Image, ImageTk
 import sys
 import sv_ttk
 from core.settings_manager import SettingsManager
+from core.logger_setup import setup_logging
 import pathlib
 from core.game_options import GameOptions
 from core.game_settings_dialog import GameSettingsDialog
@@ -70,6 +71,9 @@ class App:
     - Starten, Laden und Beenden von Spielsitzungen (`Game`-Instanzen).
     """
     def __init__(self, root):
+        # Logging als Allererstes einrichten, um alle nachfolgenden Meldungen zu erfassen.
+        setup_logging()
+
         self.root = root
         self.version = f"v{__version__}"
         
@@ -170,7 +174,7 @@ class App:
             if sound_method and callable(sound_method):
                 sound_method()
 
-        auto_close_ms = 0 if not player.is_ai() else player.settings['delay'] * 2
+        auto_close_ms = 0 if not player.is_ai() else player.throw_delay * 2
 
         # Nachricht anzeigen, falls eine vorhanden ist
         if result.message and self.game_instance and self.game_instance.dartboard:
