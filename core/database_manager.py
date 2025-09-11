@@ -361,8 +361,8 @@ class DatabaseManager:
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
-                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen "
-                logger.warning(f"{log_msg}'{name}' zu erstellen.")
+                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen"
+                logger.warning(f"{log_msg} '{name}' zu erstellen.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -399,8 +399,8 @@ class DatabaseManager:
                 return False
             except IntegrityError:
                 session.rollback()
-                log_msg = "Versuch, ein Profil auf einen bereits existierenden Namen "
-                logger.warning(f"{log_msg}'{new_name}' zu aktualisieren.")
+                log_msg = "Versuch, ein Profil auf einen bereits existierenden Namen"
+                logger.warning(f"{log_msg} '{new_name}' zu aktualisieren.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -420,9 +420,9 @@ class DatabaseManager:
                 if profile:
                     profile.accuracy_model = model
                     session.commit()
-                    return True
-                log_msg = "Konnte Genauigkeitsmodell nicht speichern: "
-                logger.warning(f"{log_msg}Profil '{player_name}' nicht gefunden.")
+                    return True  # noqa: E501
+                log_msg = "Konnte Genauigkeitsmodell nicht speichern: "  # noqa: E501
+                logger.warning(f"{log_msg}Profil '{player_name}' nicht gefunden.")  # noqa: E501
                 return False
             except SQLAlchemyError as e:
                 session.rollback()

@@ -251,8 +251,8 @@ class AIPlayer(Player):
         # --- Prüfung nach dem Wurf ---
         if self.game.end:
             # Das Spiel wurde durch diesen Wurf beendet. Die `Game.throw`-Methode
-            # zeigt die Siegesnachricht an. Die KI beendet hier ihre Aktionen. Der Benutzer
-            # interagiert mit der Nachricht und schließt das Spiel manuell.
+            # zeigt die Siegesnachricht an. Die KI beendet hier ihre Aktionen. Der
+            # Benutzer interagiert mit der Nachricht und schließt das Spiel manuell.
             return
 
         # --- Nächsten Wurf planen oder Zug beenden ---

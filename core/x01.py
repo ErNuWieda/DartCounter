@@ -177,8 +177,8 @@ class X01(GameLogicBase):
         # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
         player.sb.update_score(player.score)  # Update display for throw history (now in Game.throw)
         option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
-        msg_base = f"{player.name} braucht ein {option_text} zum Start!"
-        remaining_darts = 3 - len(player.throws)
+        msg_base = f"{player.name} braucht ein {option_text} zum Start!"  # noqa: E501
+        remaining_darts = 3 - len(player.throws)  # noqa: E501
         if len(player.throws) == 3:
             return (
                 "invalid_open",
@@ -265,9 +265,9 @@ class X01(GameLogicBase):
         # wenn self.game.shanghai_finish True ist.
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
-    def _handle_throw(
-        self, player: "Player", ring: str, segment: int, players: list["Player"]
-    ) -> tuple[str, str | None]:
+    def _handle_throw(  # noqa: E501
+        self, player: "Player", ring: str, segment: int, players: list["Player"]  # noqa: E501
+    ) -> tuple[str, str | None]:  # noqa: E501
         """
         Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
 
@@ -329,8 +329,8 @@ class X01(GameLogicBase):
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
         # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.
         if player.has_opened:
-            player.stats["total_darts_thrown"] += 1
-            player.stats["total_score_thrown"] += score
+            player.stats["total_darts_thrown"] += 1  # noqa: E501
+            player.stats["total_score_thrown"] += score  # noqa: E501
         player.update_score_value(score, subtract=True)
 
         preferred_double = player.profile.preferred_double if player.profile else None

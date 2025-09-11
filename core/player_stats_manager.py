@@ -102,16 +102,16 @@ class PlayerStatsManager:
         def do_reset(player_to_reset):
             mode_name = f"'{player_to_reset}'" if player_to_reset else "alle Spieler"
             confirm_msg = (
-                f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} "
+                f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} "  # noqa: E501
                 "unwiderruflich löschen möchtest?"
-            )
+            )  # noqa: E501
             if not messagebox.askyesno("Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
             self.db_manager.reset_game_records(player_to_reset)
             messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)
             reset_dialog.destroy()
-            stats_win.destroy()
+            stats_win.destroy()  # noqa: E501
 
         if selected_player:
             ttk.Button(
@@ -149,7 +149,7 @@ class PlayerStatsManager:
         return {"best_win_streak": max_win_streak}
 
     def update_accuracy_model(self, player_name: str, parent_window=None):
-        """Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es."""
+        """Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es."""  # noqa: E501
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",

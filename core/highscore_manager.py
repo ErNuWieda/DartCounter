@@ -234,7 +234,7 @@ class HighscoreManager:
         win.resizable(False, True)
 
         notebook = ttk.Notebook(win)
-        notebook.pack(expand=True, fill="both", padx=10, pady=10)
+        notebook.pack(expand=True, fill="both", padx=10, pady=10)  # noqa: E501
 
         highscore_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
         for game_mode in highscore_modes:
