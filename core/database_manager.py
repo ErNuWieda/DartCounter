@@ -32,7 +32,6 @@
 
 import configparser
 import logging
-from datetime import date
 import shutil
 from sqlalchemy import create_engine, desc, asc, func
 from sqlalchemy.orm import sessionmaker
@@ -137,8 +136,8 @@ class DatabaseManager:
             required_keys = ["host", "database", "user", "password"]
             if not all(key in db_config for key in required_keys):
                 log_msg = (
-                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] Abschnitt. "
-                    "Datenbankfunktionen sind deaktiviert."
+                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] "
+                    "Abschnitt. Datenbankfunktionen sind deaktiviert."
                 )
                 logger.error(log_msg)
                 return
@@ -250,6 +249,8 @@ class DatabaseManager:
 
     def add_score(self, game_mode, player_name, score_metric):
         """Fügt einen neuen Highscore-Eintrag hinzu."""
+        from datetime import date
+
         if not self.Session:
             return
         with self.Session() as session:

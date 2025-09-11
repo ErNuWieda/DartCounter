@@ -12,4 +12,12 @@ extend-ignore = E203, W503
 # F841: local variable ... is assigned to but never used
 per-file-ignores =
     __init__.py:F401
-    tests/*:F841,F401
+    # Tests dürfen längere Zeilen für bessere Lesbarkeit haben
+    tests/*:F841,F401,E501
+    # Spezifische Anwendungsdateien, die bekanntermaßen lange Zeilen haben
+    alembic/env.py:E501
+    core/game_settings_dialog.py:E501
+    core/save_load_manager.py:E501
+    core/sound_manager.py:E501
+    main.py:E501
+    prepare_release.py:E501
