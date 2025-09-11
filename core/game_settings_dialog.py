@@ -305,8 +305,7 @@ class GameSettingsDialog(tk.Toplevel):
 
         # Button zur direkten Verwaltung der Profile hinzufügen
         manage_profiles_button = ttk.Button(
-            players_frame,
-            text="Profile verwalten...", command=self._open_profile_manager
+            players_frame, text="Profile verwalten...", command=self._open_profile_manager
         )
         manage_profiles_button.grid(row=self.max_players + 1, column=0, columnspan=2, pady=(10, 5))
 
@@ -401,9 +400,7 @@ class GameSettingsDialog(tk.Toplevel):
         start_button_frame = ttk.Frame(parent)
         start_button_frame.grid(row=row, column=0, pady=20)
         btn = ttk.Button(
-            start_button_frame,
-            text="Spiel starten",
-            style="Accent.TButton", command=self._on_start
+            start_button_frame, text="Spiel starten", style="Accent.TButton", command=self._on_start
         )
         btn.pack()  # Using pack inside this sub-frame is fine
         btn.bind("<Return>", lambda event: self._on_start())

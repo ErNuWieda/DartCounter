@@ -73,9 +73,7 @@ class X01AIStrategy(AIStrategy):
             return "Triple", 20
 
         # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist) ---
-        checkout_path_str = (
-            CheckoutCalculator.get_checkout_suggestion(
-                score,
+        checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
             score,
             self.game.options.opt_out,
             darts_left,
@@ -125,7 +123,8 @@ class X01AIStrategy(AIStrategy):
         # Fall B: Setup für die NÄCHSTE Runde (letzter Dart oder kein Setup für diese Runde gefunden)
         # Ziel: Eine "gute" gerade Zahl hinterlassen. Geworfen wird auf sichere Single-Felder.
         safe_targets = [
-            20, 19,
+            20,
+            19,
             18,
             17,
             16,

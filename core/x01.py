@@ -100,7 +100,8 @@ class X01(GameLogicBase):
         if throw_score == 0:  # Miss-Wurf, nichts zu tun außer UI-Update
             # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
             preferred_double = player.profile.preferred_double if player.profile else None
-            darts_remaining = 3 - len(player.throws); suggestion = CheckoutCalculator.get_checkout_suggestion(
+            darts_remaining = 3 - len(player.throws)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(
                 player.score,
                 self.opt_out,
                 darts_left=darts_remaining,
@@ -151,7 +152,7 @@ class X01(GameLogicBase):
         player.sb.update_score(player.score)
 
     def _validate_opt_in(self, player, ring, segment):
-        """ # noqa: E501
+        """# noqa: E501
         Prüft, ob der Wurf die 'Opt-In'-Bedingung erfüllt und den Spieler öffnet.
 
         Args:

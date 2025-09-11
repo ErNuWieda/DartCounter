@@ -91,7 +91,7 @@ class TestCricketLogic:
 
     def test_handle_throw_scoring_hit(self, cricket_logic, mock_players):
         """Testet, ob ein Treffer auf ein geschlossenes Ziel Punkte gibt."""
-        alice, bob = mock_players;
+        alice, bob = mock_players
         cricket_logic.initialize_player_state(alice)
         cricket_logic.initialize_player_state(bob)
 
@@ -107,7 +107,9 @@ class TestCricketLogic:
         assert alice.score == 60  # 3 * 20
         alice.update_score_value.assert_called_once_with(60, subtract=False)
 
-    def test_handle_throw_no_scoring_if_all_opponents_closed(self, cricket_logic, mock_players): # noqa
+    def test_handle_throw_no_scoring_if_all_opponents_closed(
+        self, cricket_logic, mock_players
+    ):  # noqa
         alice, bob = mock_players
         cricket_logic.initialize_player_state(alice)
         cricket_logic.initialize_player_state(bob)
@@ -144,7 +146,7 @@ class TestCricketLogic:
         assert cricket_logic.game.end is True
         assert cricket_logic.game.winner == alice
 
-    def test_win_condition_not_met_lower_score(self, cricket_logic, mock_players): # noqa
+    def test_win_condition_not_met_lower_score(self, cricket_logic, mock_players):  # noqa
         alice, bob = mock_players
         cricket_logic.initialize_player_state(alice)
         cricket_logic.initialize_player_state(bob)
@@ -176,7 +178,8 @@ class TestCricketLogic:
         assert alice.stats["total_marks_scored"] == 0
 
     def test_undo_scoring_mark(self, cricket_logic, mock_players):
-        """Testet das Rückgängigmachen eines punktenden Treffers."""; alice, bob = mock_players
+        """Testet das Rückgängigmachen eines punktenden Treffers."""
+        alice, bob = mock_players
         cricket_logic.initialize_player_state(alice)
         cricket_logic.initialize_player_state(bob)
 

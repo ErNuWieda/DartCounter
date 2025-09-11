@@ -130,7 +130,7 @@ class BracketCanvas(tk.Canvas):
                         # Fall für ein Freilos in der vorherigen Runde
                         y_center = parent1_y
                     else:
-                    y_center = self.winfo_height() / 2  # Sollte nicht passieren
+                        y_center = self.winfo_height() / 2  # Sollte nicht passieren
                 match_positions[(next_round_idx, next_match_idx)] = y_center
 
         # --- Phase 2: Alles zeichnen ---

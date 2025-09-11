@@ -60,7 +60,8 @@ class TestSettingsManager:
             sm = SettingsManager()
             assert sm.get("theme") == "dark"
             assert not sm.get("sound_enabled")
-        assert sm.get("last_player_names") == ["A", "B"]  # Prüfen, ob die korrekte Datei geöffnet wurde
+            assert sm.get("last_player_names") == ["A", "B"]
+            # Wir prüfen, ob die korrekte Datei geöffnet wurde.
             m_open.assert_called_with(expected_filepath, "r", encoding="utf-8")
 
     def test_load_settings_with_partial_file_merges_defaults(

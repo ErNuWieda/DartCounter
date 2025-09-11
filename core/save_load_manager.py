@@ -149,7 +149,8 @@ class SaveLoadManager:
             if not stored_checksum:
                 ui_utils.show_message(
                     "error",
-                    "Fehler beim Laden", "Die Speicherdatei enthält keinen Integritäts-Checksum.",
+                    "Fehler beim Laden",
+                    "Die Speicherdatei enthält keinen Integritäts-Checksum.",
                     parent=parent,
                 )
                 return None
@@ -157,7 +158,8 @@ class SaveLoadManager:
             calculated_checksum = SaveLoadManager._calculate_checksum(data)
             if stored_checksum != calculated_checksum:
                 ui_utils.show_message(  # type: ignore
-                    "error", "Fehler beim Laden",
+                    "error",
+                    "Fehler beim Laden",
                     "Die Speicherdatei ist korrupt oder wurde manuell verändert. Der Ladevorgang wird abgebrochen.",
                     parent=parent,
                 )
@@ -166,7 +168,8 @@ class SaveLoadManager:
         if file_version > SaveLoadManager.SAVE_FORMAT_VERSION:
             ui_utils.show_message(
                 "error",
-                "Inkompatibler Spielstand", f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.",
+                "Inkompatibler Spielstand",
+                f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.",
                 parent=parent,
             )
             return None
@@ -181,7 +184,8 @@ class SaveLoadManager:
         """
         if not hasattr(savable_object, "to_dict") or not hasattr(savable_object, "get_save_meta"):
             ui_utils.show_message(
-                "error", "Speicherfehler",
+                "error",
+                "Speicherfehler",
                 "Das Objekt kann nicht gespeichert werden, da es die Speicherschnittstelle nicht implementiert.",
                 parent=parent,
             )

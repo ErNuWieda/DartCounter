@@ -156,7 +156,8 @@ class PlayerStatsManager:
             messagebox.showerror(
                 "Abhängigkeit fehlt",
                 "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
-                "Bitte installieren: pip install numpy", parent=parent_window
+                "Bitte installieren: pip install numpy",
+                parent=parent_window,
             )
             return
 
@@ -481,7 +482,8 @@ class PlayerStatsManager:
 
         if not all_coords:
             messagebox.showinfo(
-                "Keine Daten", f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",
+                "Keine Daten",
+                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",
                 parent=parent,
             )
             return

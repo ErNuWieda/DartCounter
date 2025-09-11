@@ -95,7 +95,8 @@ def test_get_checkout_suggestion_standard_paths(score, darts_left, opt_out, expe
         (98, 3, 16, "T20, D19"),  # Fallback auf Standard
         # Score 98, pref D19. Calculated path not possible, but "T20 D19" is a standard path. It should find it.
         (98, 3, 19, "T20, D19"),  # Findet Standardpfad, der passt
-    ])
+    ],
+)
 def test_get_checkout_suggestion_with_preferred_double(
     score, darts_left, preferred_double, expected
 ):

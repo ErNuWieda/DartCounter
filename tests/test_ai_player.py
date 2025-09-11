@@ -486,7 +486,9 @@ def test_execute_throw_stops_on_bust(ai_player_with_mocks):
     # Die KI sollte keinen Klick simulieren
     mock_game.dartboard.on_click_simulated.assert_not_called()
     # Die KI sollte sofort den nächsten Spieler aufrufen
-    mock_game.dartboard.root.after.assert_called_once_with(ai_player.throw_delay, mock_game.next_player)
+    mock_game.dartboard.root.after.assert_called_once_with(
+        ai_player.throw_delay, mock_game.next_player
+    )
 
 
 def test_take_turn_initiates_sequence(ai_player_with_mocks):

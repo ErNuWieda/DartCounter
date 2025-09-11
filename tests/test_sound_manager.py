@@ -124,6 +124,7 @@ class TestSoundManager:
         assert sm.score_180_sound is not None
         assert sm.shanghai_sound is not None
         mocks["mock_messagebox"].showwarning.assert_called_once()
+
     def test_toggle_sounds(self, sound_manager_mocks):  # noqa: E501
         """Testet das Aktivieren und Deaktivieren von Sounds."""
         mocks = sound_manager_mocks

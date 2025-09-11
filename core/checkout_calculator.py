@@ -68,9 +68,7 @@ for i in range(20, 0, -1):  # Absteigend, um höhere Triples bei gleichem Score 
     if score not in _SINGLE_DART_FINISH_MAP:  # Only add if not already covered by a Double or BE
         _SINGLE_DART_FINISH_MAP[score] = f"T{i}"
 # Bull (25) (vierte Priorität)
-if (
-    25 not in _SINGLE_DART_FINISH_MAP
-):  # Nur hinzufügen, wenn nicht bereits abgedeckt
+if 25 not in _SINGLE_DART_FINISH_MAP:  # Nur hinzufügen, wenn nicht bereits abgedeckt
     _SINGLE_DART_FINISH_MAP[25] = "25"
 # Singles (niedrigste Priorität)
 for i in range(20, 0, -1):  # Absteigend
@@ -221,8 +219,7 @@ class CheckoutCalculator:
             return "-"
 
         # Maximale Finish-Scores pro Dart-Anzahl
-        if (darts_left == 3 and score > 170) or (
-            darts_left == 2 and score > 110):
+        if (darts_left == 3 and score > 170) or (darts_left == 2 and score > 110):
             return "-"
         if (
             darts_left == 1

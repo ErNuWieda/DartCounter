@@ -177,7 +177,6 @@ class DartBoard:
                 "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende, um zum Turnierbaum zurückzukehren.",
                 parent=self.root,
             )
-            )
             return  # Verhindert das Schließen des Fensters
         # 'askyesnocancel' gibt True für Ja, False für Nein und None für Abbrechen zurück.
         response = ui_utils.ask_question(

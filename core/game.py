@@ -120,7 +120,9 @@ class Game:
 
         self.players = []  # Spieler-Instanzen erstellen und Profile zuweisen
         for name in player_names:
-            profile = self.profile_manager.get_profile_by_name(name) if self.profile_manager else None
+            profile = (
+                self.profile_manager.get_profile_by_name(name) if self.profile_manager else None
+            )
             if profile and profile.is_ai:
                 self.players.append(AIPlayer(name, self, profile=profile))
             else:
@@ -473,7 +475,8 @@ class Game:
         if len(player.throws) >= 3:
             ui_utils.show_message(
                 "info",
-                "Zuviel Würfe", "Bitte 'Weiter' klicken!",
+                "Zuviel Würfe",
+                "Bitte 'Weiter' klicken!",
                 parent=self.dartboard.root,
             )
             # Verhindert, dass ein Dart-Bild für einen ungültigen Wurf gezeichnet wird.

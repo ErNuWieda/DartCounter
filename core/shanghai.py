@@ -100,7 +100,8 @@ class Shanghai(GameLogicBase):
         if rings_hit_on_target == {"Single", "Double", "Triple"}:
             self.game.shanghai_finish = True
             self.game.end = True
-            return ("win",
+            return (
+                "win",
                 f"🏆 {player.name} gewinnt in Runde {self.game.round} mit einem Shanghai auf die {target_segment_for_shanghai}!",
             )
         # --- Weiter / Nächster Spieler ---

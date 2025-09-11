@@ -176,6 +176,7 @@ def test_check_and_close_existing_game_confirmed(app_with_mocks):
     assert app.game_instance is None
     assert result is True
 
+
 def test_check_and_close_existing_game_cancelled(app_with_mocks):
     """Testet, ob ein laufendes Spiel NICHT beendet wird, wenn der Benutzer abbricht."""
     app, mocks = app_with_mocks
@@ -192,6 +193,7 @@ def test_check_and_close_existing_game_cancelled(app_with_mocks):
     mock_game.destroy.assert_not_called()
     assert app.game_instance is not None
     assert result is False
+
 
 @patch("main.App._ensure_no_active_session", return_value=True)
 @patch("main.App._initialize_game_session")
@@ -242,7 +244,8 @@ def test_save_game_with_no_active_game(app_with_mocks):
     app.save_game()
 
     mock_save.assert_not_called()
-    mock_showinfo.assert_called_once_with("info",
+    mock_showinfo.assert_called_once_with(
+        "info",
         "Spiel speichern",
         "Es läuft kein aktives Spiel, das gespeichert werden könnte.",
         parent=app.root,
@@ -275,7 +278,9 @@ def test_quit_game_confirmed(app_with_mocks):
 
     app.quit_game()
 
-    mock_ask_question.assert_called_once_with("yesno", "Programm beenden", "DartCounter wirklich beenden?", parent=app.root)
+    mock_ask_question.assert_called_once_with(
+        "yesno", "Programm beenden", "DartCounter wirklich beenden?", parent=app.root
+    )
     app.settings_manager.save_settings.assert_called_once()
     app.db_manager.close_connection.assert_called_once()
     app.root.quit.assert_called_once()

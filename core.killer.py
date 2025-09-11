@@ -210,14 +210,15 @@ class Killer(GameLogicBase):
             victim.score -= 1
             self.turn_log.append({"action": "take_life", "victim": victim})
             victim.sb.set_score_value(victim.score)
-            
+
             opp_name = victim.name
             if victim == player:
                 opp_name = "sich selbst"
 
             if victim.score > 0:
                 return (
-                    "info", f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben."
+                    "info",
+                    f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.",
                 )
             else:
                 win_result = self._check_and_handle_win_condition()

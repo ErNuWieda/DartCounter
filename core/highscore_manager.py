@@ -219,7 +219,8 @@ class HighscoreManager:
         """
         if not self.db_manager.is_connected:
             ui_utils.show_message(
-                "warning", "Datenbankfehler",
+                "warning",
+                "Datenbankfehler",
                 "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.",
                 parent=root,
             )

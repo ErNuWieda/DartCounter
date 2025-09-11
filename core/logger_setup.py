@@ -55,9 +55,7 @@ def setup_logging():
     except (IOError, PermissionError) as e:
         # Wenn das Logging in eine Datei fehlschlägt, geben wir eine Warnung auf der
         # Konsole aus, aber die Anwendung läuft weiter. # pragma: no cover
-        print(
-            f"WARNUNG: Konnte Log-Datei nicht erstellen. Logging nur in Konsole. Fehler: {e}"
-        )
+        print(f"WARNUNG: Konnte Log-Datei nicht erstellen. Logging nur in Konsole. Fehler: {e}")
 
     # StreamHandler für die Konsolenausgabe
     stream_handler = logging.StreamHandler()

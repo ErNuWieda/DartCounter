@@ -48,10 +48,10 @@ def db_manager_setup(monkeypatch):
         # Konfiguriere den Context Manager (__enter__/__exit__) der Session
         mock_session_instance.query.return_value.filter_by.return_value.order_by.return_value.limit.return_value.all.return_value = (
             []
-        );
+        )
         mock_session_instance.query.return_value.distinct.return_value.order_by.return_value.all.return_value = (
             []
-        );
+        )
         mock_session_instance.query.return_value.filter_by.return_value.one_or_none.return_value = (
             None
         )

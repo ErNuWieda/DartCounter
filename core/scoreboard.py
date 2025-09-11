@@ -198,7 +198,8 @@ class X01ScoreBoard(BaseScoreBoard):
         checkout_frame = ttk.LabelFrame(parent, text="Finish-Vorschlag")
         checkout_frame.pack(pady=10, fill="x", padx=5)
         self.checkout_suggestion_var = tk.StringVar(value="-")
-        ttk.Label(checkout_frame,
+        ttk.Label(
+            checkout_frame,
             textvariable=self.checkout_suggestion_var,
             font=("Arial", 14),
             justify="center",
@@ -331,7 +332,14 @@ def setup_scoreboards(game_controller):
             game_name = game_controller.options.name
             if game_name in ("301", "501", "701"):
                 scoreboard_class = X01ScoreBoard  # type: ignore
-            elif game_name in ("Cricket", "Cut Throat", "Tactics", "Micky Mouse", "Around the Clock", "Shanghai"):
+            elif game_name in (
+                "Cricket",
+                "Cut Throat",
+                "Tactics",
+                "Micky Mouse",
+                "Around the Clock",
+                "Shanghai",
+            ):
                 scoreboard_class = TargetBasedScoreBoard
             else:
                 # Fallback für Spiele ohne spezielle UI (z.B. Killer, Elimination)

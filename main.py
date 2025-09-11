@@ -213,7 +213,8 @@ class App:
                 }
                 msg_type = (
                     "error"
-                    if result.status in ("bust", "invalid_open", "invalid_target", "error") else result.status
+                    if result.status in ("bust", "invalid_open", "invalid_target", "error")
+                    else result.status
                 )
                 title = title_map.get(result.status, "Info")
                 ui_utils.show_message(

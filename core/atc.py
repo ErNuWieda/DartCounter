@@ -134,7 +134,8 @@ class AtC(GameLogicBase):
                 )
             else:  # Last dart of the turn
                 return (
-                    "invalid_target", base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken."
+                    "invalid_target",
+                    base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.",
                 )
 
         # --- Treffer auf AtC-Ziel verarbeiten ---

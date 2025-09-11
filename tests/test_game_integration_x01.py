@@ -354,7 +354,7 @@ class TestGameWithX01:
         assert p1.stats["highest_finish"] == 120, "Highest Finish should be preserved across legs"
 
     def test_leg_and_set_win_flow(self, leg_set_game):
-        """ # noqa: E501
+        """# noqa: E501
         Simuliert ein komplettes Match im "Legs & Sets"-Modus, um den korrekten
         Ablauf und die Zustandsübergänge zu verifizieren.
         """
