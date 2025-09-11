@@ -74,7 +74,7 @@ def run_migrations_online() -> None:
     # Lese die Konfiguration aus dem 'postgresql'-Abschnitt, der von unserem DatabaseManager gesetzt wird
     db_config = config.get_section("postgresql")
     db_url = (
-        f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"
+        f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"  # noqa: E501
         f"@{db_config['host']}/{db_config['database']}"
     )
     connectable = create_engine(db_url)

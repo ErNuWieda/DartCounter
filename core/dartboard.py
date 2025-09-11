@@ -101,9 +101,9 @@ class DartBoard:
             )
             self.update_dart_image("#ff0000")
         except FileNotFoundError:  # pragma: no cover
-            pass
+            pass  # print(f"Warnung: Dart-Bild nicht gefunden unter {self.dart_path}")
         except Exception:
-            pass
+            pass  # print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
 
     def update_dart_image(self, hex_color: str):
         """
