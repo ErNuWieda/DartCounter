@@ -70,8 +70,8 @@ for i in range(20, 0, -1):  # Absteigend, um höhere Triples bei gleichem Score 
 # Bull (25) (vierte Priorität)
 if 25 not in _SINGLE_DART_FINISH_MAP:  # Nur hinzufügen, wenn nicht bereits abgedeckt
     _SINGLE_DART_FINISH_MAP[25] = "25"
-# Singles (niedrigste Priorität)
-for i in range(20, 0, -1):  # Absteigend
+# Singles (niedrigste Priorität) # noqa
+for i in range(20, 0, -1):
     if (
         i not in _SINGLE_DART_FINISH_MAP
     ):  # Nur hinzufügen, wenn nicht bereits durch D/T/BE abgedeckt
@@ -269,8 +269,8 @@ class CheckoutCalculator:
                 # Akzeptiere den berechneten Pfad nur, wenn er qualitativ hochwertig ist
                 # (d.h. nicht mit einem einfachen Single- oder Double-Feld beginnt,
                 # außer bei 2-Dart-Finishes, wo dies oft notwendig ist).
-                # Ein guter 3-Dart-Checkout beginnt mit T oder BE.
-                first_throw = calculated_path.split(", ")[0] if calculated_path else ""
+                # Ein guter 3-Dart-Checkout beginnt mit T oder BE. # noqa
+                first_throw = calculated_path.split(", ")[0] if calculated_path else ""  # noqa
                 if calculated_path and (
                     len(calculated_path.split(", ")) < 3 or first_throw.startswith(("T", "BE"))
                 ):

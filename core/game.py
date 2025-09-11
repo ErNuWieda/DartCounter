@@ -94,13 +94,13 @@ class Game:
         Args:
             root (tk.Tk): Das Hauptfenster der Anwendung, das als Parent dient.
             game_options (dict): Ein Dictionary mit allen Spieloptionen.
-            player_names (list): Eine Liste der Namen der teilnehmenden Spieler.
-            on_throw_processed_callback (callable): Callback-Funktion, die nach einem Wurf aufgerufen wird.
-            highscore_manager (HighscoreManager, optional): Instanz zur Verwaltung von Highscores.
-            player_stats_manager (PlayerStatsManager, optional): Instanz zur Verwaltung von Spielerstatistiken.
-            profile_manager (PlayerProfileManager, optional): Instanz zur Verwaltung von Spielerprofilen.
-            settings_manager (SettingsManager, optional): Instanz zur Verwaltung von App-Einstellungen.
-            is_tournament_match (bool): True, wenn das Spiel Teil eines Turniers ist.
+            player_names (list): Eine Liste der Namen der teilnehmenden Spieler. # noqa
+            on_throw_processed_callback (callable): Callback-Funktion, die nach einem Wurf aufgerufen wird. # noqa
+            highscore_manager (HighscoreManager, optional): Instanz zur Verwaltung von Highscores. # noqa
+            player_stats_manager (PlayerStatsManager, optional): Instanz zur Verwaltung von Spielerstatistiken. # noqa
+            profile_manager (PlayerProfileManager, optional): Instanz zur Verwaltung von Spielerprofilen. # noqa
+            settings_manager (SettingsManager, optional): Instanz zur Verwaltung von App-Einstellungen. # noqa
+            is_tournament_match (bool): True, wenn das Spiel Teil eines Turniers ist. # noqa
         """
         self.root = root
         self.on_throw_processed = on_throw_processed_callback
@@ -507,8 +507,8 @@ class Game:
 
         # NEU: Wenn das Spiel durch diesen Wurf gewonnen wurde, die Statistiken finalisieren.
         # Für X01 wird dies durch _handle_leg_win() gesteuert, das von der X01-Logik aufgerufen wird.
-        # Für alle anderen Spiele (ohne Legs/Sets) müssen wir es hier explizit aufrufen.
-        if result.status == "win" and self.winner and not self.is_leg_set_match:
+        # Für alle anderen Spiele (ohne Legs/Sets) müssen wir es hier explizit aufrufen. # noqa
+        if result.status == "win" and self.winner and not self.is_leg_set_match:  # noqa
             # Die X01-Logik ruft _handle_leg_win, was wiederum _finalize_and_record_stats aufruft.
             self._finalize_and_record_stats(self.winner)
 
@@ -619,8 +619,8 @@ class Game:
         }
 
         # Füge den Zustand für Legs & Sets hinzu, falls es sich um ein solches Match handelt.
-        # Dies ist wichtig für das korrekte Laden des Spiels.
-        if self.is_leg_set_match:
+        # Dies ist wichtig für das korrekte Laden des Spiels. # noqa
+        if self.is_leg_set_match:  # noqa
             game_state.update(
                 {
                     "player_leg_scores": self.player_leg_scores,

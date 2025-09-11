@@ -53,8 +53,8 @@ class Killer(GameLogicBase):
                 "info",
                 "Lebensfeld ermitteln",
                 f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                "Wirf mit deiner NICHT-dominanten Hand.\n"
-                "Das Double des getroffenen Segments wird dein Lebensfeld.\n",
+                "Wirf mit deiner NICHT-dominanten Hand.\n"  # noqa
+                "Das Double des getroffenen Segments wird dein Lebensfeld.\n",  # noqa
             )
 
         if not player.state.get("can_kill"):
@@ -63,10 +63,10 @@ class Killer(GameLogicBase):
                 if player.state["life_segment"] == "Bull"
                 else f"Double {player.state['life_segment']}"
             )
-            return (
+            return (  # noqa
                 "info",
                 "Zum Killer werden",
-                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.",
+                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen.",
             )
 
         return None  # In der Killer-Phase gibt es keine spezielle Nachricht.
@@ -79,11 +79,9 @@ class Killer(GameLogicBase):
         if len(active_players) == 1:
             self.game.end = True
             winner = active_players[0]
-            return (
-                "win",
-                f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!",
-            )
-        elif not active_players and len(self.players) > 0:
+            msg = f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!"
+            return ("win", msg)
+        elif not active_players and len(self.players) > 0:  # noqa
             self.game.end = True
             return "Niemand gewinnt! Alle Spieler wurden eliminiert."
         return None
@@ -209,25 +207,20 @@ class Killer(GameLogicBase):
             victim.score -= 1
             self.turn_log.append({"action": "take_life", "victim": victim})
             victim.sb.set_score_value(victim.score)
-
-            title = "Leben genommen!"
             opp_name = victim.name
             if victim == player:
                 opp_name = "sich selbst"
 
             if victim.score > 0:
-                return (
-                    "info",
-                    f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.",
-                )
+                msg = f"{player.name} nimmt {opp_name} ein Leben!\n"
+                msg += f"{victim.name} hat noch {victim.score} Leben."
+                return ("info", msg)
             else:
                 win_result = self._check_and_handle_win_condition()
                 if win_result:
-                    return win_result  # Gibt das ('win', 'message') Tupel zurück
-                return (
-                    "info",
-                    f"{player.name} hat {opp_name} eliminiert!",
-                )  # Kein Sieger, nur eliminiert
+                    return win_result
+                # Kein Sieger, nur eliminiert
+                return ("info", f"{player.name} hat {opp_name} eliminiert!")
 
         player.sb.update_score(player.score)
         return ("ok", None)

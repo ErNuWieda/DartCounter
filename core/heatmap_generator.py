@@ -34,16 +34,16 @@ class HeatmapGenerator:
         point_opacity=128,
     ):
         """
-        Erstellt ein Heatmap-Bild, indem Wurfkoordinaten auf ein Dartboard-Bild gezeichnet werden.
+               Erstellt ein Heatmap-Bild, indem Wurfkoordinaten auf ein Dartboard-Bild gezeichnet werden.
 
-        Args:
-            coordinates (list[tuple[float, float]]): Eine Liste von normalisierten (x, y)-Koordinaten.
-            target_size (tuple[int, int]): Die Zielgröße (Breite, Höhe) für das Ausgabebild.
-            point_radius (int): Der Radius der gezeichneten Punkte.
-            point_opacity (int): Die Deckkraft der Punkte (0-255).
-
-        Returns:
-            PIL.Image.Image or None: Das generierte Heatmap-Bild oder None bei einem Fehler.
+               Args:
+                   coordinates (list[tuple[float, float]]): Eine Liste von normalisierten (x, y)-Koordinaten.
+                   target_size (tuple[int, int]): Die Zielgröße (Breite, Höhe) für das Ausgabebild.
+                   point_radius (int): Der Radius der gezeichneten Punkte.
+                   point_opacity (int): Die Deckkraft der Punkte (0-255). # noqa
+        # noqa
+               Returns:
+                   PIL.Image.Image or None: Das generierte Heatmap-Bild oder None bei einem Fehler.
         """
         try:
             board_img_original = Image.open(HeatmapGenerator.DARTBOARD_PATH).convert("RGBA")

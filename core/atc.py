@@ -156,10 +156,9 @@ class AtC(GameLogicBase):
         if all_targets_closed:
             self.game.end = True
             total_darts = player.get_total_darts_in_game()
-            return (
-                "win",
-                f"🏆 {player.name} gewinnt {self.game.options.name} in Runde {self.game.round} mit {total_darts} Darts!",
-            )
+            msg = f"🏆 {player.name} gewinnt {self.game.options.name} in Runde "
+            msg += f"{self.game.round} mit {total_darts} Darts!"
+            return ("win", msg)
 
         # --- Weiter / Nächster Spieler ---
         if len(player.throws) == 3:

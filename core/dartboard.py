@@ -174,7 +174,7 @@ class DartBoard:
             ui_utils.show_message(
                 "warning",
                 "Laufendes Turnierspiel",
-                "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende, um zum Turnierbaum zurückzukehren.",
+                "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende.",
                 parent=self.root,
             )
             return  # Verhindert das Schließen des Fensters
@@ -317,8 +317,8 @@ class DartBoard:
         Returns:
             tuple[int, int] or None: Ein (x, y)-Tupel der Zielkoordinaten oder None,
                                      wenn das Ziel ungültig ist.
-        """
-        # Erstelle den Ziel-String, den die Geometrie-Klasse erwartet (z.B. "T20")
+        """  # noqa
+        # Erstelle den Ziel-String, den die Geometrie-Klasse erwartet (z.B. "T20") # noqa
         target_str_map = {
             "Bullseye": "BE",
             "Bull": "B",

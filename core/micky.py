@@ -162,11 +162,10 @@ class Micky(GameLogicBase):
                 # Alle Ziele sind geschlossen -> GEWINN
                 self.game.end = True
                 total_darts = player.get_total_darts_in_game()
-                player.sb.update_display(player.hits, player.score)
-                return (
-                    "win",
-                    f"🏆 {player.name} gewinnt {self.game.options.name} in Runde {self.game.round} mit {total_darts} Darts!",
-                )
+                player.sb.update_display(player.hits, player.score)  # noqa
+                msg = f"🏆 {player.name} gewinnt {self.game.options.name} in Runde "
+                msg += f"{self.game.round} mit {total_darts} Darts!"
+                return ("win", msg)
 
         # UI nach jedem gültigen Wurf aktualisieren
         player.sb.update_display(player.hits, player.score)

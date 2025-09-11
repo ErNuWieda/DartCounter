@@ -66,12 +66,11 @@ class X01AIStrategy(AIStrategy):
         preferred_double = (
             self.ai_player.profile.preferred_double if self.ai_player.profile else None
         )
-
         # --- Phase 1: Power-Scoring (wenn Score zu hoch für ein Finish ist) ---
-        # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet maximal, um in den Finish-Bereich zu kommen.
+        # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet
+        # maximal, um in den Finish-Bereich zu kommen.
         if score > 170:  # type: ignore
             return "Triple", 20
-
         # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist) ---
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
             score,
@@ -83,9 +82,7 @@ class X01AIStrategy(AIStrategy):
             targets = checkout_path_str.split(", ")
             target = self._parse_target_string(targets[0])
             return target
-
         # --- Phase 3: Intelligentes Setup (wenn kein direkter Checkout möglich ist) ---
-
         # Fall A: Setup für DIESE Runde (wenn noch mehr als 1 Dart übrig ist)
         if darts_left > 1:
             all_possible_throws = [
@@ -98,7 +95,6 @@ class X01AIStrategy(AIStrategy):
                 ("Triple", 17),
             ] + [("Single", s) for s in range(20, 0, -1)]
 
-            # Versuche, ein Finish für die verbleibenden Darts zu hinterlassen
             for ring, segment in all_possible_throws:
                 throw_value = self.game.get_score(ring, segment)
                 if score - throw_value < 2:
@@ -111,16 +107,15 @@ class X01AIStrategy(AIStrategy):
                     )
                     != "-"
                 ):
-                    # Vermeide es, D1 zu hinterlassen, wenn es nicht der letzte Dart ist
                     if (
                         (darts_left - 1) > 0
                         and remainder == 2
                         and self.game.options.opt_out == "Double"
                     ):
+                        # Vermeide es, D1 zu hinterlassen, wenn es nicht der letzte Dart ist
                         continue
                     return ring, segment
-
-        # Fall B: Setup für die NÄCHSTE Runde (letzter Dart oder kein Setup für diese Runde gefunden)
+        # Fall B: Setup für die NÄCHSTE Runde (letzter Dart oder kein Setup gefunden)
         # Ziel: Eine "gute" gerade Zahl hinterlassen. Geworfen wird auf sichere Single-Felder.
         safe_targets = [
             20,
@@ -206,7 +201,8 @@ class KillerAIStrategy(AIStrategy):
             for target in preferred:
                 if target not in taken:
                     # KORREKTUR: "Bull" muss als ("Bull", 25) zurückgegeben werden,
-                    # nicht als ("Single", 25), da dies von der Spiellogik erwartet wird.
+                    # nicht als ("Single", 25), da dies von der Spiellogik
+                    # erwartet wird.
                     return ("Bull", 25) if target == "Bull" else ("Single", int(target))
             return "Single", 1  # Fallback
 

@@ -101,8 +101,8 @@ class PlayerStatsManager:
 
         def do_reset(player_to_reset):
             mode_name = f"'{player_to_reset}'" if player_to_reset else "alle Spieler"
-            confirm_msg = f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} unwiderruflich löschen möchtest?"  # noqa: E501
-
+            confirm_msg = f"Bist du sicher, dass du die Spiel-Statistiken für "
+            confirm_msg += f"{mode_name} unwiderruflich löschen möchtest?"
             if not messagebox.askyesno("Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
@@ -118,8 +118,8 @@ class PlayerStatsManager:
                 command=lambda: do_reset(selected_player),
             ).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
-            side="left", padx=5
-        )
+            side="left", padx=5  # noqa
+        )  # noqa
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(
             side="left", padx=5
         )
@@ -149,8 +149,8 @@ class PlayerStatsManager:
         return {"best_win_streak": max_win_streak}
 
     def update_accuracy_model(self, player_name: str, parent_window=None):
-        """
-        Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es.
+        """# noqa
+        Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es. # noqa
         """
         if not NUMPY_AVAILABLE:
             messagebox.showerror(

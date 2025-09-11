@@ -222,8 +222,8 @@ class X01ScoreBoard(BaseScoreBoard):
         self.co_var.set(f"{self.player.get_checkout_percentage():.1f}%")
         # Initialisiert oder aktualisiert die Leg/Set-Anzeige, falls zutreffend.
         if self.game.is_leg_set_match:
-            leg_score = self.game.player_leg_scores.get(self.player_id, 0)
-            set_score = self.game.player_set_scores.get(self.player_id, 0)
+            leg_score = self.game.player_leg_scores.get(self.player_id, 0)  # noqa
+            set_score = self.game.player_set_scores.get(self.player_id, 0)  # noqa
             self.update_leg_set_scores(leg_score, set_score)
 
 

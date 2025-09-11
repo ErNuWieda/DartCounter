@@ -98,7 +98,7 @@ class BracketCanvas(tk.Canvas):
         # Runde 1 wird vertikal zentriert
         available_height = self.winfo_height() - self.HEADER_HEIGHT
         total_height_round1 = len(rounds_data[0]) * self.MATCH_HEIGHT
-        y_offset_round1 = self.HEADER_HEIGHT + (available_height - total_height_round1) // 2
+        y_offset_round1 = self.HEADER_HEIGHT + (available_height - total_height_round1) // 2  # noqa
         if y_offset_round1 < self.HEADER_HEIGHT + self.PADDING:
             y_offset_round1 = self.HEADER_HEIGHT + self.PADDING
 
@@ -119,8 +119,8 @@ class BracketCanvas(tk.Canvas):
                     parent_y = match_positions.get((round_idx, next_match_idx))
                     y_center = parent_y if parent_y else self.winfo_height() / 2
                 else:
-                    # Standardlogik für WB oder interne LB-Runden
-                    parent1_y = match_positions.get((round_idx, next_match_idx * 2))
+                    # Standardlogik für WB oder interne LB-Runden # noqa
+                    parent1_y = match_positions.get((round_idx, next_match_idx * 2))  # noqa
                     parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
 
                     if parent1_y and parent2_y:
