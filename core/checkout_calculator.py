@@ -70,14 +70,14 @@ for i in range(20, 0, -1):  # Absteigend, um höhere Triples bei gleichem Score 
 # Bull (25) (vierte Priorität)
 if 25 not in _SINGLE_DART_FINISH_MAP:  # Nur hinzufügen, wenn nicht bereits abgedeckt
     _SINGLE_DART_FINISH_MAP[25] = "25"
-for i in range(20, 0, -1):  # Singles (niedrigste Priorität)
+for i in range(20, 0, -1):  # Singles (niedrigste Priorität) # noqa: E501
     if (
         i not in _SINGLE_DART_FINISH_MAP
     ):  # Nur hinzufügen, wenn nicht bereits durch D/T/BE abgedeckt
         _SINGLE_DART_FINISH_MAP[i] = f"{i}"
 
 # Unmögliche Single-Dart-Finishes explizit entfernen, um die Logik zu 100% abzubilden
-for score in [59, 58, 56, 55, 53, 52, 49, 47, 46, 44, 43, 41]:
+for score in [59, 58, 56, 55, 53, 52, 49, 47, 46, 44, 43, 41]:  # noqa: E501
     _SINGLE_DART_FINISH_MAP.pop(score, None)
 
 # Geordnete Liste der Würfe von hoch nach niedrig, als Klassenkonstante definiert,
@@ -268,7 +268,7 @@ class CheckoutCalculator:
                 # Akzeptiere den berechneten Pfad nur, wenn er qualitativ hochwertig ist
                 # (d.h. nicht mit einem einfachen Single- oder Double-Feld beginnt,
                 # außer bei 2-Dart-Finishes, wo dies oft notwendig ist).
-                # Ein guter 3-Dart-Checkout beginnt mit T oder BE.
+                # Ein guter 3-Dart-Checkout beginnt mit T oder BE. # noqa: E501
                 first_throw = calculated_path.split(", ")[0] if calculated_path else ""
                 if calculated_path and (
                     len(calculated_path.split(", ")) < 3 or first_throw.startswith(("T", "BE"))

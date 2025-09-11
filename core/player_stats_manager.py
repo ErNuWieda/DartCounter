@@ -148,8 +148,8 @@ class PlayerStatsManager:
 
         return {"best_win_streak": max_win_streak}
 
-    def update_accuracy_model(self, player_name: str, parent_window=None):  # noqa: F541
-        """Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es."""
+    def update_accuracy_model(self, player_name: str, parent_window=None):
+        """Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es."""  # noqa: E501
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",

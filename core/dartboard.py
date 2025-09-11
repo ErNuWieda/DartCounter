@@ -174,7 +174,7 @@ class DartBoard:
             ui_utils.show_message(
                 "warning",
                 "Laufendes Turnierspiel",
-                "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende.",
+                "Ein Turnierspiel muss beendet werden.\n\n" "Bitte spiele das Match zu Ende.",
                 parent=self.root,
             )
             return  # Verhindert das Schließen des Fensters

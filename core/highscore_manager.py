@@ -178,9 +178,9 @@ class HighscoreManager:
         def do_reset(mode):
             mode_name = current_game_mode if mode else "alle Spielmodi"
             confirm_msg = (
-                f"Bist du sicher, dass du die Highscores für '{mode_name}' "
+                f"Bist du sicher, dass du die Highscores für '{mode_name}' "  # noqa: E501
                 "unwiderruflich löschen möchtest?"
-            )
+            )  # noqa: E501
             if not ui_utils.ask_question("yesno", "Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
@@ -234,7 +234,7 @@ class HighscoreManager:
         win.resizable(False, True)
 
         notebook = ttk.Notebook(win)
-        notebook.pack(expand=True, fill="both", padx=10, pady=10)
+        notebook.pack(expand=True, fill="both", padx=10, pady=10)  # noqa: E501
 
         highscore_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
         for game_mode in highscore_modes:

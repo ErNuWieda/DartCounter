@@ -230,8 +230,8 @@ class ProfileManagerDialog(tk.Toplevel):
         if player_type == "KI":
             title = "Falscher Spielertyp"
             message = (
-                "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus deren "
-                "Spieldaten berechnet werden."
+                "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus "  # noqa: E501
+                "deren Spieldaten berechnet werden."  # noqa: E501
             )
             messagebox.showwarning(title, message, parent=self)
             return
