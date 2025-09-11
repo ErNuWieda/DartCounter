@@ -19,6 +19,7 @@ Dieses Modul definiert die Hauptlogik für x01 Dartspiele.
 Es enthält die x01 Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
+from .player import Player
 from .game_logic_base import GameLogicBase
 from .checkout_calculator import CheckoutCalculator
 
@@ -54,7 +55,7 @@ class X01(GameLogicBase):
         """
         return []
 
-    def initialize_player_state(self, player: "Player"):  # type: ignore
+    def initialize_player_state(self, player: "Player"):
         """
         Setzt den Anfangs-Score für X01-Spiele und initialisiert den 'opened'-Status.
         """
@@ -81,7 +82,7 @@ class X01(GameLogicBase):
             return ring in ("Double", "Triple", "Bullseye")
         return False
 
-    def _handle_throw_undo(self, player: "Player", ring, segment, players):  # type: ignore
+    def _handle_throw_undo(self, player: "Player", ring, segment, players):
         """
         Macht den letzten Wurf für einen Spieler rückgängig.
 
@@ -215,7 +216,7 @@ class X01(GameLogicBase):
 
         return False
 
-    def _is_shanghai_finish(self, player: "Player"):  # type: ignore
+    def _is_shanghai_finish(self, player: "Player"):
         """Prüft, ob die drei Würfe des Spielers ein 120er Shanghai-Finish ergeben."""
         if len(player.throws) != 3:
             return False
@@ -244,7 +245,7 @@ class X01(GameLogicBase):
             "Triple",
         }
 
-    def _handle_win_condition(self, player: "Player", score_before_throw):  # type: ignore
+    def _handle_win_condition(self, player: "Player", score_before_throw):
         """Behandelt die Logik, wenn ein Spieler das Spiel gewinnt (Score erreicht 0)."""
         # --- Checkout-Statistik bei Gewinn aktualisieren ---
         player.stats["checkouts_successful"] += 1
@@ -266,7 +267,7 @@ class X01(GameLogicBase):
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
     def _handle_throw(
-        self, player: "Player", ring: str, segment: int, players: list["Player"]  # type: ignore
+        self, player: "Player", ring: str, segment: int, players: list["Player"]
     ) -> tuple[str, str | None]:
         """
         Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
@@ -347,7 +348,7 @@ class X01(GameLogicBase):
 
         if player.score == 0:  # Gilt nur für x01
             win_message = self._handle_win_condition(player, score_before_throw)
-            self.game._handle_leg_win(player)  # Delegiere die Leg/Set-Logik
+            self.game._handle_leg_win(player)
             return ("win", win_message)
 
         if len(player.throws) == 3:

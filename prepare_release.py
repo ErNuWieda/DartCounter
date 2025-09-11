@@ -34,7 +34,7 @@ def update_version_file(new_version: str):
             f'__version__ = "{new_version}"',
             content,
         )
-        if new_content == content:
+        if new_content == content:  # pragma: no cover
             msg = f"  -> WARNUNG: Versions-String in {VERSION_FILE} nicht gefunden. Datei wurde nicht geändert."
             print(msg)
             return
@@ -96,7 +96,7 @@ def update_release_checklist(new_version: str):
         new_content = content.replace("vX.Y.Z", f"v{new_version}")
         new_content = new_content.replace("X.Y.Z", new_version)
 
-        if new_content == content:
+        if new_content == content:  # pragma: no cover
             msg = f"  -> WARNUNG: Keine Platzhalter in {RELEASE_CHECKLIST_FILE} gefunden. Datei wurde nicht geändert."
             print(msg)
             return

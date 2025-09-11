@@ -53,9 +53,8 @@ class Killer(GameLogicBase):
                 "info",
                 "Lebensfeld ermitteln",
                 f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                f"Wirf mit deiner NICHT-dominanten Hand.\n"
-                "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                "Ein Treffer auf Bull/Bullseye zählt als Lebensfeld 'Bull'.",
+                "Wirf mit deiner NICHT-dominanten Hand.\n"
+                "Das Double des getroffenen Segments wird dein Lebensfeld.\n",
             )
 
         if not player.state.get("can_kill"):
