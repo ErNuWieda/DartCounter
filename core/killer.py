@@ -213,7 +213,6 @@ class Killer(GameLogicBase):
             title = "Leben genommen!"
             opp_name = victim.name
             if victim == player:
-                title = "Eigentor"
                 opp_name = "sich selbst"
 
             if victim.score > 0:

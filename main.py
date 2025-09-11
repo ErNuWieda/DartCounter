@@ -420,8 +420,12 @@ class App:
         if self.game_instance and not self.game_instance.end:
             SaveLoadManager.save_state(self.game_instance, self.root)
         else:  # pragma: no cover
-            message = "Es läuft kein aktives Spiel, das gespeichert werden könnte."
-            ui_utils.show_message("info", "Spiel speichern", message, parent=self.root)
+            ui_utils.show_message(
+                "info",
+                "Spiel speichern",
+                "Es läuft kein aktives Spiel, das gespeichert werden könnte.",
+                parent=self.root,
+            )
 
     def show_highscores(self):
         """Öffnet das Fenster zur Anzeige der Highscores."""
