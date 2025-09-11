@@ -22,11 +22,13 @@ from tkinter import messagebox
 
 try:
     import pygame
+
     PYGAME_AVAILABLE = True
 except ImportError:
     PYGAME_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
 
 class SoundManager:
     """
@@ -42,6 +44,7 @@ class SoundManager:
     - Eine robuste Fehlerbehandlung, falls `pygame` nicht installiert ist oder
       Sounddateien fehlen, um einen Absturz der Anwendung zu verhindern.
     """
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -67,32 +70,38 @@ class SoundManager:
                                                 um Einstellungen zu laden/speichern.
             root (tk.Tk, optional): Das Hauptfenster für Dialoge.
         """
-        if hasattr(self, '_initialized'):
+        if hasattr(self, "_initialized"):
             return
         self._initialized = True
         self.settings_manager = settings_manager
         self.root = root
-        self.loading_errors = [] # To collect errors for a single messagebox
-        self.loaded_sounds = [] # To store all sound objects
+        self.loading_errors = []  # To collect errors for a single messagebox
+        self.loaded_sounds = []  # To store all sound objects
 
         if not PYGAME_AVAILABLE:
-            logger.warning("pygame ist nicht installiert. Soundeffekte sind deaktiviert.")
+            logger.warning(
+                "pygame ist nicht installiert. Soundeffekte sind deaktiviert."
+            )
             self.sounds_enabled = False
             return
 
         # Lade den initialen Zustand aus dem SettingsManager
-        self.sounds_enabled = self.settings_manager.get('sound_enabled', True)
-        self.volume = self.settings_manager.get('sound_volume', 0.5)
+        self.sounds_enabled = self.settings_manager.get("sound_enabled", True)
+        self.volume = self.settings_manager.get("sound_volume", 0.5)
 
         if not self.sounds_enabled:
-            return # Don't initialize mixer or load sounds if disabled from settings
+            return  # Don't initialize mixer or load sounds if disabled from settings
 
         try:
             pygame.mixer.init()
         except pygame.error as e:
-            logger.error(f"Pygame mixer konnte nicht initialisiert werden: {e}", exc_info=True)
+            logger.error(
+                f"Pygame mixer konnte nicht initialisiert werden: {e}", exc_info=True
+            )
             self.sounds_enabled = False
-            self.loading_errors.append(f"Pygame mixer konnte nicht initialisiert werden: {e}")
+            self.loading_errors.append(
+                f"Pygame mixer konnte nicht initialisiert werden: {e}"
+            )
             return
 
         self._load_all_sounds()
@@ -103,7 +112,7 @@ class SoundManager:
             messagebox.showwarning(
                 title="Sound-Fehler",
                 message=f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\nDie Soundeffekte sind für diese Sitzung teilweise oder ganz deaktiviert.",
-                parent=self.root
+                parent=self.root,
             )
 
     def _load_all_sounds(self):
@@ -167,7 +176,7 @@ class SoundManager:
         self.volume = volume
         if not PYGAME_AVAILABLE or not self.sounds_enabled:
             return
-        
+
         for sound in self.loaded_sounds:
             if sound:
                 sound.set_volume(self.volume)
@@ -184,54 +193,66 @@ class SoundManager:
             return
         self.sounds_enabled = bool(enabled)
         # Speichere die neue Einstellung im SettingsManager
-        self.settings_manager.set('sound_enabled', self.sounds_enabled)
+        self.settings_manager.set("sound_enabled", self.sounds_enabled)
         if not self.sounds_enabled:
             logger.info("Soundeffekte deaktiviert.")
 
     def play_hit(self):
         """Spielt den Sound für einen Treffer ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.hit_sound: self.hit_sound.play()
+        if self.sounds_enabled and self.hit_sound:
+            self.hit_sound.play()
 
     def play_win(self):
         """Spielt den Sound für einen Spielgewinn ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.win_sound: self.win_sound.play()
+        if self.sounds_enabled and self.win_sound:
+            self.win_sound.play()
 
     def play_miss(self):
         """Spielt den Sound für einen Fehlwurf ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.miss_sound: self.miss_sound.play()
+        if self.sounds_enabled and self.miss_sound:
+            self.miss_sound.play()
 
     def play_bust(self):
         """Spielt den Sound für einen Bust ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bust_sound: self.bust_sound.play()
+        if self.sounds_enabled and self.bust_sound:
+            self.bust_sound.play()
 
     def play_bull(self):
         """Spielt den Sound für ein Bull ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bull_sound: self.bull_sound.play()
+        if self.sounds_enabled and self.bull_sound:
+            self.bull_sound.play()
 
     def play_bullseye(self):
         """Spielt den Sound für ein Bullseye ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bullseye_sound: self.bullseye_sound.play()
+        if self.sounds_enabled and self.bullseye_sound:
+            self.bullseye_sound.play()
 
     def play_score_100(self):
         """Spielt den Sound für einen Score von 100+ ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_100_sound: self.score_100_sound.play()
+        if self.sounds_enabled and self.score_100_sound:
+            self.score_100_sound.play()
 
     def play_score_120(self):
         """Spielt den Sound für einen Score von 100+ ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_100_sound: self.score_100_sound.play()
+        if self.sounds_enabled and self.score_100_sound:
+            self.score_100_sound.play()
 
     def play_score_140(self):
         """Spielt den Sound für einen Score von 140 ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_140_sound: self.score_140_sound.play()
+        if self.sounds_enabled and self.score_140_sound:
+            self.score_140_sound.play()
 
     def play_score_160(self):
         """Spielt den Sound für einen Score von 160 ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_160_sound: self.score_160_sound.play()
+        if self.sounds_enabled and self.score_160_sound:
+            self.score_160_sound.play()
 
     def play_score_180(self):
         """Spielt den Sound für einen Score von 180 ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_180_sound: self.score_180_sound.play()
+        if self.sounds_enabled and self.score_180_sound:
+            self.score_180_sound.play()
 
     def play_shanghai(self):
         """Spielt den Sound für ein Shanghai-Finish ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.shanghai_sound: self.shanghai_sound.play()
+        if self.sounds_enabled and self.shanghai_sound:
+            self.shanghai_sound.play()

@@ -19,10 +19,12 @@ from unittest.mock import MagicMock
 
 # Klasse, die getestet wird
 from core.atc import AtC
+
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
 
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
+
 
 @pytest.fixture
 def atc_logic(mock_game):
@@ -33,6 +35,7 @@ def atc_logic(mock_game):
     mock_game.targets = logic.get_targets()
     return logic
 
+
 @pytest.fixture
 def player(mock_game, atc_logic):
     """Erstellt eine echte Player-Instanz, die für ATC-Tests konfiguriert ist."""
@@ -41,27 +44,31 @@ def player(mock_game, atc_logic):
     p.sb = MagicMock()
     return p
 
+
 def test_initialization(player):
     """Testet, ob ein Spieler korrekt für ATC initialisiert wird."""
     assert player.score == 0
-    assert player.state['next_target'] == "1"
-    assert player.state['hits'].get("1") == 0
-    assert "20" in player.state['hits']
+    assert player.state["next_target"] == "1"
+    assert player.state["hits"].get("1") == 0
+    assert "20" in player.state["hits"]
+
 
 def test_valid_hit_advances_target(atc_logic, player):
     """Testet, ob ein gültiger Treffer das nächste Ziel korrekt setzt."""
     status, _ = atc_logic._handle_throw(player, "Single", 1, [])
-    assert player.state['hits']["1"] == 1
-    assert player.state['next_target'] == "2"
-    assert status == 'ok'
+    assert player.state["hits"]["1"] == 1
+    assert player.state["next_target"] == "2"
+    assert status == "ok"
+
 
 def test_invalid_hit_returns_error(atc_logic, player):
     """Testet, ob ein Wurf auf das falsche Ziel einen Fehler zurückgibt."""
     status, message = atc_logic._handle_throw(player, "Single", 5, [])
-    assert player.state['hits']["1"] == 0
-    assert player.state['next_target'] == "1"
-    assert status == 'invalid_target'
+    assert player.state["hits"]["1"] == 0
+    assert player.state["next_target"] == "1"
+    assert status == "invalid_target"
     assert message is not None
+
 
 def test_valid_hit_with_double_option(mock_game):
     """Testet einen gültigen Treffer, wenn die Option 'Double' aktiv ist."""
@@ -75,29 +82,31 @@ def test_valid_hit_with_double_option(mock_game):
     player.sb = MagicMock()
 
     status, _ = atc_logic._handle_throw(player, "Double", 1, [])
-    assert player.state['hits']["1"] == 1
-    assert player.state['next_target'] == "2"
-    assert status == 'ok'
+    assert player.state["hits"]["1"] == 1
+    assert player.state["next_target"] == "2"
+    assert status == "ok"
+
 
 def test_win_condition(atc_logic, player):
     """Testet, ob das Spiel endet, wenn alle Ziele getroffen wurden."""
     # Alle Ziele von 1 bis 20 treffen
     for i in range(1, 21):
         atc_logic._handle_throw(player, "Single", i, [])
-    
+
     # Den letzten Wurf auf Bull machen
     status, message = atc_logic._handle_throw(player, "Bull", 25, [])
 
     assert player.game.end is True
-    assert status == 'win'
+    assert status == "win"
     assert "gewinnt" in message
+
 
 def test_undo_restores_target(atc_logic, player):
     """Testet, ob die Undo-Funktion den Zustand korrekt wiederherstellt."""
     atc_logic._handle_throw(player, "Single", 1, [])
-    assert player.state['next_target'] == "2"
+    assert player.state["next_target"] == "2"
 
     atc_logic._handle_throw_undo(player, "Single", 1, [])
-    
-    assert player.state['next_target'] == "1"
-    assert player.state['hits']["1"] == 0
+
+    assert player.state["next_target"] == "1"
+    assert player.state["hits"]["1"] == 0

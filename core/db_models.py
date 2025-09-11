@@ -27,28 +27,31 @@ from datetime import datetime
 # Die 'declarative_base' ist die Basisklasse, von der alle unsere Modelle erben.
 Base = declarative_base()
 
+
 class Highscore(Base):
-    __tablename__ = 'highscores'
+    __tablename__ = "highscores"
     id = Column(Integer, primary_key=True)
     game_mode = Column(String(50), nullable=False)
     player_name = Column(String(100), nullable=False)
     score_metric = Column(Float, nullable=False)
     date = Column(Date, nullable=False, default=datetime.utcnow)
 
+
 class PlayerProfile(Base):
-    __tablename__ = 'player_profiles'
+    __tablename__ = "player_profiles"
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
     avatar_path = Column(String)
-    dart_color = Column(String(7), nullable=False, default='#ff0000')
+    dart_color = Column(String(7), nullable=False, default="#ff0000")
     is_ai = Column(Boolean, default=False)
     difficulty = Column(String(20))
     preferred_double = Column(Integer)
     # Speichert das statistische Modell der Wurfgenauigkeit als JSON
     accuracy_model = Column(JSONB)
 
+
 class GameRecord(Base):
-    __tablename__ = 'game_records'
+    __tablename__ = "game_records"
     id = Column(Integer, primary_key=True)
     # In einem idealen Schema wäre dies eine Fremdschlüsselbeziehung zur ID des Spielerprofils.
     # Wir bleiben hier aber beim bestehenden Schema, das den Namen verwendet.

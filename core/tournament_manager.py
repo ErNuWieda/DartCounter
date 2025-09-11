@@ -21,6 +21,7 @@ Turniermodus steuert.
 from .save_load_manager import SaveLoadManager
 from .tournament_strategies import SingleEliminationStrategy, DoubleEliminationStrategy
 
+
 class TournamentManager:
     """
     Verwaltet den Ablauf eines Turniers.
@@ -31,12 +32,15 @@ class TournamentManager:
     - Bereitstellen der nächsten anstehenden Spielpaarung.
     - Verarbeiten von Spielergebnissen und Aktualisieren des Baums.
     """
+
     STRATEGY_MAP = {
         "K.o.": SingleEliminationStrategy,
-        "Doppel-K.o.": DoubleEliminationStrategy
+        "Doppel-K.o.": DoubleEliminationStrategy,
     }
 
-    def __init__(self, player_names: list[str], game_mode: str, system: str, shuffle: bool = True):
+    def __init__(
+        self, player_names: list[str], game_mode: str, system: str, shuffle: bool = True
+    ):
         """
         Initialisiert ein neues Turnier.
 
@@ -88,11 +92,11 @@ class TournamentManager:
     def to_dict(self) -> dict:
         """Serialisiert den Zustand des Managers in ein Dictionary für das Speichern."""
         return {
-            'player_names': self.player_names,
-            'game_mode': self.game_mode,
-            'system': self.system,
-            'bracket': self.bracket,
-            'winner': self.strategy.winner,
+            "player_names": self.player_names,
+            "game_mode": self.game_mode,
+            "system": self.system,
+            "bracket": self.bracket,
+            "winner": self.strategy.winner,
         }
 
     def get_save_meta(self) -> dict:
@@ -101,12 +105,11 @@ class TournamentManager:
         Implementiert den zweiten Teil der Speicher-Schnittstelle.
         """
         return {
-            'title': "Turnier speichern unter...",
-            'filetypes': SaveLoadManager.TOURNAMENT_FILE_TYPES,
-            'defaultextension': ".tourn.json",
-            'save_type': SaveLoadManager.TOURNAMENT_SAVE_TYPE
+            "title": "Turnier speichern unter...",
+            "filetypes": SaveLoadManager.TOURNAMENT_FILE_TYPES,
+            "defaultextension": ".tourn.json",
+            "save_type": SaveLoadManager.TOURNAMENT_SAVE_TYPE,
         }
-
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -114,10 +117,12 @@ class TournamentManager:
         Erstellt eine TournamentManager-Instanz aus einem Dictionary (für das Laden).
         """
         instance = cls(
-            player_names=data['player_names'],
-            game_mode=data['game_mode'],
-            system=data.get('system', 'Doppel-K.o.') # Fallback für alte Speicherstände
+            player_names=data["player_names"],
+            game_mode=data["game_mode"],
+            system=data.get(
+                "system", "Doppel-K.o."
+            ),  # Fallback für alte Speicherstände
         )
-        instance.strategy.bracket = data['bracket']
-        instance.strategy.winner = data.get('winner')
+        instance.strategy.bracket = data["bracket"]
+        instance.strategy.winner = data.get("winner")
         return instance

@@ -19,10 +19,12 @@ from unittest.mock import MagicMock
 
 # Klasse, die getestet wird
 from core.shanghai import Shanghai
+
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
 
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
+
 
 @pytest.fixture
 def shanghai_logic(mock_game):
@@ -32,6 +34,7 @@ def shanghai_logic(mock_game):
     logic = Shanghai(mock_game)
     mock_game.targets = logic.get_targets()
     return logic
+
 
 @pytest.fixture
 def players(mock_game, shanghai_logic):
@@ -44,6 +47,7 @@ def players(mock_game, shanghai_logic):
         player_list.append(p)
     return player_list
 
+
 def test_initialization(players, shanghai_logic):
     """Testet, ob ein Spieler korrekt für Shanghai initialisiert wird."""
     player1 = players[0]
@@ -53,15 +57,17 @@ def test_initialization(players, shanghai_logic):
     assert "7" in shanghai_logic.get_targets()
     assert "8" not in shanghai_logic.get_targets()
 
+
 def test_correct_hit_scores_points(shanghai_logic, players, mock_game):
     """Testet, ob ein Treffer auf das korrekte Ziel (der Runde) Punkte gibt."""
     mock_game.round = 2
     player1 = players[0]
-    
+
     shanghai_logic._handle_throw(player1, "Triple", 2, [])
-    
+
     assert player1.score == 6
     assert player1.hits["2"] == 1
+
 
 def test_incorrect_hit_scores_no_points(shanghai_logic, players, mock_game):
     """Testet, ob ein Treffer auf ein falsches Ziel keine Punkte gibt."""
@@ -69,9 +75,10 @@ def test_incorrect_hit_scores_no_points(shanghai_logic, players, mock_game):
     player1 = players[0]
 
     shanghai_logic._handle_throw(player1, "Single", 4, [])
-    
+
     assert player1.score == 0
     assert player1.hits.get("3") == 0
+
 
 def test_shanghai_win_condition(shanghai_logic, players, mock_game):
     """Testet, ob ein Shanghai (S, D, T) zum sofortigen Sieg führt."""
@@ -80,26 +87,28 @@ def test_shanghai_win_condition(shanghai_logic, players, mock_game):
     # Simuliere die Würfe in der aktuellen Runde, bevor der letzte Wurf verarbeitet wird.
     # Die _handle_throw Methode erwartet, dass der aktuelle Wurf bereits in der Liste ist.
     player1.throws = [("Single", 5, None), ("Double", 5, None), ("Triple", 5, None)]
-    
+
     # Der dritte Wurf (Triple) löst den Gewinn aus
     status, message = shanghai_logic._handle_throw(player1, "Triple", 5, [])
-    
+
     assert mock_game.end is True
-    assert status == 'win' and "Shanghai auf die 5" in message
+    assert status == "win" and "Shanghai auf die 5" in message
+
 
 def test_end_of_rounds_win_condition(shanghai_logic, players, mock_game):
     """Testet, ob nach der letzten Runde der Spieler mit den meisten Punkten gewinnt."""
-    mock_game.options.rounds = 2 # Für den Test auf 2 Runden begrenzen
-    mock_game.round = 3 # Simuliere, dass die letzte Runde vorbei ist
+    mock_game.options.rounds = 2  # Für den Test auf 2 Runden begrenzen
+    mock_game.round = 3  # Simuliere, dass die letzte Runde vorbei ist
     player1, player2 = players
     player1.score = 100
     player2.score = 50
-    
+
     status, message = shanghai_logic._handle_throw(player2, "Miss", 0, players)
-    
+
     assert mock_game.end is True
-    assert status == 'win'
+    assert status == "win"
     assert f"{player1.name} gewinnt mit 100 Punkten" in message
+
 
 def test_undo_restores_state(shanghai_logic, players, mock_game):
     """Testet, ob das Rückgängigmachen eines Wurfs Score und Treffer korrekt wiederherstellt."""
@@ -108,8 +117,8 @@ def test_undo_restores_state(shanghai_logic, players, mock_game):
     shanghai_logic._handle_throw(player1, "Double", 4, [])
     assert player1.score == 8
     assert player1.hits.get("4") == 1
-    
+
     shanghai_logic._handle_throw_undo(player1, "Double", 4, [])
-    
+
     assert player1.score == 0
     assert player1.hits.get("4") == 0

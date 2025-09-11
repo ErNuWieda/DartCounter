@@ -18,18 +18,36 @@ import tkinter as tk
 from tkinter import ttk, messagebox, font
 from PIL import ImageColor
 
+
 class CustomColorChooserDialog(tk.Toplevel):
     """
     Ein benutzerdefinierter, modaler Dialog zur Farbauswahl. Bietet eine
     große Live-Vorschau, RGB-Slider, Hex-Code-Eingabe und vordefinierte Farben,
     die alle miteinander synchronisiert sind.
     """
+
     PREDEFINED_COLORS = [
-        "#e53935", "#d81b60", "#8e24aa", "#5e35b1", "#3949ab",
-        "#1e88e5", "#039be5", "#00acc1", "#00897b", "#43a047",
-        "#7cb342", "#c0ca33", "#fdd835", "#ffb300", "#fb8c00",
-        "#f4511e", "#6d4c41", "#757575", "#546e7a", "#ffffff",
-        "#000000"
+        "#e53935",
+        "#d81b60",
+        "#8e24aa",
+        "#5e35b1",
+        "#3949ab",
+        "#1e88e5",
+        "#039be5",
+        "#00acc1",
+        "#00897b",
+        "#43a047",
+        "#7cb342",
+        "#c0ca33",
+        "#fdd835",
+        "#ffb300",
+        "#fb8c00",
+        "#f4511e",
+        "#6d4c41",
+        "#757575",
+        "#546e7a",
+        "#ffffff",
+        "#000000",
     ]
 
     def __init__(self, parent, initial_color="#ff0000"):
@@ -37,7 +55,7 @@ class CustomColorChooserDialog(tk.Toplevel):
         self.transient(parent)
         self.title("Dart-Farbe auswählen")
         self.result_color = None
-        self._is_internal_update = False # Flag zur Vermeidung von Update-Schleifen
+        self._is_internal_update = False  # Flag zur Vermeidung von Update-Schleifen
 
         # --- Tkinter-Variablen für die Zwei-Wege-Synchronisation ---
         self.hex_color_var = tk.StringVar(value=initial_color)
@@ -73,14 +91,23 @@ class CustomColorChooserDialog(tk.Toplevel):
         # --- Linke Spalte: Große Vorschau und vordefinierte Farben ---
         left_frame = ttk.Frame(main_frame)
         left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
-        self.preview_label = tk.Label(left_frame, text="", relief="solid", borderwidth=1, height=5)
+        self.preview_label = tk.Label(
+            left_frame, text="", relief="solid", borderwidth=1, height=5
+        )
         self.preview_label.pack(fill=tk.X, expand=True)
 
         swatch_frame = ttk.LabelFrame(left_frame, text="Farbfelder", padding=10)
         swatch_frame.pack(fill=tk.X, pady=(15, 0))
         for i, color in enumerate(self.PREDEFINED_COLORS):
             row, col = divmod(i, 7)
-            swatch = tk.Label(swatch_frame, bg=color, width=4, height=2, relief="raised", borderwidth=1)
+            swatch = tk.Label(
+                swatch_frame,
+                bg=color,
+                width=4,
+                height=2,
+                relief="raised",
+                borderwidth=1,
+            )
             swatch.grid(row=row, column=col, padx=3, pady=3)
             swatch.bind("<Button-1>", lambda e, c=color: self._on_swatch_click(c))
 
@@ -94,17 +121,23 @@ class CustomColorChooserDialog(tk.Toplevel):
         hex_frame = ttk.Frame(right_frame)
         hex_frame.pack(fill=tk.X, pady=(20, 0))
         ttk.Label(hex_frame, text="Hex:").pack(side=tk.LEFT)
-        self.hex_entry = ttk.Entry(hex_frame, textvariable=self.hex_color_var, width=10, font=("Monospace", 10))
+        self.hex_entry = ttk.Entry(
+            hex_frame, textvariable=self.hex_color_var, width=10, font=("Monospace", 10)
+        )
         self.hex_entry.pack(side=tk.LEFT, padx=5)
 
         # --- Untere Reihe: Buttons ---
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=1, column=0, columnspan=2, sticky="e", pady=(20, 0))
-        ok_button = ttk.Button(button_frame, text="OK", command=self._on_ok, style="Accent.TButton")
+        ok_button = ttk.Button(
+            button_frame, text="OK", command=self._on_ok, style="Accent.TButton"
+        )
         ok_button.pack(side=tk.LEFT, padx=5)
         ok_button.bind("<Return>", lambda e: self._on_ok())
         ok_button.focus_set()
-        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(side=tk.LEFT)
+        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(
+            side=tk.LEFT
+        )
 
     def _create_slider(self, parent, label_text, variable, color):
         """Hilfsmethode zur Erstellung eines RGB-Sliders."""
@@ -112,8 +145,12 @@ class CustomColorChooserDialog(tk.Toplevel):
         frame.pack(fill=tk.X, expand=True, pady=2)
         # Verwende ein Label mit fester Breite für eine saubere Ausrichtung
         label_font = font.Font(family="Monospace", size=10, weight="bold")
-        ttk.Label(frame, text=label_text, foreground=color, font=label_font, width=2).pack(side=tk.LEFT)
-        scale = ttk.Scale(frame, from_=0, to=255, orient=tk.HORIZONTAL, variable=variable)
+        ttk.Label(
+            frame, text=label_text, foreground=color, font=label_font, width=2
+        ).pack(side=tk.LEFT)
+        scale = ttk.Scale(
+            frame, from_=0, to=255, orient=tk.HORIZONTAL, variable=variable
+        )
         scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         # Ein Label, das den numerischen Wert des Sliders anzeigt
         value_label = ttk.Label(frame, textvariable=variable, width=3)
@@ -121,7 +158,8 @@ class CustomColorChooserDialog(tk.Toplevel):
 
     def _update_from_sliders(self, *args):
         """Wird aufgerufen, wenn ein Slider bewegt wird. Aktualisiert den Hex-Code."""
-        if self._is_internal_update: return
+        if self._is_internal_update:
+            return
 
         r, g, b = self.r_var.get(), self.g_var.get(), self.b_var.get()
         new_hex = f"#{r:02x}{g:02x}{b:02x}"
@@ -134,7 +172,8 @@ class CustomColorChooserDialog(tk.Toplevel):
 
     def _update_from_hex(self, *args):
         """Wird aufgerufen, wenn der Hex-Code geändert wird. Aktualisiert die Slider."""
-        if self._is_internal_update: return
+        if self._is_internal_update:
+            return
 
         hex_str = self.hex_color_var.get()
         if self._is_valid_hex_color(hex_str):
@@ -145,10 +184,10 @@ class CustomColorChooserDialog(tk.Toplevel):
             self.b_var.set(b)
             self._is_internal_update = False
             self._update_preview(hex_str)
-            self.hex_entry.config(foreground="black") # Gültige Farbe
+            self.hex_entry.config(foreground="black")  # Gültige Farbe
         else:
-            self._update_preview(self.cget('bg')) # Fallback-Farbe
-            self.hex_entry.config(foreground="red") # Ungültige Farbe
+            self._update_preview(self.cget("bg"))  # Fallback-Farbe
+            self.hex_entry.config(foreground="red")  # Ungültige Farbe
 
     def _on_swatch_click(self, color):
         """Wird aufgerufen, wenn ein Farbfeld angeklickt wird."""
@@ -156,7 +195,7 @@ class CustomColorChooserDialog(tk.Toplevel):
 
     def _is_valid_hex_color(self, hex_string):
         """Prüft, ob ein String ein gültiger 6-stelliger Hex-Farbcode ist."""
-        if not hex_string.startswith('#') or len(hex_string) != 7:
+        if not hex_string.startswith("#") or len(hex_string) != 7:
             return False
         try:
             ImageColor.getrgb(hex_string)
@@ -175,4 +214,8 @@ class CustomColorChooserDialog(tk.Toplevel):
             self.result_color = final_color
             self.destroy()
         else:
-            messagebox.showerror("Ungültige Farbe", f"'{final_color}' ist kein gültiger 6-stelliger Hex-Farbcode (z.B. #ff0000).", parent=self)
+            messagebox.showerror(
+                "Ungültige Farbe",
+                f"'{final_color}' ist kein gültiger 6-stelliger Hex-Farbcode (z.B. #ff0000).",
+                parent=self,
+            )

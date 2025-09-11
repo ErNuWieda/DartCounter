@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 class Player:
     """
     Repräsentiert einen einzelnen Spieler im Spiel.
@@ -33,33 +34,34 @@ class Player:
         stats (dict): Ein Dictionary zur Speicherung von Leistungsstatistiken.
         sb (ScoreBoard): Eine Referenz auf die zugehörige Scoreboard-UI-Instanz.
     """
+
     id = 1
     # Ein Dictionary, das die Standardwerte für alle Statistiken enthält.
     # Dies macht die __init__-Methode übersichtlicher.
     INITIAL_STATS = {
-        'total_darts_thrown': 0,
-        'total_score_thrown': 0,
-        'checkout_opportunities': 0,
-        'checkouts_successful': 0,
-        'highest_finish': 0,
-        'total_marks_scored': 0,
-        'successful_finishes': [],
+        "total_darts_thrown": 0,
+        "total_score_thrown": 0,
+        "checkout_opportunities": 0,
+        "checkouts_successful": 0,
+        "highest_finish": 0,
+        "total_marks_scored": 0,
+        "successful_finishes": [],
     }
 
     # Ein Dictionary, das die Standardwerte für alle spielspezifischen
     # Zustands-Attribute enthält. Dies zentralisiert die Initialisierung und
     # macht sie wartbarer (DRY-Prinzip).
     INITIAL_STATE = {
-        'hits': {},
-        'life_segment': "",
-        'can_kill': False,
-        'next_target': None,
-        'has_opened': False,
+        "hits": {},
+        "life_segment": "",
+        "can_kill": False,
+        "next_target": None,
+        "has_opened": False,
     }
 
     # Das Set der Zustandsschlüssel wird nun direkt aus dem Dictionary abgeleitet.
     STATE_KEYS = set(INITIAL_STATE.keys())
- 
+
     def __init__(self, name, game, profile=None):
         """
         Initialisiert eine neue Spielerinstanz.
@@ -73,12 +75,12 @@ class Player:
             game (Game): Die Instanz des laufenden Spiels.
             profile (PlayerProfile, optional): Das zugehörige Spielerprofil. Defaults to None.
         """
-        self.name = name # type: ignore
+        self.name = name  # type: ignore
         self.game_name = game.options.name
         self.profile = profile
         self.score = 0
         self.game = game
-        self.targets = self.game.targets # type: ignore
+        self.targets = self.game.targets  # type: ignore
 
         # State- und Statistik-Dictionaries aus den Klassenvorlagen initialisieren
         self.state = self.INITIAL_STATE.copy()
@@ -88,9 +90,11 @@ class Player:
         self.id = Player.id
         Player.id += 1
         self.turn_is_over = False
-        self.all_game_throws = [] # Hält alle Würfe des gesamten Spiels für Statistiken
+        self.all_game_throws = []  # Hält alle Würfe des gesamten Spiels für Statistiken
         self.throws = []
-        self.sb = None # ScoreBoard wird extern von der Game-Klasse erstellt und zugewiesen
+        self.sb = (
+            None  # ScoreBoard wird extern von der Game-Klasse erstellt und zugewiesen
+        )
 
     def is_ai(self) -> bool:
         """Gibt an, ob es sich um einen KI-Spieler handelt. Wird von AIPlayer überschrieben."""
@@ -104,43 +108,43 @@ class Player:
 
     @property
     def hits(self):
-        return self.state.get('hits', {})
+        return self.state.get("hits", {})
 
     @hits.setter
     def hits(self, value):
-        self.state['hits'] = value
+        self.state["hits"] = value
 
     @property
     def life_segment(self):
-        return self.state.get('life_segment')
+        return self.state.get("life_segment")
 
     @life_segment.setter
     def life_segment(self, value):
-        self.state['life_segment'] = value
+        self.state["life_segment"] = value
 
     @property
     def can_kill(self):
-        return self.state.get('can_kill', False)
+        return self.state.get("can_kill", False)
 
     @can_kill.setter
     def can_kill(self, value):
-        self.state['can_kill'] = value
+        self.state["can_kill"] = value
 
     @property
     def next_target(self):
-        return self.state.get('next_target')
+        return self.state.get("next_target")
 
     @next_target.setter
     def next_target(self, value):
-        self.state['next_target'] = value
+        self.state["next_target"] = value
 
     @property
     def has_opened(self):
-        return self.state.get('has_opened', False)
+        return self.state.get("has_opened", False)
 
     @has_opened.setter
     def has_opened(self, value):
-        self.state['has_opened'] = value
+        self.state["has_opened"] = value
 
     def leave(self):
         """
@@ -151,7 +155,6 @@ class Player:
         Scoreboard-Fenster schließt.
         """
         self.game.leave(self)
-
 
     def reset_turn(self):
         """
@@ -167,9 +170,9 @@ class Player:
         Setzt die Statistiken zurück, die pro Leg gezählt werden (z.B. Average).
         Match-übergreifende Statistiken wie 'highest_finish' bleiben erhalten.
         """
-        self.stats['total_darts_thrown'] = 0
-        self.stats['total_score_thrown'] = 0
-        self.stats['checkout_opportunities'] = 0
+        self.stats["total_darts_thrown"] = 0
+        self.stats["total_score_thrown"] = 0
+        self.stats["checkout_opportunities"] = 0
 
     def update_score_value(self, value, subtract=True):
         """
@@ -193,10 +196,10 @@ class Player:
             float: Der 3-Dart-Average. Gibt 0.0 zurück, wenn noch keine Darts
                    geworfen wurden, um eine Division durch Null zu vermeiden.
         """
-        if self.stats['total_darts_thrown'] == 0:
+        if self.stats["total_darts_thrown"] == 0:
             return 0.0
         # Durchschnittlicher Punktwert pro Dart, mal 3
-        return (self.stats['total_score_thrown'] / self.stats['total_darts_thrown']) * 3
+        return (self.stats["total_score_thrown"] / self.stats["total_darts_thrown"]) * 3
 
     def get_total_darts_in_game(self):
         """
@@ -225,7 +228,7 @@ class Player:
         if total_darts == 0:
             return 0.0
 
-        total_marks = self.stats.get('total_marks_scored', 0)
+        total_marks = self.stats.get("total_marks_scored", 0)
         return (total_marks / total_darts) * 3
 
     def get_checkout_percentage(self):
@@ -236,6 +239,8 @@ class Player:
             float: Die Erfolgsquote bei Checkout-Versuchen in Prozent. Gibt 0.0
                    zurück, wenn es keine Checkout-Möglichkeiten gab.
         """
-        if self.stats['checkout_opportunities'] == 0:
+        if self.stats["checkout_opportunities"] == 0:
             return 0.0
-        return (self.stats['checkouts_successful'] / self.stats['checkout_opportunities']) * 100
+        return (
+            self.stats["checkouts_successful"] / self.stats["checkout_opportunities"]
+        ) * 100

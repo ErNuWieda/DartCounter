@@ -17,15 +17,22 @@
 from PIL import Image, ImageDraw
 import pathlib
 
+
 class HeatmapGenerator:
     """
     Eine statische Utility-Klasse zur Erstellung von Heatmap-Bildern.
     """
+
     ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets"
     DARTBOARD_PATH = ASSETS_BASE_DIR / "dartboard.png"
-    
+
     @staticmethod
-    def create_heatmap(coordinates: list[tuple[float, float]], target_size: tuple[int, int], point_radius=10, point_opacity=128):
+    def create_heatmap(
+        coordinates: list[tuple[float, float]],
+        target_size: tuple[int, int],
+        point_radius=10,
+        point_opacity=128,
+    ):
         """
         Erstellt ein Heatmap-Bild, indem Wurfkoordinaten auf ein Dartboard-Bild gezeichnet werden.
 
@@ -39,22 +46,34 @@ class HeatmapGenerator:
             PIL.Image.Image or None: Das generierte Heatmap-Bild oder None bei einem Fehler.
         """
         try:
-            board_img_original = Image.open(HeatmapGenerator.DARTBOARD_PATH).convert("RGBA")
+            board_img_original = Image.open(HeatmapGenerator.DARTBOARD_PATH).convert(
+                "RGBA"
+            )
         except FileNotFoundError:
-            print(f"Fehler: Dartboard-Bild nicht gefunden unter {HeatmapGenerator.DARTBOARD_PATH}")
+            print(
+                f"Fehler: Dartboard-Bild nicht gefunden unter {HeatmapGenerator.DARTBOARD_PATH}"
+            )
             return None
 
         # Skaliere das Dartboard-Bild auf die gewünschte Zielgröße
         board_img = board_img_original.resize(target_size, Image.Resampling.LANCZOS)
 
-        width, height = board_img.size # Dies ist jetzt die Zielgröße
+        width, height = board_img.size  # Dies ist jetzt die Zielgröße
         overlay = Image.new("RGBA", (width, height), (255, 255, 255, 0))
         draw = ImageDraw.Draw(overlay)
-        point_color = (255, 0, 0, point_opacity) # Halbtransparentes Rot
+        point_color = (255, 0, 0, point_opacity)  # Halbtransparentes Rot
 
         for norm_x, norm_y in coordinates:
             abs_x, abs_y = int(norm_x * width), int(norm_y * height)
-            draw.ellipse((abs_x - point_radius, abs_y - point_radius, abs_x + point_radius, abs_y + point_radius), fill=point_color)
-        
+            draw.ellipse(
+                (
+                    abs_x - point_radius,
+                    abs_y - point_radius,
+                    abs_x + point_radius,
+                    abs_y + point_radius,
+                ),
+                fill=point_color,
+            )
+
         combined_img = Image.alpha_composite(board_img, overlay)
-        return combined_img.convert("RGB") # Konvertiere zu RGB für Tkinter
+        return combined_img.convert("RGB")  # Konvertiere zu RGB für Tkinter

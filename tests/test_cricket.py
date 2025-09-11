@@ -19,34 +19,42 @@ from unittest.mock import MagicMock
 
 # Klasse, die getestet wird
 from core.cricket import Cricket
+
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
 
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
 
+
 @pytest.fixture
 def _logic_factory(mock_game):
     """Eine "private" Factory-Fixture, die Cricket-Logik-Instanzen erstellt."""
+
     def _create_logic(game_name: str):
         mock_game.options.name = game_name
         logic = Cricket(mock_game)
         mock_game.targets = logic.get_targets()
         return logic
+
     return _create_logic
+
 
 @pytest.fixture
 def cricket_logic(_logic_factory):
     """Erstellt eine Cricket-Logik-Instanz, konfiguriert für Standard-Cricket."""
     return _logic_factory("Cricket")
 
+
 @pytest.fixture
 def cut_throat_logic(_logic_factory):
     """Erstellt eine Cricket-Logik-Instanz, konfiguriert für Cut Throat."""
     return _logic_factory("Cut Throat")
 
+
 @pytest.fixture
 def _player_factory(mock_game):
     """Eine "private" Factory-Fixture, die Spielerlisten erstellt und initialisiert."""
+
     def _create_players(logic_instance, count: int):
         player_list = []
         for i in range(count):
@@ -55,126 +63,143 @@ def _player_factory(mock_game):
             p.sb = MagicMock()
             player_list.append(p)
         return player_list
+
     return _create_players
+
 
 @pytest.fixture
 def players(cricket_logic, _player_factory):
     """Erstellt eine Liste von zwei initialisierten Spielern für ein Standard-Cricket-Spiel."""
     return _player_factory(cricket_logic, 2)
 
+
 @pytest.fixture
 def cut_throat_players(cut_throat_logic, _player_factory):
     """Erstellt eine Liste von drei initialisierten Spielern für ein Cut-Throat-Spiel."""
     return _player_factory(cut_throat_logic, 3)
 
+
 def test_initialization(players):
     player1 = players[0]
     assert player1.score == 0
-    assert player1.state['hits'].get("20") == 0
-    assert "15" in player1.state['hits']
-    assert "14" not in player1.state['hits']
+    assert player1.state["hits"].get("20") == 0
+    assert "15" in player1.state["hits"]
+    assert "14" not in player1.state["hits"]
+
 
 def test_valid_hit_adds_marks(cricket_logic, players):
     player1 = players[0]
     status, _ = cricket_logic._handle_throw(player1, "Single", 20, players)
-    assert player1.state['hits']["20"] == 1
-    assert status == 'ok'
-    
+    assert player1.state["hits"]["20"] == 1
+    assert status == "ok"
+
     status, _ = cricket_logic._handle_throw(player1, "Double", 20, players)
-    assert player1.state['hits']["20"] == 3
-    assert status == 'ok'
+    assert player1.state["hits"]["20"] == 3
+    assert status == "ok"
+
 
 def test_hit_on_closed_target_scores_points(cricket_logic, players):
     player1, player2 = players
-    player1.state['hits']["20"] = 3
-    
+    player1.state["hits"]["20"] = 3
+
     status, _ = cricket_logic._handle_throw(player1, "Single", 20, players)
-    
-    assert status == 'ok'
+
+    assert status == "ok"
     assert player1.score == 20
     assert player2.score == 0
 
+
 def test_no_points_if_all_opponents_closed_target(cricket_logic, players):
     player1, player2 = players
-    player1.state['hits']["20"] = 3
-    player2.state['hits']["20"] = 3
+    player1.state["hits"]["20"] = 3
+    player2.state["hits"]["20"] = 3
 
     status, _ = cricket_logic._handle_throw(player1, "Single", 20, players)
-    
-    assert status == 'ok'
+
+    assert status == "ok"
     assert player1.score == 0
+
 
 def test_bullseye_counts_as_two_marks(cricket_logic, players):
     player1 = players[0]
-    assert player1.state['hits']["Bull"] == 0
+    assert player1.state["hits"]["Bull"] == 0
     status, _ = cricket_logic._handle_throw(player1, "Bullseye", 50, players)
-    assert player1.state['hits']["Bull"] == 2
-    assert status == 'ok'
+    assert player1.state["hits"]["Bull"] == 2
+    assert status == "ok"
+
 
 def test_win_condition_all_targets_closed_and_highest_score(cricket_logic, players):
     player1, player2 = players
     for target in cricket_logic.get_targets():
-        player1.state['hits'][target] = 3
+        player1.state["hits"][target] = 3
     player1.score = 100
     player2.score = 50
- 
+
     status, message = cricket_logic._handle_throw(player1, "Single", 20, players)
- 
+
     assert player1.game.end is True
-    assert status == 'win'
+    assert status == "win"
     assert "gewinnt" in message
+
 
 def test_no_win_if_score_is_lower(cricket_logic, players):
     player1, player2 = players
     for target in cricket_logic.get_targets():
-        player1.state['hits'][target] = 3
+        player1.state["hits"][target] = 3
     player1.score = 50
     player2.score = 100
 
     status, _ = cricket_logic._handle_throw(player1, "Single", 20, players)
 
     assert player1.game.end is False
-    assert status == 'ok'
+    assert status == "ok"
+
 
 def test_win_on_equal_score(cricket_logic, players):
     player1, player2 = players
     player1.score = 100
     for target in cricket_logic.get_targets():
-        player2.state['hits'][target] = 3
+        player2.state["hits"][target] = 3
     player2.score = 80
 
     status, message = cricket_logic._handle_throw(player2, "Single", 20, players)
- 
+
     assert player2.game.end is True
-    assert status == 'win'
+    assert status == "win"
     assert "gewinnt" in message
+
 
 def test_undo_simple_hit_restores_marks(cricket_logic, players):
     player1 = players[0]
     cricket_logic._handle_throw(player1, "Double", 20, players)
-    assert player1.state['hits']["20"] == 2
+    assert player1.state["hits"]["20"] == 2
 
     cricket_logic._handle_throw_undo(player1, "Double", 20, players)
-    assert player1.state['hits']["20"] == 0
+    assert player1.state["hits"]["20"] == 0
+
 
 def test_undo_scoring_hit_restores_score_and_marks(cricket_logic, players):
     player1, _ = players
-    player1.state['hits']["20"] = 3
+    player1.state["hits"]["20"] = 3
     cricket_logic._handle_throw(player1, "Single", 20, players)
     assert player1.score == 20
-    assert player1.state['hits']["20"] == 4
+    assert player1.state["hits"]["20"] == 4
 
     cricket_logic._handle_throw_undo(player1, "Single", 20, players)
     assert player1.score == 0
-    assert player1.state['hits']["20"] == 3
+    assert player1.state["hits"]["20"] == 3
+
 
 # --- Cut Throat Specific Tests ---
 
-def test_cut_throat_scoring_adds_points_to_opponents(cut_throat_logic, cut_throat_players):
+
+def test_cut_throat_scoring_adds_points_to_opponents(
+    cut_throat_logic, cut_throat_players
+):
     player1, player2, player3 = cut_throat_players
-    player1.state['hits']["20"] = 3
-    player2.state['hits']["20"] = 1
-    player3.state['hits']["20"] = 3
+    player1.state["hits"]["20"] = 3
+    player2.state["hits"]["20"] = 1
+    player3.state["hits"]["20"] = 3
 
     cut_throat_logic._handle_throw(player1, "Single", 20, cut_throat_players)
 
@@ -182,37 +207,40 @@ def test_cut_throat_scoring_adds_points_to_opponents(cut_throat_logic, cut_throa
     assert player2.score == 20
     assert player3.score == 0
 
+
 def test_cut_throat_win_condition_lowest_score(cut_throat_logic, players):
     player1, player2 = players
     for target in cut_throat_logic.get_targets():
-        player1.state['hits'][target] = 3
+        player1.state["hits"][target] = 3
     player1.score = 50
     player2.score = 100
 
     status, message = cut_throat_logic._handle_throw(player1, "Single", 20, players)
- 
+
     assert player1.game.end is True
-    assert status == 'win'
+    assert status == "win"
     assert "gewinnt" in message
+
 
 def test_cut_throat_no_win_if_score_is_higher(cut_throat_logic, players):
     player1, player2 = players
     for target in cut_throat_logic.get_targets():
-        player1.state['hits'][target] = 3
+        player1.state["hits"][target] = 3
     player1.score = 100
     player2.score = 50
 
     status, _ = cut_throat_logic._handle_throw(player1, "Single", 20, players)
 
     assert player1.game.end is False
-    assert status == 'ok'
+    assert status == "ok"
+
 
 def test_undo_cut_throat_scoring_hit_restores_opponent_score(cut_throat_logic, players):
     player1, player2 = players
-    player1.state['hits']["19"] = 3
+    player1.state["hits"]["19"] = 3
     cut_throat_logic._handle_throw(player1, "Double", 19, players)
     assert player2.score == 38
 
     cut_throat_logic._handle_throw_undo(player1, "Double", 19, players)
     assert player2.score == 0
-    assert player1.state['hits']["19"] == 3
+    assert player1.state["hits"]["19"] == 3

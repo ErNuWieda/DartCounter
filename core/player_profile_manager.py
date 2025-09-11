@@ -17,11 +17,13 @@
 from .database_manager import DatabaseManager
 from .player_profile import PlayerProfile
 
+
 class PlayerProfileManager:
     """
     Verwaltet das Laden, Speichern und den Zugriff auf Spielerprofile.
     Interagiert jetzt mit dem DatabaseManager statt mit einer JSON-Datei.
     """
+
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
         self.profiles = self._load_profiles_from_db()
@@ -34,7 +36,7 @@ class PlayerProfileManager:
         """Lädt die Profile aus der Datenbank."""
         if not self.db_manager.is_connected:
             return []
-        
+
         profiles_data = self.db_manager.get_all_profiles()
         return [PlayerProfile.from_dict(p_data) for p_data in profiles_data]
 
@@ -46,22 +48,49 @@ class PlayerProfileManager:
         """Sucht und gibt ein Profil anhand seines Namens zurück."""
         return next((p for p in self.profiles if p.name == name), None)
 
-    def add_profile(self, name: str, avatar_path: str, dart_color: str, is_ai: bool = False, difficulty: str = None, preferred_double: int = None, accuracy_model: dict | None = None) -> bool:
+    def add_profile(
+        self,
+        name: str,
+        avatar_path: str,
+        dart_color: str,
+        is_ai: bool = False,
+        difficulty: str = None,
+        preferred_double: int = None,
+        accuracy_model: dict | None = None,
+    ) -> bool:
         """
         Fügt ein neues Profil hinzu, wenn der Name noch nicht existiert.
-        
+
         Returns:
             bool: True bei Erfolg, False wenn der Name bereits vergeben ist.
         """
-        success = self.db_manager.add_profile(name, avatar_path, dart_color, is_ai, difficulty, preferred_double, accuracy_model)
+        success = self.db_manager.add_profile(
+            name,
+            avatar_path,
+            dart_color,
+            is_ai,
+            difficulty,
+            preferred_double,
+            accuracy_model,
+        )
         if success:
-            self.profiles = self._load_profiles_from_db() # Liste neu laden
+            self.profiles = self._load_profiles_from_db()  # Liste neu laden
         return success
 
-    def update_profile(self, profile_id: int, new_name: str, new_avatar_path: str, new_dart_color: str, is_ai: bool = False, difficulty: str = None, preferred_double: int = None, accuracy_model: dict | None = None) -> bool:
+    def update_profile(
+        self,
+        profile_id: int,
+        new_name: str,
+        new_avatar_path: str,
+        new_dart_color: str,
+        is_ai: bool = False,
+        difficulty: str = None,
+        preferred_double: int = None,
+        accuracy_model: dict | None = None,
+    ) -> bool:
         """
         Aktualisiert ein bestehendes Profil.
-        
+
         Args:
             profile_id (int): Die ID des zu aktualisierenden Profils.
             new_name (str): Der (potenziell neue) Name.
@@ -71,10 +100,21 @@ class PlayerProfileManager:
         Returns:
             bool: True bei Erfolg, False wenn der neue Name bereits von einem anderen Profil verwendet wird.
         """
-        success = self.db_manager.update_profile(profile_id, new_name, new_avatar_path, new_dart_color, is_ai, difficulty, preferred_double, accuracy_model)
+        success = self.db_manager.update_profile(
+            profile_id,
+            new_name,
+            new_avatar_path,
+            new_dart_color,
+            is_ai,
+            difficulty,
+            preferred_double,
+            accuracy_model,
+        )
         if success:
             # Finde das Profil in der lokalen Liste und aktualisiere es, um einen Neuladevorgang zu vermeiden
-            profile_to_update = next((p for p in self.profiles if p.id == profile_id), None)
+            profile_to_update = next(
+                (p for p in self.profiles if p.id == profile_id), None
+            )
             if profile_to_update:
                 profile_to_update.name = new_name
                 profile_to_update.avatar_path = new_avatar_path

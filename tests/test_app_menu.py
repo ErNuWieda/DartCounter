@@ -21,14 +21,16 @@ from unittest.mock import MagicMock
 # Die zu testende Klasse
 from core.app_menu import AppMenu
 
+
 @pytest.fixture
 def tk_root():
     """Fixture zum Erstellen und Zerstören eines tk-Root-Fensters."""
     root = tk.Tk()
-    root.withdraw() # Fenster ausblenden
+    root.withdraw()  # Fenster ausblenden
     yield root
     if root.winfo_exists():
         root.destroy()
+
 
 @pytest.fixture
 def menu_setup(tk_root):
@@ -39,6 +41,7 @@ def menu_setup(tk_root):
     AppMenu(tk_root, mock_controller)
     yield tk_root, mock_controller
 
+
 class TestAppMenu:
     """Testet die AppMenu-Klasse."""
 
@@ -48,17 +51,29 @@ class TestAppMenu:
         # Wir können prüfen, ob das Root-Fenster ein Menü konfiguriert hat.
         assert tk_root.cget("menu") != ""
 
-    @pytest.mark.parametrize("menu_name, item_index, expected_command_name", [
-        # Datei-Menü
-        ("Datei", 0, "new_tournament"), ("Datei", 1, "load_tournament"), ("Datei", 2, "save_tournament"),
-        ("Datei", 4, "new_game"), ("Datei", 5, "load_game"), ("Datei", 6, "save_game"),
-        ("Datei", 8, "open_profile_manager"), ("Datei", 9, "open_settings_dialog"),
-        ("Datei", 11, "show_player_stats"), ("Datei", 12, "show_highscores"),
-        ("Datei", 14, "quit_game"),
-        # Über-Menü
-        ("Über", 0, "about"), ("Über", 2, "open_donate_link"),
-    ])
-    def test_menu_item_invokes_correct_command(self, menu_setup, menu_name, item_index, expected_command_name):
+    @pytest.mark.parametrize(
+        "menu_name, item_index, expected_command_name",
+        [
+            # Datei-Menü
+            ("Datei", 0, "new_tournament"),
+            ("Datei", 1, "load_tournament"),
+            ("Datei", 2, "save_tournament"),
+            ("Datei", 4, "new_game"),
+            ("Datei", 5, "load_game"),
+            ("Datei", 6, "save_game"),
+            ("Datei", 8, "open_profile_manager"),
+            ("Datei", 9, "open_settings_dialog"),
+            ("Datei", 11, "show_player_stats"),
+            ("Datei", 12, "show_highscores"),
+            ("Datei", 14, "quit_game"),
+            # Über-Menü
+            ("Über", 0, "about"),
+            ("Über", 2, "open_donate_link"),
+        ],
+    )
+    def test_menu_item_invokes_correct_command(
+        self, menu_setup, menu_name, item_index, expected_command_name
+    ):
         """Testet, ob das Aufrufen eines bestimmten Menüpunkts die korrekte Controller-Methode aufruft."""
         tk_root, mock_controller = menu_setup
         menu_bar = tk_root.nametowidget(tk_root.cget("menu"))
@@ -66,10 +81,9 @@ class TestAppMenu:
         # Finde das spezifische Untermenü (z.B. "Datei" oder "Über")
         submenu_path = menu_bar.entrycget(menu_name, "menu")
         submenu = tk_root.nametowidget(submenu_path)
-        
+
         # Rufe den Menüpunkt über seinen Index auf
         submenu.invoke(item_index)
 
         # Überprüfe, ob die entsprechende Mock-Methode auf dem Controller aufgerufen wurde
         getattr(mock_controller, expected_command_name).assert_called_once()
-

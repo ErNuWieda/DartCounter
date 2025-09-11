@@ -48,9 +48,10 @@ class DartBoard:
         root (tk.Toplevel): Das Fenster, in dem das Dartboard angezeigt wird.
         canvas (tk.Canvas): Das Canvas-Widget, das das Dartboard-Bild enthält.
     """
-    ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets"    
+
+    ASSETS_BASE_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets"
     DARTBOARD_PATH = ASSETS_BASE_DIR / "dartboard.png"
-    DART_PATH = ASSETS_BASE_DIR / "dart_mask.png" # Geändert auf die Maske
+    DART_PATH = ASSETS_BASE_DIR / "dart_mask.png"  # Geändert auf die Maske
 
     # This constant represents the pixel offset of the dartboard's geometric center
     # from the image file's center. This was previously a "magic number" correction
@@ -75,9 +76,9 @@ class DartBoard:
         self.skaliert = None
         self.center_x = None
         self.center_y = None
-        self.canvas = None # Wird in _create_board gesetzt
+        self.canvas = None  # Wird in _create_board gesetzt
         self.root = tk.Toplevel()
-        if len(self.spiel.options.name) == 3: # = x01-Spiele
+        if len(self.spiel.options.name) == 3:  # = x01-Spiele
             title = f"{self.spiel.options.name} - {self.spiel.options.opt_in}-in, {self.spiel.options.opt_out}-out"
         elif self.spiel.options.name == "Around the Clock":
             title = f"{self.spiel.options.name} - {self.spiel.options.opt_atc}"
@@ -90,7 +91,9 @@ class DartBoard:
 
         # Dart-Maske laden und für die Einfärbung vorbereiten
         self._dart_photo_image = None
-        self.dart_image_ids_on_canvas = [] # Speichert IDs mehrerer Darts für den aktuellen Zug
+        self.dart_image_ids_on_canvas = (
+            []
+        )  # Speichert IDs mehrerer Darts für den aktuellen Zug
         try:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")
@@ -100,11 +103,11 @@ class DartBoard:
                 (dart_display_width, dart_display_height), Image.Resampling.LANCZOS
             )
             # Initial eine Standardfarbe setzen
-            self.update_dart_image("#ff0000") # Standard-Rot
+            self.update_dart_image("#ff0000")  # Standard-Rot
         except FileNotFoundError:
-            pass # print(f"Warnung: Dart-Bild nicht gefunden unter {self.dart_path}")
+            pass  # print(f"Warnung: Dart-Bild nicht gefunden unter {self.dart_path}")
         except Exception as e:
-            pass # print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
+            pass  # print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
 
     def update_dart_image(self, hex_color: str):
         """
@@ -114,8 +117,8 @@ class DartBoard:
         Args:
             hex_color (str): Die Farbe im Hex-Format (z.B. "#ff0000" für Rot).
         """
-        if not hasattr(self, 'resized_dart_mask_pil'):
-            return # Maske wurde nicht geladen
+        if not hasattr(self, "resized_dart_mask_pil"):
+            return  # Maske wurde nicht geladen
 
         img = self.resized_dart_mask_pil.copy()
         try:
@@ -173,33 +176,33 @@ class DartBoard:
         # Wenn es sich um ein laufendes Turnierspiel handelt, kann es nicht beendet werden.
         if self.spiel.is_tournament_match:
             ui_utils.show_message(
-                'warning', 
-                "Laufendes Turnierspiel", 
-                "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende, um zum Turnierbaum zurückzukehren.", 
-                parent=self.root
+                "warning",
+                "Laufendes Turnierspiel",
+                "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende, um zum Turnierbaum zurückzukehren.",
+                parent=self.root,
             )
-            return # Verhindert das Schließen des Fensters
+            return  # Verhindert das Schließen des Fensters
         # 'askyesnocancel' gibt True für Ja, False für Nein und None für Abbrechen zurück.
         response = ui_utils.ask_question(
-            'yesnocancel',
-            "Spiel beenden", 
+            "yesnocancel",
+            "Spiel beenden",
             "Möchtest du den aktuellen Spielstand speichern, bevor du beendest?",
-            "no"
+            "no",
         )
 
-        if response is None: # Cancel
-            return # Do nothing
+        if response is None:  # Cancel
+            return  # Do nothing
 
-        if response is True: # Yes -> Save
+        if response is True:  # Yes -> Save
             was_saved = SaveLoadManager.save_game_state(self.spiel, self.root)
             if not was_saved:
-                return # Speichern fehlgeschlagen oder abgebrochen, also nicht beenden
+                return  # Speichern fehlgeschlagen oder abgebrochen, also nicht beenden
 
         # Wenn 'response' False (No) ist oder True war und das Speichern erfolgreich war,
         # wird das Spiel beendet.
         if self.spiel:
             self.spiel.destroy()
-    
+
     def polar_angle(self, x, y):
         """
         Berechnet den polaren Winkel eines Punktes relativ zum Zentrum des Boards.
@@ -230,7 +233,7 @@ class DartBoard:
         return math.sqrt((x - self.center_x) ** 2 + (y - self.center_y) ** 2)
 
     # RING + SEGMENT ERMITTELN
-    def get_ring_segment(self,x, y):
+    def get_ring_segment(self, x, y):
         """Ermittelt den getroffenen Ring und das Segment basierend auf Klickkoordinaten."""
         dist = self.distance(x, y)
 
@@ -289,7 +292,9 @@ class DartBoard:
         """
         # Neues Dart-Bild auf dem Canvas platzieren, falls das Bild geladen ist
         if self._dart_photo_image and self.canvas:
-            dart_id = self.canvas.create_image(x - 5, y - 20, image=self._dart_photo_image)
+            dart_id = self.canvas.create_image(
+                x - 5, y - 20, image=self._dart_photo_image
+            )
             self.dart_image_ids_on_canvas.append(dart_id)
 
         ring, segment = self.get_ring_segment(x, y)
@@ -301,7 +306,7 @@ class DartBoard:
         if canvas_width > 1 and canvas_height > 1:
             normalized_coords = (x / canvas_width, y / canvas_height)
         else:
-            normalized_coords = None # Fallback
+            normalized_coords = None  # Fallback
 
         # Schritt 2: Delegiere die gesamte Spiellogik an den Game-Controller.
         self.spiel.throw(ring, segment, normalized_coords)
@@ -321,20 +326,33 @@ class DartBoard:
         """
         # Erstelle den Ziel-String, den die Geometrie-Klasse erwartet (z.B. "T20")
         target_str_map = {
-            "Bullseye": "BE", "Bull": "B", "Triple": "T", "Double": "D", "Single": "S"
+            "Bullseye": "BE",
+            "Bull": "B",
+            "Triple": "T",
+            "Double": "D",
+            "Single": "S",
         }
         ring_prefix = target_str_map.get(ring)
-        if not ring_prefix: return None
+        if not ring_prefix:
+            return None
 
-        target_str = f"{ring_prefix}{segment}" if ring not in ("Bullseye", "Bull") else ring_prefix
+        target_str = (
+            f"{ring_prefix}{segment}"
+            if ring not in ("Bullseye", "Bull")
+            else ring_prefix
+        )
 
         # Hole die unskalierten Original-Koordinaten von der Geometrie-Klasse
         original_coords = DartboardGeometry.get_target_coords(target_str)
-        if not original_coords: return None
+        if not original_coords:
+            return None
 
         # Skaliere die Koordinaten auf die aktuelle Canvas-Größe
-        scale_factor = (self.canvas.winfo_width() if self.canvas else 0) / DartboardGeometry.ORIGINAL_SIZE
-        if scale_factor == 0: return None
+        scale_factor = (
+            self.canvas.winfo_width() if self.canvas else 0
+        ) / DartboardGeometry.ORIGINAL_SIZE
+        if scale_factor == 0:
+            return None
 
         scaled_x = int(original_coords[0] * scale_factor)
         scaled_y = int(original_coords[1] * scale_factor)
@@ -349,7 +367,7 @@ class DartBoard:
         # Bildschirmgröße
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        target_height = int(screen_height * 0.90) # type: ignore
+        target_height = int(screen_height * 0.90)  # type: ignore
 
         # Bildgröße skalieren
         SCALE = target_height / DartboardGeometry.ORIGINAL_SIZE
@@ -375,17 +393,22 @@ class DartBoard:
         # Buttons erstellen
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(side="bottom", fill="x", pady=5)
-        self.undo_button = ttk.Button(btn_frame, text=" Zurück  ", command=self.spiel.undo)
+        self.undo_button = ttk.Button(
+            btn_frame, text=" Zurück  ", command=self.spiel.undo
+        )
         self.undo_button.pack(pady=5)
-        self.done_button = ttk.Button(btn_frame, text=" Weiter  ", style="Accent.TButton", command=self.spiel.next_player)
+        self.done_button = ttk.Button(
+            btn_frame,
+            text=" Weiter  ",
+            style="Accent.TButton",
+            command=self.spiel.next_player,
+        )
         self.done_button.pack(pady=5)
         quit_button = ttk.Button(btn_frame, text="Beenden", command=self.quit_game)
         quit_button.pack(pady=5)
         self.done_button.bind("<Return>", lambda event: self.spiel.next_player())
         self.canvas.create_window(
-            new_size[0], new_size[1],
-            window=btn_frame,
-            anchor="se"
+            new_size[0], new_size[1], window=btn_frame, anchor="se"
         )
 
         # Fenster zentrieren, nachdem alle Widgets hinzugefügt wurden
@@ -421,4 +444,3 @@ class DartBoard:
             self.undo_button.config(state=tk.NORMAL)
         else:
             self.undo_button.config(state=tk.DISABLED)
-        

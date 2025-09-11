@@ -30,6 +30,7 @@ SCRIPT_NAME = pathlib.Path("main.py")
 DIST_DIR = pathlib.Path("dist")
 ASSETS_DIR = pathlib.Path("assets")
 
+
 def run_tests():
     """Führt die Test-Suite aus und bricht bei Fehlern ab."""
     print("\n>>> Schritt 0.5: Führe Test-Suite aus...")
@@ -37,35 +38,45 @@ def run_tests():
         # Die Konfiguration für Coverage etc. wird jetzt aus der pytest.ini gelesen.
         # Wir behalten nur die Flags, die wir speziell für den Build-Prozess wollen.
         test_command = [
-            sys.executable, "-m", "pytest",
-            "-sv", # -s: print() ausgeben, -v: verbose. Gut für Build-Logs.
+            sys.executable,
+            "-m",
+            "pytest",
+            "-sv",  # -s: print() ausgeben, -v: verbose. Gut für Build-Logs.
         ]
         subprocess.run(test_command, check=True)
         print(">>> Alle Tests erfolgreich bestanden.")
         return True
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("FEHLER: Die Test-Suite ist fehlgeschlagen.")
         print("Mögliche Ursachen:")
         print("  - Ein oder mehrere Tests sind nicht erfolgreich.")
-        print("  - Die Test-Abhängigkeiten (pytest, pytest-cov) sind nicht installiert.")
-        print("Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:")
+        print(
+            "  - Die Test-Abhängigkeiten (pytest, pytest-cov) sind nicht installiert."
+        )
+        print(
+            "Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:"
+        )
         print("  pip install -r requirements-dev.txt")
-        print("="*50 + "\n")
+        print("=" * 50 + "\n")
         return False
+
 
 def clean_previous_builds(release_dir: pathlib.Path):
     """Entfernt alte Build-Artefakte, um einen sauberen Build zu gewährleisten."""
     print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
-    zip_file = release_dir.with_suffix('.zip')
+    zip_file = release_dir.with_suffix(".zip")
     spec_file = pathlib.Path(f"{APP_NAME}.spec")
 
     for path in [release_dir, zip_file, pathlib.Path("build"), DIST_DIR, spec_file]:
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
         elif path.is_file():
-            try: path.unlink()
-            except OSError: pass
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
 
 def main():
     """Führt den plattformspezifischen Build-Prozess aus."""
@@ -73,7 +84,9 @@ def main():
     print(">>> Schritt 0: Überprüfe Voraussetzungen...")
     if not SCRIPT_NAME.is_file():
         print(f"\nFEHLER: Hauptskript '{SCRIPT_NAME}' nicht gefunden.")
-        print("Stellen Sie sicher, dass Sie das Skript im Hauptverzeichnis des Projekts ausführen.")
+        print(
+            "Stellen Sie sicher, dass Sie das Skript im Hauptverzeichnis des Projekts ausführen."
+        )
         sys.exit(1)
 
     if not ASSETS_DIR.is_dir():
@@ -82,10 +95,13 @@ def main():
 
     try:
         import PyInstaller
+
         print(">>> PyInstaller-Modul gefunden.")
     except ImportError:
         print("\nFEHLER: Das Modul 'PyInstaller' wurde nicht gefunden.")
-        print(f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:")
+        print(
+            f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:"
+        )
         print("pip install pyinstaller")
         sys.exit(1)
 
@@ -96,9 +112,15 @@ def main():
     # --- Plattform- und Artefakt-Setup ---
     system = platform.system()
     data_separator = ";" if system == "Windows" else ":"
-    dist_artifact_name = f"{APP_NAME}.exe" if system == "Windows" else (f"{APP_NAME}.app" if system == "Darwin" else APP_NAME)
+    dist_artifact_name = (
+        f"{APP_NAME}.exe"
+        if system == "Windows"
+        else (f"{APP_NAME}.app" if system == "Darwin" else APP_NAME)
+    )
     release_dir = pathlib.Path(f"{APP_NAME}_{system}_v{VERSION}")
-    icon_extension = ".ico" if system == "Windows" else ".icns" if system == "Darwin" else None
+    icon_extension = (
+        ".ico" if system == "Windows" else ".icns" if system == "Darwin" else None
+    )
 
     print(f"\n>>> Erstelle Release für {system} v{VERSION}...")
 
@@ -109,7 +131,9 @@ def main():
     # Dies ist die robusteste Methode, PyInstaller aufzurufen. Sie verwendet denselben
     # Python-Interpreter, der dieses Skript ausführt, und umgeht so PATH-Probleme.
     pyinstaller_command = [
-        sys.executable, "-m", "PyInstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--noconfirm",
         "--onefile",
         "--windowed",
@@ -145,17 +169,23 @@ def main():
     try:
         subprocess.run(pyinstaller_command, check=True)
     except subprocess.CalledProcessError as e:
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("FEHLER: PyInstaller ist mit einem Fehler fehlgeschlagen.")
         print(f"Exit-Code: {e.returncode}")
-        print("Bitte überprüfen Sie die obige Ausgabe von PyInstaller auf die genaue Fehlermeldung.")
-        print("Stellen Sie sicher, dass alle Abhängigkeiten aus requirements.txt installiert sind.")
-        print("="*50 + "\n")
+        print(
+            "Bitte überprüfen Sie die obige Ausgabe von PyInstaller auf die genaue Fehlermeldung."
+        )
+        print(
+            "Stellen Sie sicher, dass alle Abhängigkeiten aus requirements.txt installiert sind."
+        )
+        print("=" * 50 + "\n")
         sys.exit(1)
     print(">>> PyInstaller erfolgreich abgeschlossen.")
 
     # --- Schritt 3: Release-Verzeichnis erstellen und Dateien kopieren ---
-    print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
+    print(
+        f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren..."
+    )
     release_dir.mkdir(exist_ok=True)
 
     # Haupt-Artefakt verschieben
@@ -179,12 +209,18 @@ def main():
     # Im CI-Kontext auf Windows überspringen wir das Zippen und Aufräumen,
     # damit der Installer-Workflow auf die erstellten Dateien zugreifen kann.
     if system == "Windows" and os.getenv("CI"):
-        print("\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe ZIP-Erstellung und Cleanup.")
-        print(f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'")
+        print(
+            "\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe ZIP-Erstellung und Cleanup."
+        )
+        print(
+            f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'"
+        )
     else:
         # --- Schritt 4: ZIP-Archiv erstellen (lokaler Build) ---
         print(f"\n>>> Schritt 4: ZIP-Archiv '{release_dir}.zip' erstellen...")
-        shutil.make_archive(str(release_dir), 'zip', root_dir='.', base_dir=str(release_dir))
+        shutil.make_archive(
+            str(release_dir), "zip", root_dir=".", base_dir=str(release_dir)
+        )
 
         # --- Schritt 5: Temporäre Build-Artefakte bereinigen (lokaler Build) ---
         print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
@@ -197,6 +233,7 @@ def main():
     print("✅ Build-Prozess erfolgreich abgeschlossen.")
     print(f"Das finale ZIP-Archiv finden Sie hier: {release_dir}.zip")
     print(f"{'='*50}")
+
 
 if __name__ == "__main__":
     main()

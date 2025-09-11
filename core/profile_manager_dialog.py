@@ -20,16 +20,18 @@ from PIL import Image, ImageTk
 from .player_profile import PlayerProfile
 from .edit_profile_dialog import EditProfileDialog
 
+
 class ProfileManagerDialog(tk.Toplevel):
     """
     Ein Dialog zur Verwaltung von Spielerprofilen (Erstellen, Löschen).
     """
+
     def __init__(self, parent, profile_manager, player_stats_manager=None):
         super().__init__(parent)
         self.transient(parent)
         self.profile_manager = profile_manager
         self.player_stats_manager = player_stats_manager
-        self.color_images = [] # Wichtig: Referenzen auf die Bilder halten
+        self.color_images = []  # Wichtig: Referenzen auf die Bilder halten
 
         self.title("Spielerprofile verwalten")
         self.resizable(False, False)
@@ -58,7 +60,11 @@ class ProfileManagerDialog(tk.Toplevel):
         list_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
         # Die erste Spalte (#0) wird für das Farbsymbol, die weiteren für Daten verwendet.
-        self.tree = ttk.Treeview(list_frame, columns=("Name", "Spielertyp", "Schwierigkeit"), show="tree headings")
+        self.tree = ttk.Treeview(
+            list_frame,
+            columns=("Name", "Spielertyp", "Schwierigkeit"),
+            show="tree headings",
+        )
         # Konfiguriere die Symbolspalte für das Farbfeld
         self.tree.column("#0", width=40, stretch=tk.NO, anchor="center")
         # Konfiguriere die Namensspalte
@@ -73,21 +79,35 @@ class ProfileManagerDialog(tk.Toplevel):
         self.tree.bind("<Double-1>", lambda e: self._edit_selected_profile())
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(
+            list_frame, orient=tk.VERTICAL, command=self.tree.yview
+        )
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.config(yscrollcommand=scrollbar.set)
 
         # --- Buttons im Button Frame ---
-        ttk.Button(button_frame, text="Neues Profil", command=self._add_new_profile).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Profil bearbeiten", command=self._edit_selected_profile).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Profil löschen", command=self._delete_selected_profile).pack(side=tk.LEFT, padx=5)
-        
-        recalc_button = ttk.Button(button_frame, text="Genauigkeitsmodell neu berechnen", command=self._recalculate_accuracy)
+        ttk.Button(
+            button_frame, text="Neues Profil", command=self._add_new_profile
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            button_frame, text="Profil bearbeiten", command=self._edit_selected_profile
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            button_frame, text="Profil löschen", command=self._delete_selected_profile
+        ).pack(side=tk.LEFT, padx=5)
+
+        recalc_button = ttk.Button(
+            button_frame,
+            text="Genauigkeitsmodell neu berechnen",
+            command=self._recalculate_accuracy,
+        )
         recalc_button.pack(side=tk.LEFT, padx=5)
         if not self.player_stats_manager:
             recalc_button.config(state="disabled")
 
-        ttk.Button(button_frame, text="Schließen", command=self.destroy).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Schließen", command=self.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
 
     def _populate_profile_list(self):
         # Bestehende Einträge und Bildreferenzen löschen
@@ -98,17 +118,29 @@ class ProfileManagerDialog(tk.Toplevel):
         all_profiles = self.profile_manager.get_profiles()
         ai_profiles = [p for p in all_profiles if p.is_ai]
         human_profiles = [p for p in all_profiles if not p.is_ai]
- 
+
         # 2. Gruppen sortieren
         # KI-Spieler nach Schwierigkeit sortieren
-        difficulty_order = ['Anfänger', 'Fortgeschritten', 'Amateur', 'Profi', 'Champion']
-        ai_profiles.sort(key=lambda p: difficulty_order.index(p.difficulty) if p.difficulty in difficulty_order else 99)
+        difficulty_order = [
+            "Anfänger",
+            "Fortgeschritten",
+            "Amateur",
+            "Profi",
+            "Champion",
+        ]
+        ai_profiles.sort(
+            key=lambda p: (
+                difficulty_order.index(p.difficulty)
+                if p.difficulty in difficulty_order
+                else 99
+            )
+        )
         # Menschliche Spieler alphabetisch sortieren
         human_profiles.sort(key=lambda p: p.name)
- 
+
         # 3. Kombinierte und sortierte Liste erstellen (Menschen zuerst)
         sorted_profiles = human_profiles + ai_profiles
- 
+
         # 4. Sortierte Profile in den Treeview einfügen
         for profile in sorted_profiles:
             self._insert_profile_item("", profile)
@@ -119,13 +151,18 @@ class ProfileManagerDialog(tk.Toplevel):
         Diese Hilfsmethode vermeidet Code-Duplizierung.
         """
         # Erstelle ein kleines, farbiges Bild für die Vorschau
-        img = Image.new('RGB', (16, 16), profile.dart_color)
+        img = Image.new("RGB", (16, 16), profile.dart_color)
         photo_img = ImageTk.PhotoImage(img)
-        self.color_images.append(photo_img) # Referenz speichern!
+        self.color_images.append(photo_img)  # Referenz speichern!
 
         player_type = "KI" if profile.is_ai else "Mensch"
         difficulty = profile.difficulty if profile.is_ai else "-"
-        self.tree.insert(parent_id, "end", image=photo_img, values=(profile.name, player_type, difficulty))
+        self.tree.insert(
+            parent_id,
+            "end",
+            image=photo_img,
+            values=(profile.name, player_type, difficulty),
+        )
 
     def _add_new_profile(self):
         dialog = EditProfileDialog(self, self.profile_manager)
@@ -135,34 +172,48 @@ class ProfileManagerDialog(tk.Toplevel):
     def _edit_selected_profile(self):
         selected_item = self.tree.focus()
         if not selected_item:
-            messagebox.showwarning("Keine Auswahl", "Bitte wählen Sie zuerst ein Profil aus der Liste aus.", parent=self)
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte wählen Sie zuerst ein Profil aus der Liste aus.",
+                parent=self,
+            )
             return
 
         # Verhindere Bearbeitung von Gruppen-Headern (obwohl keine mehr da sind, ist das gute Praxis)
         item_data = self.tree.item(selected_item)
-        if not item_data.get('values'):
+        if not item_data.get("values"):
             return
-        
-        profile_name = self.tree.item(selected_item)['values'][0]
+
+        profile_name = self.tree.item(selected_item)["values"][0]
         profile_to_edit = self.profile_manager.get_profile_by_name(profile_name)
         if profile_to_edit:
-            dialog = EditProfileDialog(self, self.profile_manager, profile_to_edit=profile_to_edit)
+            dialog = EditProfileDialog(
+                self, self.profile_manager, profile_to_edit=profile_to_edit
+            )
             self.wait_window(dialog)
             self._populate_profile_list()
 
     def _delete_selected_profile(self):
         selected_item = self.tree.focus()
         if not selected_item:
-            messagebox.showwarning("Keine Auswahl", "Bitte wählen Sie zuerst ein Profil aus der Liste aus.", parent=self)
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte wählen Sie zuerst ein Profil aus der Liste aus.",
+                parent=self,
+            )
             return
 
         # Verhindere Löschen von Gruppen-Headern
         item_data = self.tree.item(selected_item)
-        if not item_data.get('values'):
+        if not item_data.get("values"):
             return
 
-        profile_name = self.tree.item(selected_item)['values'][0]
-        if messagebox.askyesno("Profil löschen", f"Möchten Sie das Profil '{profile_name}' wirklich löschen?", parent=self):
+        profile_name = self.tree.item(selected_item)["values"][0]
+        if messagebox.askyesno(
+            "Profil löschen",
+            f"Möchten Sie das Profil '{profile_name}' wirklich löschen?",
+            parent=self,
+        ):
             if self.profile_manager.delete_profile(profile_name):
                 self._populate_profile_list()
 
@@ -170,26 +221,42 @@ class ProfileManagerDialog(tk.Toplevel):
         """Löst die Neuberechnung des Genauigkeitsmodells für das ausgewählte Profil aus."""
         selected_item = self.tree.focus()
         if not selected_item:
-            messagebox.showwarning("Keine Auswahl", "Bitte wählen Sie zuerst ein Profil aus der Liste aus.", parent=self)
+            messagebox.showwarning(
+                "Keine Auswahl",
+                "Bitte wählen Sie zuerst ein Profil aus der Liste aus.",
+                parent=self,
+            )
             return
 
         item_data = self.tree.item(selected_item)
-        if not item_data.get('values'):
-            return # Gruppen-Header wurde geklickt
+        if not item_data.get("values"):
+            return  # Gruppen-Header wurde geklickt
 
-        profile_name = self.tree.item(selected_item)['values'][0]
-        player_type = self.tree.item(selected_item)['values'][1]
+        profile_name = self.tree.item(selected_item)["values"][0]
+        player_type = self.tree.item(selected_item)["values"][1]
 
         if player_type == "KI":
-            messagebox.showwarning("Falscher Spielertyp", "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus deren Spieldaten berechnet werden.", parent=self)
+            messagebox.showwarning(
+                "Falscher Spielertyp",
+                "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus deren Spieldaten berechnet werden.",
+                parent=self,
+            )
             return
 
         if not self.player_stats_manager:
-            messagebox.showerror("Fehler", "Der Statistik-Manager ist nicht verfügbar.", parent=self)
+            messagebox.showerror(
+                "Fehler", "Der Statistik-Manager ist nicht verfügbar.", parent=self
+            )
             return
 
-        if messagebox.askyesno("Bestätigung", f"Möchten Sie das Genauigkeitsmodell für '{profile_name}' jetzt neu berechnen?\n\nDieser Vorgang analysiert alle gespeicherten Würfe und kann einen Moment dauern.", parent=self):
-            success = self.player_stats_manager.update_accuracy_model(profile_name, parent_window=self)
+        if messagebox.askyesno(
+            "Bestätigung",
+            f"Möchten Sie das Genauigkeitsmodell für '{profile_name}' jetzt neu berechnen?\n\nDieser Vorgang analysiert alle gespeicherten Würfe und kann einen Moment dauern.",
+            parent=self,
+        ):
+            success = self.player_stats_manager.update_accuracy_model(
+                profile_name, parent_window=self
+            )
             if success:
                 # Erzwinge, dass der Manager seine interne Liste aus der DB neu lädt
                 self.profile_manager.reload_profiles()

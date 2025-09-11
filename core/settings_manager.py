@@ -23,17 +23,19 @@ from .json_io_handler import JsonIOHandler
 
 logger = logging.getLogger(__name__)
 
+
 def get_application_root_dir() -> Path:
     """
     Gibt das Wurzelverzeichnis der Anwendung zurück.
     Funktioniert sowohl für Skriptausführung als auch für eine gepackte Anwendung.
     """
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # Gepackte Anwendung (PyInstaller, cx_freeze, etc.)
         return Path(sys.executable).parent
     else:
         # Skriptausführung
         return Path(__file__).resolve().parent.parent
+
 
 def get_app_data_dir() -> Path:
     """
@@ -45,20 +47,25 @@ def get_app_data_dir() -> Path:
         app_name = "DartCounter"
 
         if system == "Windows":
-            appdata = os.getenv('APPDATA')
+            appdata = os.getenv("APPDATA")
             if not appdata:
                 raise OSError("APPDATA Umgebungsvariable nicht gefunden.")
             path = Path(appdata) / app_name
-        elif system == "Darwin": # macOS
+        elif system == "Darwin":  # macOS
             path = Path.home() / "Library" / "Application Support" / app_name
-        else: # Linux
+        else:  # Linux
             path = Path.home() / ".config" / app_name.lower()
 
         path.mkdir(parents=True, exist_ok=True)
         return path
     except (OSError, TypeError) as e:
-        logger.warning(f"Konnte das Benutzer-spezifische Datenverzeichnis nicht erstellen: {e}", exc_info=True)
-        logger.warning("Fallback auf das Anwendungsverzeichnis für Einstellungen und Konfiguration.")
+        logger.warning(
+            f"Konnte das Benutzer-spezifische Datenverzeichnis nicht erstellen: {e}",
+            exc_info=True,
+        )
+        logger.warning(
+            "Fallback auf das Anwendungsverzeichnis für Einstellungen und Konfiguration."
+        )
         return get_application_root_dir()
 
 
@@ -80,6 +87,7 @@ class SettingsManager:
         settings (dict): Ein Dictionary, das die geladenen Einstellungen im
                          Speicher hält.
     """
+
     def __init__(self):
         """
         Initialisiert den SettingsManager.
@@ -92,13 +100,12 @@ class SettingsManager:
         # Priorisierte Liste der Pfade, von denen geladen werden soll.
         # 1. Benutzerspezifisches Verzeichnis (hat Vorrang)
         # 2. Anwendungsverzeichnis (als Fallback oder für die Erstkonfiguration)
-        load_paths = [
-            self.save_filepath,
-            get_application_root_dir() / "settings.json"
-        ]
-        
+        load_paths = [self.save_filepath, get_application_root_dir() / "settings.json"]
+
         # Lade die erste existierende Datei aus der Liste.
-        if filepath_to_load_from := next((path for path in load_paths if path.exists()), None):
+        if filepath_to_load_from := next(
+            (path for path in load_paths if path.exists()), None
+        ):
             self.settings = self._load_settings(filepath_to_load_from)
         else:
             self.settings = self._get_defaults()
@@ -116,18 +123,18 @@ class SettingsManager:
             dict: Ein Dictionary mit den Standardeinstellungen.
         """
         return {
-            'sound_enabled': True,
-            'theme': 'light',
-            'last_player_names': ["Sp1", "Sp2", "Sp3", "Sp4"],
-            'last_tournament_players': [],
-            'ai_throw_delay': 1000,
-            'sound_volume': 0.5
+            "sound_enabled": True,
+            "theme": "light",
+            "last_player_names": ["Sp1", "Sp2", "Sp3", "Sp4"],
+            "last_tournament_players": [],
+            "ai_throw_delay": 1000,
+            "sound_volume": 0.5,
         }
 
     def _load_settings(self, filepath):
         """
         Lädt Einstellungen aus der JSON-Datei.
-        
+
         Diese Methode geht davon aus, dass die Datei existiert. Sie wird gelesen
         und mit den Standardeinstellungen abgeglichen, um sicherzustellen, dass
         alle Schlüssel vorhanden sind. Dies verhindert Fehler, wenn nach einem
@@ -154,7 +161,9 @@ class SettingsManager:
         Diese Methode sollte beim Beenden der Anwendung aufgerufen werden.
         """
         if not JsonIOHandler.write_json(self.save_filepath, self.settings):
-            logger.error(f"Fehler beim Speichern der Einstellungen nach: {self.save_filepath}")
+            logger.error(
+                f"Fehler beim Speichern der Einstellungen nach: {self.save_filepath}"
+            )
 
     def get(self, key, default=None):
         """

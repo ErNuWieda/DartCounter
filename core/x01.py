@@ -19,13 +19,14 @@ Dieses Modul definiert die Hauptlogik für x01 Dartspiele.
 Es enthält die x01 Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-import tkinter as tk 
-from . import player 
+import tkinter as tk
+from . import player
 from .player import Player
 from . import scoreboard
 from .scoreboard import ScoreBoard
 from .game_logic_base import GameLogicBase
 from .checkout_calculator import CheckoutCalculator
+
 
 class X01(GameLogicBase):
     """
@@ -57,7 +58,7 @@ class X01(GameLogicBase):
         Gibt eine leere Liste zurück, um Kompatibilität zu gewährleisten.
         """
         return []
-    
+
     def initialize_player_state(self, player):
         """
         Setzt den Anfangs-Score für X01-Spiele und initialisiert den 'opened'-Status.
@@ -88,11 +89,11 @@ class X01(GameLogicBase):
     def _handle_throw_undo(self, player, ring, segment, players):
         """
         Macht den letzten Wurf für einen Spieler rückgängig.
-    
+
         Stellt den Zustand des Spielers vor dem letzten Wurf wieder her. Dies
         umfasst die Neuberechnung des Punktestands und die Korrektur von
         Statistiken wie Checkout-Möglichkeiten und dem 3-Dart-Average.
-    
+
         Args:
             player (Player): Der Spieler, dessen Wurf rückgängig gemacht wird.
             ring (str): Der Ring des rückgängig zu machenden Wurfs.
@@ -101,38 +102,45 @@ class X01(GameLogicBase):
         """
         # 1. Wurf- und Score-Werte berechnen
         throw_score = self.game.get_score(ring, segment)
-        if throw_score == 0: # Miss-Wurf, nichts zu tun außer UI-Update
+        if throw_score == 0:  # Miss-Wurf, nichts zu tun außer UI-Update
             # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
-            preferred_double = player.profile.preferred_double if player.profile else None
+            preferred_double = (
+                player.profile.preferred_double if player.profile else None
+            )
             darts_remaining = 3 - len(player.throws)
-            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(
+                player.score,
+                self.opt_out,
+                darts_left=darts_remaining,
+                preferred_double=preferred_double,
+            )
             player.sb.update_checkout_suggestion(suggestion)
             player.sb.update_score(player.score)
             return
 
         score_after_throw = player.score
         score_before_throw = score_after_throw + throw_score
-        was_winning_throw = (score_after_throw == 0)
+        was_winning_throw = score_after_throw == 0
 
         # 2. Statistiken zurücksetzen (muss vor der Score-Änderung geschehen)
-        player.stats['total_darts_thrown'] -= 1
-        player.stats['total_score_thrown'] -= throw_score
+        player.stats["total_darts_thrown"] -= 1
+        player.stats["total_score_thrown"] -= throw_score
 
         # Checkout-Statistiken zurücksetzen, falls es eine Checkout-Möglichkeit war
         if score_before_throw == throw_score and self.opt_out != "Single":
-            player.stats['checkout_opportunities'] -= 1
+            player.stats["checkout_opportunities"] -= 1
             if was_winning_throw:
-                player.stats['checkouts_successful'] -= 1
-                finishes = player.stats.get('successful_finishes', [])
+                player.stats["checkouts_successful"] -= 1
+                finishes = player.stats.get("successful_finishes", [])
                 if score_before_throw in finishes:
                     finishes.remove(score_before_throw)
-                player.stats['highest_finish'] = max(finishes) if finishes else 0
+                player.stats["highest_finish"] = max(finishes) if finishes else 0
 
         # 3. Spieler-Zustand (Score und 'has_opened') wiederherstellen
         was_opening_throw = (
-            player.has_opened and
-            score_before_throw == int(player.game.options.name) and
-            self._is_valid_opening_throw(ring)
+            player.has_opened
+            and score_before_throw == int(player.game.options.name)
+            and self._is_valid_opening_throw(ring)
         )
         if was_opening_throw:
             player.has_opened = False
@@ -141,7 +149,12 @@ class X01(GameLogicBase):
         # 4. UI aktualisieren
         preferred_double = player.profile.preferred_double if player.profile else None
         darts_remaining = 3 - len(player.throws)
-        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
+        suggestion = CheckoutCalculator.get_checkout_suggestion(
+            player.score,
+            self.opt_out,
+            darts_left=darts_remaining,
+            preferred_double=preferred_double,
+        )
         player.sb.update_checkout_suggestion(suggestion)
         player.sb.update_score(player.score)
 
@@ -158,25 +171,32 @@ class X01(GameLogicBase):
             bool: True, wenn der Wurf gültig ist (oder der Spieler bereits offen war),
                   False, wenn der Wurf ungültig war.
         """
-        if player.state['has_opened']:
+        if player.state["has_opened"]:
             return True  # Bereits geöffnet, keine Prüfung nötig
 
         opened_successfully = self._is_valid_opening_throw(ring)
 
         if opened_successfully:
-            player.state['has_opened'] = True
+            player.state["has_opened"] = True
             return True
-        
+
         # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
-        player.sb.update_score(player.score)  # Update display for throw history (now in Game.throw)
-        option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
+        player.sb.update_score(
+            player.score
+        )  # Update display for throw history (now in Game.throw)
+        option_text = (
+            "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
+        )
         msg_base = f"{player.name} braucht ein {option_text} zum Start!"
-        
+
         remaining_darts = 3 - len(player.throws)
         if len(player.throws) == 3:
-            return ('invalid_open', msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.")
-        
-        return ('invalid_open', msg_base + f"\nNoch {remaining_darts} Darts.")
+            return (
+                "invalid_open",
+                msg_base + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.",
+            )
+
+        return ("invalid_open", msg_base + f"\nNoch {remaining_darts} Darts.")
 
     def _check_for_bust(self, new_score, ring):
         """
@@ -192,14 +212,18 @@ class X01(GameLogicBase):
         """
         if new_score < 0:
             return True  # Direkt überworfen
-        
+
         if self.opt_out == "Double":
-            if new_score == 1: return True
-            if new_score == 0 and ring not in ("Double", "Bullseye"): return True
+            if new_score == 1:
+                return True
+            if new_score == 0 and ring not in ("Double", "Bullseye"):
+                return True
         elif self.opt_out == "Masters":
-            if new_score == 1: return True
-            if new_score == 0 and ring not in ("Double", "Triple", "Bullseye"): return True
-        
+            if new_score == 1:
+                return True
+            if new_score == 0 and ring not in ("Double", "Triple", "Bullseye"):
+                return True
+
         return False
 
     def _is_shanghai_finish(self, player):
@@ -212,8 +236,8 @@ class X01(GameLogicBase):
         all_darts_on_20_segment = True
         rings_hit_on_20 = set()
 
-        for r_name, seg_val, _ in player.throws: # Coords ignorieren
-            if seg_val == 20: # Muss das Segment 20 sein
+        for r_name, seg_val, _ in player.throws:  # Coords ignorieren
+            if seg_val == 20:  # Muss das Segment 20 sein
                 if r_name in ("Single", "Double", "Triple"):
                     rings_hit_on_20.add(r_name)
                 else:
@@ -224,20 +248,26 @@ class X01(GameLogicBase):
                 # Ein Wurf war nicht auf Segment 20
                 all_darts_on_20_segment = False
                 break
-        
-        return all_darts_on_20_segment and rings_hit_on_20 == {"Single", "Double", "Triple"}
+
+        return all_darts_on_20_segment and rings_hit_on_20 == {
+            "Single",
+            "Double",
+            "Triple",
+        }
 
     def _handle_win_condition(self, player, score_before_throw):
         """Behandelt die Logik, wenn ein Spieler das Spiel gewinnt (Score erreicht 0)."""
         # --- Checkout-Statistik bei Gewinn aktualisieren ---
-        player.stats['checkouts_successful'] += 1
+        player.stats["checkouts_successful"] += 1
         # Erfolgreiches Finish zur Liste hinzufügen und höchsten Finish aktualisieren
-        finishes = player.stats.setdefault('successful_finishes', [])
+        finishes = player.stats.setdefault("successful_finishes", [])
         finishes.append(score_before_throw)
-        player.stats['highest_finish'] = max(player.stats.get('highest_finish', 0), score_before_throw)
+        player.stats["highest_finish"] = max(
+            player.stats.get("highest_finish", 0), score_before_throw
+        )
 
         self.game.shanghai_finish = self._is_shanghai_finish(player)
-        
+
         self.game.end = True
         self.game.winner = player
         total_darts = player.get_total_darts_in_game()
@@ -246,7 +276,9 @@ class X01(GameLogicBase):
         # wenn self.game.shanghai_finish True ist.
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
-    def _handle_throw(self, player: Player, ring: str, segment: int, players: list[Player]) -> tuple[str, str | None]:
+    def _handle_throw(
+        self, player: Player, ring: str, segment: int, players: list[Player]
+    ) -> tuple[str, str | None]:
         """
         Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
 
@@ -257,7 +289,7 @@ class X01(GameLogicBase):
             ring (str): Der getroffene Ring (z.B. 'Single', 'Double').
             segment (int): Die getroffene Segmentnummer.
             players (list[Player]): Die Liste aller Spieler im Spiel.
- 
+
         Returns:
             tuple[str, str | None]: Ein Tupel aus Status-String und optionaler Nachricht.
                                     Mögliche Status: 'ok', 'bust', 'win', 'invalid_open'.
@@ -269,59 +301,71 @@ class X01(GameLogicBase):
         # Wenn der Wurf den Score exakt auf 0 bringen würde, war es eine Checkout-Möglichkeit.
         # Dies wird VOR der Bust-Prüfung gezählt.
         if score_before_throw == score and self.opt_out in ("Double", "Masters"):
-             player.stats['checkout_opportunities'] += 1
+            player.stats["checkout_opportunities"] += 1
 
         # --- Handle Miss separately ---
         if ring == "Miss":
             # No messagebox for simple miss, score is 0.
             # player.update_score_value(score, subtract=True) # score is 0, so no change.
             player.sb.update_score(player.score)
-            
-            preferred_double = player.profile.preferred_double if player.profile else None
+
+            preferred_double = (
+                player.profile.preferred_double if player.profile else None
+            )
             # Finish-Vorschlag für die verbleibenden Darts aktualisieren
             darts_remaining = 3 - len(player.throws)
-            suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
+            suggestion = CheckoutCalculator.get_checkout_suggestion(
+                player.score,
+                self.opt_out,
+                darts_left=darts_remaining,
+                preferred_double=preferred_double,
+            )
             player.sb.update_checkout_suggestion(suggestion)
 
             if len(player.throws) == 3:
                 # Turn ends, user clicks "Weiter"
-                return ('ok', None)
-            return ('ok', None) # Throw processed
+                return ("ok", None)
+            return ("ok", None)  # Throw processed
 
         # --- Opt-In-Validierung ---
         opt_in_result = self._validate_opt_in(player, ring, segment)
         if opt_in_result is not True:
-            return opt_in_result # Gibt das ('invalid_open', 'message') Tupel zurück
+            return opt_in_result  # Gibt das ('invalid_open', 'message') Tupel zurück
 
         # --- Bust-Prüfung ---
         new_score = player.score - score
         if self._check_for_bust(new_score, ring):
             player.turn_is_over = True
             player.sb.update_score(player.score)
-            return ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+            return ("bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
 
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
         # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.
         if player.has_opened:
-            player.stats['total_darts_thrown'] += 1
-            player.stats['total_score_thrown'] += score
+            player.stats["total_darts_thrown"] += 1
+            player.stats["total_score_thrown"] += score
 
         player.update_score_value(score, subtract=True)
 
         preferred_double = player.profile.preferred_double if player.profile else None
         # Finish-Vorschlag für den neuen Punktestand mit den verbleibenden Darts berechnen und anzeigen
         darts_remaining = 3 - len(player.throws)
-        suggestion = CheckoutCalculator.get_checkout_suggestion(player.score, self.opt_out, darts_left=darts_remaining, preferred_double=preferred_double)
+        suggestion = CheckoutCalculator.get_checkout_suggestion(
+            player.score,
+            self.opt_out,
+            darts_left=darts_remaining,
+            preferred_double=preferred_double,
+        )
         player.sb.update_checkout_suggestion(suggestion)
 
-        if player.score == 0: # Gilt nur für x01
+        if player.score == 0:  # Gilt nur für x01
             win_message = self._handle_win_condition(player, score_before_throw)
             # NEU: Delegiere die Leg/Set-Logik an die Game-Klasse
             self.game._handle_leg_win(player)
-            return ('win', win_message)
+            return ("win", win_message)
 
         if len(player.throws) == 3:
             # Turn ends, user clicks "Weiter"
-            return ('ok', None)
+            return ("ok", None)
 
-        return ('ok', None)
+        return ("ok", None)

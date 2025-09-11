@@ -18,6 +18,7 @@
 Defines the base class for all game logic handlers.
 """
 
+
 class GameLogicBase:
     """
     Eine abstrakte Basisklasse für alle Spiellogik-Handler.
@@ -27,6 +28,7 @@ class GameLogicBase:
     Sie stellt sicher, dass die Haupt-`Game`-Klasse konsistent mit jeder
     Art von Spiellogik interagieren kann.
     """
+
     def __init__(self, game):
         """
         Initialisiert die Basis-Spiellogik.
@@ -49,7 +51,7 @@ class GameLogicBase:
         Initialisiert den spielspezifischen Zustand für einen Spieler.
         Wird von der Game-Klasse nach der Erstellung des Spielers aufgerufen.
         """
-        pass # Standard-Implementierung tut nichts.
+        pass  # Standard-Implementierung tut nichts.
 
     def get_scoreboard_height(self):
         """
@@ -77,10 +79,14 @@ class GameLogicBase:
         """
         Verarbeitet einen einzelnen Wurf. Muss von Unterklassen implementiert werden.
         """
-        raise NotImplementedError("Die Methode '_handle_throw' muss in der Unterklasse implementiert werden.")
+        raise NotImplementedError(
+            "Die Methode '_handle_throw' muss in der Unterklasse implementiert werden."
+        )
 
     def _handle_throw_undo(self, player, ring, segment, players):
         """
         Macht einen Wurf rückgängig. Muss von Unterklassen implementiert werden.
         """
-        raise NotImplementedError("Die Methode '_handle_throw_undo' muss in der Unterklasse implementiert werden.")
+        raise NotImplementedError(
+            "Die Methode '_handle_throw_undo' muss in der Unterklasse implementiert werden."
+        )

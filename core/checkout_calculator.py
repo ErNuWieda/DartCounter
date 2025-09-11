@@ -21,6 +21,7 @@ import logging
 import pathlib
 from .json_io_handler import JsonIOHandler
 
+
 def _load_checkout_paths():
     """
     Lädt die Checkout-Pfade aus der JSON-Datei und konvertiert Schlüssel zu Integers.
@@ -28,11 +29,11 @@ def _load_checkout_paths():
     """
     base_path = pathlib.Path(__file__).resolve().parent
     json_path = base_path / "checkout_paths.json"
-    
+
     data = JsonIOHandler.read_json(json_path)
     if not data:
         return {}
-        
+
     checkout_map = {}
     for key, value in data.items():
         try:
@@ -46,6 +47,7 @@ def _load_checkout_paths():
             pass
     return checkout_map
 
+
 logger = logging.getLogger(__name__)
 
 # Die Checkout-Pfade werden nur einmal beim Import des Moduls geladen.
@@ -58,19 +60,27 @@ _SINGLE_DART_FINISH_MAP = {}
 # Bullseye (höchste Priorität)
 _SINGLE_DART_FINISH_MAP[50] = "BE"
 # Doubles (zweithöchste Priorität, da sie Finish-Felder sind)
-for i in range(20, 0, -1): # Absteigend, um höhere Doubles zu bevorzugen
+for i in range(20, 0, -1):  # Absteigend, um höhere Doubles zu bevorzugen
     _SINGLE_DART_FINISH_MAP[i * 2] = f"D{i}"
 # Triples (dritthöchste Priorität, für Scoring)
-for i in range(20, 0, -1): # Absteigend, um höhere Triples bei gleichem Score zu bevorzugen
+for i in range(
+    20, 0, -1
+):  # Absteigend, um höhere Triples bei gleichem Score zu bevorzugen
     score = i * 3
-    if score not in _SINGLE_DART_FINISH_MAP: # Only add if not already covered by a Double or BE
+    if (
+        score not in _SINGLE_DART_FINISH_MAP
+    ):  # Only add if not already covered by a Double or BE
         _SINGLE_DART_FINISH_MAP[score] = f"T{i}"
 # Bull (25) (vierte Priorität)
-if 25 not in _SINGLE_DART_FINISH_MAP: # Only add if not already covered (e.g., by D25 if that was added)
+if (
+    25 not in _SINGLE_DART_FINISH_MAP
+):  # Only add if not already covered (e.g., by D25 if that was added)
     _SINGLE_DART_FINISH_MAP[25] = "25"
 # Singles (niedrigste Priorität)
-for i in range(20, 0, -1): # Absteigend
-    if i not in _SINGLE_DART_FINISH_MAP: # Nur hinzufügen, wenn nicht bereits durch D/T/BE abgedeckt
+for i in range(20, 0, -1):  # Absteigend
+    if (
+        i not in _SINGLE_DART_FINISH_MAP
+    ):  # Nur hinzufügen, wenn nicht bereits durch D/T/BE abgedeckt
         _SINGLE_DART_FINISH_MAP[i] = f"{i}"
 
 # Unmögliche Single-Dart-Finishes explizit entfernen, um die Logik zu 100% abzubilden
@@ -80,12 +90,13 @@ for score in [59, 58, 56, 55, 53, 52, 49, 47, 46, 44, 43, 41]:
 # Geordnete Liste der Würfe von hoch nach niedrig, als Klassenkonstante definiert,
 # um eine Neuerstellung bei jedem Aufruf von _get_two_dart_setup zu vermeiden.
 _ORDERED_THROWS = (
-    [(f"T{i}", i * 3) for i in range(20, 0, -1)] +
-    [("BE", 50)] +
-    [(f"D{i}", i * 2) for i in range(20, 0, -1)] +
-    [("25", 25)] +
-    [(f"{i}", i) for i in range(20, 0, -1)]
+    [(f"T{i}", i * 3) for i in range(20, 0, -1)]
+    + [("BE", 50)]
+    + [(f"D{i}", i * 2) for i in range(20, 0, -1)]
+    + [("25", 25)]
+    + [(f"{i}", i) for i in range(20, 0, -1)]
 )
+
 
 def _get_single_dart_throw(score: int) -> str | None:
     """
@@ -95,19 +106,27 @@ def _get_single_dart_throw(score: int) -> str | None:
     """
     return _SINGLE_DART_FINISH_MAP.get(score)
 
+
 def _get_throw_quality(throw_str: str) -> int:
     """Assigns a quality score to a single-dart throw string for setup prioritization."""
-    if throw_str == "BE": return 5 # Bullseye is top
+    if throw_str == "BE":
+        return 5  # Bullseye is top
     if throw_str.startswith("D"):
         try:
             val = int(throw_str[1:])
-            if val == 1: return 0  # D1 is bad, treat as single quality
-            if val >= 16: return 3 # High doubles (D16, D18, D20) are good
-            return 2 # Other doubles
-        except ValueError: pass
-    if throw_str.startswith("T"): return 4 # Triples are better for setup than most doubles
-    if throw_str == "25": return 1  # Bull (25)
-    return 0 # Singles (lowest priority)
+            if val == 1:
+                return 0  # D1 is bad, treat as single quality
+            if val >= 16:
+                return 3  # High doubles (D16, D18, D20) are good
+            return 2  # Other doubles
+        except ValueError:
+            pass
+    if throw_str.startswith("T"):
+        return 4  # Triples are better for setup than most doubles
+    if throw_str == "25":
+        return 1  # Bull (25)
+    return 0  # Singles (lowest priority)
+
 
 def _get_two_dart_setup(score: int) -> tuple[str, str] | None:
     """
@@ -122,16 +141,21 @@ def _get_two_dart_setup(score: int) -> tuple[str, str] | None:
             if second_throw_str:
                 quality = _get_throw_quality(second_throw_str)
                 possible_setups.append(
-                    (quality, first_throw_str, second_throw_str, first_throw_score) # Store all info for debugging
+                    (
+                        quality,
+                        first_throw_str,
+                        second_throw_str,
+                        first_throw_score,
+                    )  # Store all info for debugging
                 )
-    
+
     if not possible_setups:
         return None
-    
+
     # Sort by: 1. Quality of second throw (desc), 2. Score of first throw (desc)
     # The score of the first throw (x[3]) is the secondary sort criterion.
     possible_setups.sort(key=lambda x: (x[0], x[3]), reverse=True)
-    
+
     # Return the best setup as a tuple of strings (first_throw, second_throw)
     return (possible_setups[0][1], possible_setups[0][2])
 
@@ -142,8 +166,11 @@ class CheckoutCalculator:
     Nutzt eine Hybrid-Strategie: Berechnet zuerst einen Weg zum bevorzugten Double,
     greift andernfalls auf eine kuratierte Liste von Standard-Finishwegen zurück.
     """
+
     @staticmethod
-    def _calculate_path_for_preferred_double(score: int, darts_left: int, preferred_double: int) -> str | None:
+    def _calculate_path_for_preferred_double(
+        score: int, darts_left: int, preferred_double: int
+    ) -> str | None:
         """Berechnet einen Checkout-Pfad, der auf dem bevorzugten Double endet."""
         double_value = 50 if preferred_double == 25 else preferred_double * 2
         double_str = "BE" if preferred_double == 25 else f"D{preferred_double}"
@@ -172,7 +199,9 @@ class CheckoutCalculator:
         return None
 
     @staticmethod
-    def get_checkout_suggestion(score, opt_out="Double", darts_left=3, preferred_double: int | None = None):
+    def get_checkout_suggestion(
+        score, opt_out="Double", darts_left=3, preferred_double: int | None = None
+    ):
         """
         Gibt einen Finish-Vorschlag für einen gegebenen Punktestand zurück.
         Nutzt eine Hybrid-Strategie: Berechnet zuerst einen Weg zum bevorzugten Double,
@@ -190,29 +219,38 @@ class CheckoutCalculator:
         # --- Vorab-Prüfungen auf unmögliche Finishes ---
         if score < 2:
             return "-"
-        
+
         # Bogey-Nummern (nicht finishbar mit 3 Darts)
         if darts_left == 3 and score in (169, 168, 166, 165, 163, 162, 159):
             return "-"
 
         # Maximale Finish-Scores pro Dart-Anzahl
-        if (darts_left == 3 and score > 170) or \
-           (darts_left == 2 and score > 110): # 1-Dart-Finish wird separat geprüft
+        if (darts_left == 3 and score > 170) or (
+            darts_left == 2 and score > 110
+        ):  # 1-Dart-Finish wird separat geprüft
             return "-"
-        if darts_left == 1 and opt_out in ("Double", "Masters") and (score > 50 or (score % 2 != 0 and score != 25)):
+        if (
+            darts_left == 1
+            and opt_out in ("Double", "Masters")
+            and (score > 50 or (score % 2 != 0 and score != 25))
+        ):
             return "-"
 
         # Für "Single Out" (einfachster Fall)
         if opt_out == "Single":
             # Prüfe von der besten (1 Dart) zur schlechtesten (3 Darts) Option
             if darts_left >= 1:
-                if path := _get_single_dart_throw(score): return path
+                if path := _get_single_dart_throw(score):
+                    return path
             if darts_left >= 2:
-                if path_tuple := _get_two_dart_setup(score): return f"{path_tuple[0]}, {path_tuple[1]}"
+                if path_tuple := _get_two_dart_setup(score):
+                    return f"{path_tuple[0]}, {path_tuple[1]}"
             if darts_left >= 3:
                 path = CHECKOUT_PATHS.get(score)
-                if isinstance(path, list): path = path[0]
-                if path: return path.replace(" ", ", ")
+                if isinstance(path, list):
+                    path = path[0]
+                if path:
+                    return path.replace(" ", ", ")
             return "-"
 
         # --- Logik für "Double Out" / "Masters Out" ---
@@ -221,21 +259,37 @@ class CheckoutCalculator:
             if preferred_double:
                 possible_paths_raw = CHECKOUT_PATHS.get(score)
                 if possible_paths_raw:
-                    possible_paths = [possible_paths_raw] if isinstance(possible_paths_raw, str) else possible_paths_raw
-                    target_double_str = "BE" if preferred_double == 25 else f"D{preferred_double}"
+                    possible_paths = (
+                        [possible_paths_raw]
+                        if isinstance(possible_paths_raw, str)
+                        else possible_paths_raw
+                    )
+                    target_double_str = (
+                        "BE" if preferred_double == 25 else f"D{preferred_double}"
+                    )
                     for path in possible_paths:
-                        if path.endswith(target_double_str) and len(path.split()) <= darts_left:
+                        if (
+                            path.endswith(target_double_str)
+                            and len(path.split()) <= darts_left
+                        ):
                             return path.replace(" ", ", ")
 
             # 2. Priorität: Wenn kein Standard-Pfad passt, versuche einen neuen zu BERECHNEN.
             if preferred_double:
-                calculated_path = CheckoutCalculator._calculate_path_for_preferred_double(score, darts_left, preferred_double)
+                calculated_path = (
+                    CheckoutCalculator._calculate_path_for_preferred_double(
+                        score, darts_left, preferred_double
+                    )
+                )
                 # Akzeptiere den berechneten Pfad nur, wenn er qualitativ hochwertig ist
                 # (d.h. nicht mit einem einfachen Single- oder Double-Feld beginnt,
                 # außer bei 2-Dart-Finishes, wo dies oft notwendig ist).
                 # Ein guter 3-Dart-Checkout beginnt mit T oder BE.
-                first_throw = calculated_path.split(', ')[0] if calculated_path else ''
-                if calculated_path and (len(calculated_path.split(', ')) < 3 or first_throw.startswith(('T', 'BE'))):
+                first_throw = calculated_path.split(", ")[0] if calculated_path else ""
+                if calculated_path and (
+                    len(calculated_path.split(", ")) < 3
+                    or first_throw.startswith(("T", "BE"))
+                ):
                     return calculated_path
 
             # 3. Fallback: Wenn alles andere fehlschlägt, nimm den besten Standard-Pfad.
@@ -243,7 +297,11 @@ class CheckoutCalculator:
             if not possible_paths_raw:
                 return "-"
 
-            possible_paths = [possible_paths_raw] if isinstance(possible_paths_raw, str) else possible_paths_raw
+            possible_paths = (
+                [possible_paths_raw]
+                if isinstance(possible_paths_raw, str)
+                else possible_paths_raw
+            )
 
             # Nimm den Standardpfad, wenn er spielbar ist
             default_path = possible_paths[0]

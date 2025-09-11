@@ -20,6 +20,7 @@ Es enthält die Elimination-Klasse, die den Spielablauf und die Regeln verwaltet
 """
 from .game_logic_base import GameLogicBase
 
+
 class Elimination(GameLogicBase):
 
     def __init__(self, game):
@@ -48,7 +49,7 @@ class Elimination(GameLogicBase):
         Gibt eine leere Liste zurück, um Kompatibilität zu gewährleisten.
         """
         return []
-    
+
     def _handle_throw_undo(self, player, ring, segment, players):
         """Macht einen Wurf im Elimination-Modus rückgängig, inklusive Eliminierungen."""
         # 1. Prüfen, ob dieser Wurf eine Eliminierung ausgelöst hat.
@@ -59,13 +60,18 @@ class Elimination(GameLogicBase):
             last_elimination = self.elimination_log[-1]
             # Prüfen, ob die letzte Eliminierung vom aktuellen Spieler verursacht wurde
             # und sein aktueller Punktestand dem des Opfers vor der Eliminierung entspricht.
-            if last_elimination['thrower_id'] == player.id and last_elimination['victim_score_before'] == score_after_throw:
+            if (
+                last_elimination["thrower_id"] == player.id
+                and last_elimination["victim_score_before"] == score_after_throw
+            ):
                 elimination_event = self.elimination_log.pop()
-                
+
                 # Finde das Opfer und stelle seinen Score wieder her
-                victim = next((p for p in players if p.id == elimination_event['victim_id']), None)
+                victim = next(
+                    (p for p in players if p.id == elimination_event["victim_id"]), None
+                )
                 if victim:
-                    victim.score = elimination_event['victim_score_before']
+                    victim.score = elimination_event["victim_score_before"]
                     victim.sb.set_score_value(victim.score)
 
         # 2. Punktzahl des Werfers korrigieren
@@ -74,20 +80,27 @@ class Elimination(GameLogicBase):
 
     def _handle_throw(self, player, ring, segment, players):
         score = self.game.get_score(ring, segment)
-        result_event = ('ok', None) # Standard-Rückgabewert
+        result_event = ("ok", None)  # Standard-Rückgabewert
 
         new_score = player.score + score
         bust = False
         if new_score > self.count_to:
-            bust = True # Direkt überworfen
-        elif self.opt_out == "Double" and new_score == self.count_to and ring not in ("Double", "Bullseye"):
-            bust = True # Gewinnwurf muss ein Double sein
-        
+            bust = True  # Direkt überworfen
+        elif (
+            self.opt_out == "Double"
+            and new_score == self.count_to
+            and ring not in ("Double", "Bullseye")
+        ):
+            bust = True  # Gewinnwurf muss ein Double sein
+
         if bust:
             player.turn_is_over = True
             # The score will be as it was BEFORE this busting throw.
-            player.sb.update_score(player.score) # Update display
-            result_event = ('bust', f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+            player.sb.update_score(player.score)  # Update display
+            result_event = (
+                "bust",
+                f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.",
+            )
         elif ring == "Miss":
             # Wurf war ein "Miss", aber kein Bust. Nur die Wurfhistorie aktualisieren.
             player.sb.update_score(player.score)
@@ -101,20 +114,28 @@ class Elimination(GameLogicBase):
                 # und der Score nicht 0 ist (man kann niemanden bei 0 eliminieren).
                 if opp != player and player.score == opp.score and opp.score != 0:
                     # Protokolliere den Zustand des Opfers VOR der Eliminierung
-                    self.elimination_log.append({
-                        'thrower_id': player.id,
-                        'victim_id': opp.id,
-                        'victim_score_before': opp.score
-                    })
-                    
+                    self.elimination_log.append(
+                        {
+                            "thrower_id": player.id,
+                            "victim_id": opp.id,
+                            "victim_score_before": opp.score,
+                        }
+                    )
+
                     # Eliminiere das Opfer
                     opp.score = 0
                     opp.sb.set_score_value(opp.score)
-                    result_event = ('info', f"{player.name} schickt {opp.name} zurück an den Start!")
-                    break # Es kann nur ein Gegner pro Wurf eliminiert werden
+                    result_event = (
+                        "info",
+                        f"{player.name} schickt {opp.name} zurück an den Start!",
+                    )
+                    break  # Es kann nur ein Gegner pro Wurf eliminiert werden
 
         if player.score == self.count_to:
-            result_event = ('win', f"🏆 {player.name} gewinnt in Runde {self.game.round}!")
+            result_event = (
+                "win",
+                f"🏆 {player.name} gewinnt in Runde {self.game.round}!",
+            )
             self.game.end = True
 
         return result_event

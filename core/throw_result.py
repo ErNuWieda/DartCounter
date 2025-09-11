@@ -17,11 +17,15 @@
 from dataclasses import dataclass
 from typing import Literal
 
-StatusType = Literal['ok', 'win', 'bust', 'info', 'warning', 'error', 'invalid_open', 'invalid_target']
+StatusType = Literal[
+    "ok", "win", "bust", "info", "warning", "error", "invalid_open", "invalid_target"
+]
+
 
 @dataclass
 class ThrowResult:
     """Eine Datenklasse, die das Ergebnis eines Wurfs strukturiert darstellt."""
+
     status: StatusType
     message: str | None = None
-    sound: str | None = None # e.g., 'win', 'bust', 'hit'
+    sound: str | None = None  # e.g., 'win', 'bust', 'hit'

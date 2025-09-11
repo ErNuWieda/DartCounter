@@ -1,4 +1,4 @@
-#!python3 
+#!python3
 # -*- coding: utf-8 -*-
 
 # Dartcounter Deluxe
@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import tkinter as tk 
+import tkinter as tk
 from core._version import __version__
 from tkinter import ttk
 import webbrowser
@@ -46,12 +46,13 @@ from core.tournament_manager import TournamentManager
 from core import ui_utils
 from core.throw_result import ThrowResult
 
+
 def get_asset_path(relative_path):
     """
     Gibt den korrekten Pfad zu einer Asset-Datei zurück, egal ob das Skript
     als normale .py-Datei oder als gepackte Anwendung (PyInstaller) läuft.
     """
-    if hasattr(sys, '_MEIPASS'):
+    if hasattr(sys, "_MEIPASS"):
         # PyInstaller erstellt einen temporären Ordner und speichert den Pfad in _MEIPASS
         base_path = pathlib.Path(sys._MEIPASS)
     else:
@@ -59,6 +60,7 @@ def get_asset_path(relative_path):
         base_path = pathlib.Path(__file__).resolve().parent
 
     return base_path / pathlib.Path(relative_path)
+
 
 class App:
     """
@@ -70,13 +72,14 @@ class App:
     - Instanziierung und Koordination der verschiedenen Manager (Settings, Sound, etc.).
     - Starten, Laden und Beenden von Spielsitzungen (`Game`-Instanzen).
     """
+
     def __init__(self, root):
         # Logging als Allererstes einrichten, um alle nachfolgenden Meldungen zu erfassen.
         setup_logging()
 
         self.root = root
         self.version = f"v{__version__}"
-        
+
         # Manager-Instanzen als Instanzvariablen
         self.settings_manager = SettingsManager()
         self.sound_manager = SoundManager(self.settings_manager, self.root)
@@ -100,7 +103,7 @@ class App:
 
     def _setup_window(self):
         # Theme anwenden (NACH dem Erstellen des root-Fensters, aber VOR dem Rest)
-        theme = self.settings_manager.get('theme', 'light')
+        theme = self.settings_manager.get("theme", "light")
         sv_ttk.set_theme(theme)
 
         self.root.geometry("300x300")
@@ -118,11 +121,21 @@ class App:
         try:
             image = Image.open(image_path)
         except FileNotFoundError:
-            ui_utils.show_message('error', "Fehler", f"Image nicht gefunden: {image_path}", parent=self.root)
+            ui_utils.show_message(
+                "error",
+                "Fehler",
+                f"Image nicht gefunden: {image_path}",
+                parent=self.root,
+            )
             self.root.quit()
             return
         except Exception as e:
-            ui_utils.show_message('error', "Fehler", f"Fehler beim Laden des Images: {e}", parent=self.root)
+            ui_utils.show_message(
+                "error",
+                "Fehler",
+                f"Fehler beim Laden des Images: {e}",
+                parent=self.root,
+            )
             self.root.quit()
             return
 
@@ -142,18 +155,19 @@ class App:
         Prüft, ob ein Spiel oder Turnier läuft, fragt den Benutzer und beendet es ggf.
         Gibt True zurück, wenn fortgefahren werden kann, sonst False.
         """
-        activity_running = (self.game_instance and not self.game_instance.end) or \
-                           (self.tournament_manager and not self.tournament_manager.is_finished)
-    
+        activity_running = (self.game_instance and not self.game_instance.end) or (
+            self.tournament_manager and not self.tournament_manager.is_finished
+        )
+
         if activity_running:
-            if not ui_utils.ask_question('yesno', title, message, parent=self.root):
+            if not ui_utils.ask_question("yesno", title, message, parent=self.root):
                 return False  # User cancelled
-            
+
             # Close any active game session
             if self.game_instance:
                 self.game_instance.destroy()
                 self.game_instance = None
-            
+
             # Close any active tournament session
             if self.tournament_manager:
                 if self.tournament_view and self.tournament_view.winfo_exists():
@@ -178,10 +192,16 @@ class App:
 
         # Nachricht anzeigen, falls eine vorhanden ist
         if result.message and self.game_instance and self.game_instance.dartboard:
-            if result.status == 'win':
+            if result.status == "win":
                 # Bei einem Sieg wird eine spezielle, blockierende Routine gestartet
                 def show_win_and_close():
-                    ui_utils.show_message('info', "Spielende", result.message, parent=self.game_instance.dartboard.root, auto_close_for_ai_after_ms=auto_close_ms)
+                    ui_utils.show_message(
+                        "info",
+                        "Spielende",
+                        result.message,
+                        parent=self.game_instance.dartboard.root,
+                        auto_close_for_ai_after_ms=auto_close_ms,
+                    )
                     # Nach der Nachricht das Spielfenster automatisch schließen.
                     if self.game_instance:
                         self.game_instance.destroy()
@@ -191,20 +211,42 @@ class App:
             else:
                 # Für alle anderen Nachrichten (Bust, Info, etc.)
                 title_map = {
-                    'info': 'Info', 'warning': 'Warnung', 'error': 'Fehler',
-                    'bust': 'Bust', 'invalid_open': 'Ungültiger Wurf',
-                    'invalid_target': 'Falsches Ziel'
+                    "info": "Info",
+                    "warning": "Warnung",
+                    "error": "Fehler",
+                    "bust": "Bust",
+                    "invalid_open": "Ungültiger Wurf",
+                    "invalid_target": "Falsches Ziel",
                 }
-                msg_type = 'error' if result.status in ('bust', 'invalid_open', 'invalid_target', 'error') else result.status
-                title = title_map.get(result.status, 'Info')
-                ui_utils.show_message(msg_type, title, result.message, parent=self.game_instance.dartboard.root, auto_close_for_ai_after_ms=auto_close_ms)
+                msg_type = (
+                    "error"
+                    if result.status
+                    in ("bust", "invalid_open", "invalid_target", "error")
+                    else result.status
+                )
+                title = title_map.get(result.status, "Info")
+                ui_utils.show_message(
+                    msg_type,
+                    title,
+                    result.message,
+                    parent=self.game_instance.dartboard.root,
+                    auto_close_for_ai_after_ms=auto_close_ms,
+                )
 
-    def _initialize_game_session(self, game_options, player_names, is_tournament_match=False):
+    def _initialize_game_session(
+        self, game_options, player_names, is_tournament_match=False
+    ):
         """Erstellt die Game-Instanz, die ihre eigene UI initialisiert."""
         return Game(
-            root=self.root, game_options=game_options, player_names=player_names,
-            on_throw_processed_callback=self._on_throw_processed, highscore_manager=self.highscore_manager,
-            player_stats_manager=self.player_stats_manager, profile_manager=self.profile_manager, settings_manager=self.settings_manager, is_tournament_match=is_tournament_match
+            root=self.root,
+            game_options=game_options,
+            player_names=player_names,
+            on_throw_processed_callback=self._on_throw_processed,
+            highscore_manager=self.highscore_manager,
+            player_stats_manager=self.player_stats_manager,
+            profile_manager=self.profile_manager,
+            settings_manager=self.settings_manager,
+            is_tournament_match=is_tournament_match,
         )
 
     def _start_game_workflow(self, game_data: dict, is_loaded_game: bool = False):
@@ -213,16 +255,20 @@ class App:
         Kapselt die UI-Flow-Logik (Fenster ausblenden/anzeigen) und die Spielinitialisierung.
         """
         self.root.withdraw()
-        
+
         game_options = GameOptions.from_dict(game_data)
         # Bei einem geladenen Spiel sind die Spielerdaten verschachtelt, bei einem neuen Spiel nicht.
-        player_names = [p['name'] for p in game_data['players']] if is_loaded_game else game_data.pop('players')
+        player_names = (
+            [p["name"] for p in game_data["players"]]
+            if is_loaded_game
+            else game_data.pop("players")
+        )
 
         game_instance = self._initialize_game_session(game_options, player_names)
 
         if is_loaded_game:
             SaveLoadManager.restore_game_state(game_instance, game_data)
-        
+
         self.game_instance = game_instance
         self.game_instance.announce_current_player_turn()
 
@@ -232,24 +278,32 @@ class App:
 
     def new_game(self):
         """Startet den Workflow zum Erstellen eines neuen Spiels."""
-        if not self._ensure_no_active_session("Neues Spiel", "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein neues Spiel starten?"):
+        if not self._ensure_no_active_session(
+            "Neues Spiel",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein neues Spiel starten?",
+        ):
             return
 
         self.root.withdraw()
-        dialog = GameSettingsDialog(self.root, self.settings_manager, self.profile_manager)
+        dialog = GameSettingsDialog(
+            self.root, self.settings_manager, self.profile_manager
+        )
         self.root.wait_window(dialog)
 
         if dialog.was_started and dialog.result:
             game_settings = dialog.result
             # Der Game-Konstruktor erwartet den Schlüssel 'name' statt 'game'.
-            game_settings['name'] = game_settings.pop('game')
+            game_settings["name"] = game_settings.pop("game")
             self._start_game_workflow(game_settings, is_loaded_game=False)
         else:
             self.root.deiconify()
 
     def load_game(self):
         """Startet den Workflow zum Laden eines gespeicherten Spiels."""
-        if not self._ensure_no_active_session("Spiel laden", "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Spiel laden?"):
+        if not self._ensure_no_active_session(
+            "Spiel laden",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Spiel laden?",
+        ):
             return
 
         data = SaveLoadManager.load_game_data(self.root)
@@ -262,26 +316,36 @@ class App:
         Setzt den Manager und erstellt die zugehörige UI-Ansicht.
         """
         self.tournament_manager = tournament_manager
-        self.tournament_view = TournamentView(self.root, self.tournament_manager, self.start_next_tournament_match)
+        self.tournament_view = TournamentView(
+            self.root, self.tournament_manager, self.start_next_tournament_match
+        )
 
     def new_tournament(self):
         """Startet den Workflow zum Erstellen eines neuen Turniers."""
-        if not self._ensure_no_active_session("Neues Turnier", "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Turnier starten?"):
+        if not self._ensure_no_active_session(
+            "Neues Turnier",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Turnier starten?",
+        ):
             return
 
-        dialog = TournamentSettingsDialog(self.root, self.profile_manager, self.settings_manager)
+        dialog = TournamentSettingsDialog(
+            self.root, self.profile_manager, self.settings_manager
+        )
         self.root.wait_window(dialog)
         if not dialog.cancelled:
             tournament_manager = TournamentManager(
                 player_names=dialog.player_names,
                 game_mode=dialog.game_mode,
-                system=dialog.tournament_system
+                system=dialog.tournament_system,
             )
             self._start_tournament_workflow(tournament_manager)
 
     def load_tournament(self):
         """Startet den Workflow zum Laden eines gespeicherten Turniers."""
-        if not self._ensure_no_active_session("Turnier laden", "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Turnier laden?"):
+        if not self._ensure_no_active_session(
+            "Turnier laden",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Turnier laden?",
+        ):
             return
 
         data = SaveLoadManager.load_tournament_data(self.root)
@@ -294,8 +358,12 @@ class App:
         if self.tournament_manager and not self.tournament_manager.is_finished:
             SaveLoadManager.save_state(self.tournament_manager, self.root)
         else:
-            ui_utils.show_message('info', "Turnier speichern", "Es läuft kein aktives Turnier, das gespeichert werden könnte.", parent=self.root)
-
+            ui_utils.show_message(
+                "info",
+                "Turnier speichern",
+                "Es läuft kein aktives Turnier, das gespeichert werden könnte.",
+                parent=self.root,
+            )
 
     def _finalize_tournament_match(self, match):
         """Verarbeitet das Ergebnis eines beendeten Turniermatches."""
@@ -328,14 +396,19 @@ class App:
         # Dies entfernt den unnötigen Ballast aus dem TournamentManager.
         game_options = GameOptions(
             name=self.tournament_manager.game_mode,
-            opt_in="Single",   # Standard für Turniere
+            opt_in="Single",  # Standard für Turniere
             opt_out="Double",  # Standard für Turniere
-            count_to=int(self.tournament_manager.game_mode), # type: ignore
-            opt_atc="Single", lifes=3, rounds=7, # Irrelevant, aber von der Datenklasse benötigt
-            legs_to_win=1, sets_to_win=1 # Turnierspiele sind einzelne Legs/Sets
+            count_to=int(self.tournament_manager.game_mode),  # type: ignore
+            opt_atc="Single",
+            lifes=3,
+            rounds=7,  # Irrelevant, aber von der Datenklasse benötigt
+            legs_to_win=1,
+            sets_to_win=1,  # Turnierspiele sind einzelne Legs/Sets
         )
-        player_names = [match['player1'], match['player2']]
-        self.game_instance = self._initialize_game_session(game_options, player_names, is_tournament_match=True)
+        player_names = [match["player1"], match["player2"]]
+        self.game_instance = self._initialize_game_session(
+            game_options, player_names, is_tournament_match=True
+        )
 
         # Dieser Aufruf startet den Spielfluss (und damit auch den Zug der KI)
         self.game_instance.announce_current_player_turn()
@@ -353,7 +426,9 @@ class App:
 
     def open_profile_manager(self):
         """Öffnet den Dialog zur Verwaltung von Spielerprofilen."""
-        dialog = ProfileManagerDialog(self.root, self.profile_manager, self.player_stats_manager)
+        dialog = ProfileManagerDialog(
+            self.root, self.profile_manager, self.player_stats_manager
+        )
         self.root.wait_window(dialog)
 
     def save_game(self):
@@ -362,7 +437,12 @@ class App:
         if self.game_instance and not self.game_instance.end:
             SaveLoadManager.save_state(self.game_instance, self.root)
         else:
-            ui_utils.show_message('info', "Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=self.root)
+            ui_utils.show_message(
+                "info",
+                "Spiel speichern",
+                "Es läuft kein aktives Spiel, das gespeichert werden könnte.",
+                parent=self.root,
+            )
 
     def show_highscores(self):
         """Öffnet das Fenster zur Anzeige der Highscores."""
@@ -375,7 +455,12 @@ class App:
 
     def quit_game(self):
         """Beendet die Anwendung nach einer Bestätigungsabfrage."""
-        confirm = ui_utils.ask_question('yesno', "Programm beenden", "DartCounter wirklich beenden?", parent=self.root)
+        confirm = ui_utils.ask_question(
+            "yesno",
+            "Programm beenden",
+            "DartCounter wirklich beenden?",
+            parent=self.root,
+        )
         if confirm:
             if self.settings_manager:
                 self.settings_manager.save_settings()
@@ -383,7 +468,7 @@ class App:
             if self.db_manager and self.db_manager.is_connected:
                 self.db_manager.close_connection()
             if self.game_instance:
-                self.game_instance.destroy() # Explizit die Ressourcen des Spiels freigeben
+                self.game_instance.destroy()  # Explizit die Ressourcen des Spiels freigeben
             self.root.quit()
 
     def about(self):
@@ -395,26 +480,33 @@ class App:
             "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
             f"© 2025 Martin Hehl"
         )
-        ui_utils.show_message('info', f"Dartcounter {self.version}", about_text, parent=self.root)
+        ui_utils.show_message(
+            "info", f"Dartcounter {self.version}", about_text, parent=self.root
+        )
 
     def open_donate_link(self):
         """Öffnet den Spenden-Link im Standard-Webbrowser des Benutzers."""
         # --- WICHTIG: Bitte diese URL durch deinen persönlichen Spenden-Link ersetzen ---
         DONATE_URL = "https://paypal.me/ernuwieda"
-        
+
         ui_utils.show_message(
-            'info',
+            "info",
             "Browser wird geöffnet",
             "Vielen Dank für deine Unterstützung!\n\nDein Standard-Browser wird jetzt geöffnet, um die Spendenseite zu laden.",
-            parent=self.root
+            parent=self.root,
         )
         try:
             webbrowser.open_new_tab(DONATE_URL)
         except Exception as e:
-            ui_utils.show_message('error', "Fehler", f"Der Browser konnte nicht geöffnet werden: {e}", parent=self.root)
+            ui_utils.show_message(
+                "error",
+                "Fehler",
+                f"Der Browser konnte nicht geöffnet werden: {e}",
+                parent=self.root,
+            )
+
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
     root.mainloop()
-    

@@ -19,10 +19,12 @@ from unittest.mock import MagicMock
 
 # Klasse, die getestet wird
 from core.elimination import Elimination
+
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
 
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
+
 
 @pytest.fixture
 def elimination_logic(mock_game):
@@ -31,6 +33,7 @@ def elimination_logic(mock_game):
     mock_game.options.count_to = 301
     mock_game.options.opt_out = "Single"
     return Elimination(mock_game)
+
 
 @pytest.fixture
 def players(mock_game, elimination_logic):
@@ -43,16 +46,19 @@ def players(mock_game, elimination_logic):
         player_list.append(p)
     return player_list
 
+
 def test_initialization(players):
     """Testet, ob ein Spieler korrekt für Elimination initialisiert wird."""
     assert players[0].score == 0
+
 
 def test_valid_throw_increases_score(elimination_logic, players):
     """Testet, ob ein gültiger Wurf den Punktestand korrekt erhöht."""
     player1 = players[0]
     status, _ = elimination_logic._handle_throw(player1, "Triple", 20, [])
     assert player1.score == 60
-    assert status == 'ok'
+    assert status == "ok"
+
 
 def test_bust_if_score_exceeds_target(elimination_logic, players):
     """Testet, ob ein Bust auftritt, wenn der Score das Ziel überschreitet."""
@@ -60,7 +66,8 @@ def test_bust_if_score_exceeds_target(elimination_logic, players):
     player1.score = 300
     status, _ = elimination_logic._handle_throw(player1, "Single", 2, [])
     assert player1.score == 300
-    assert status == 'bust'
+    assert status == "bust"
+
 
 def test_elimination_resets_opponent_score(elimination_logic, players):
     """Testet, ob ein Spieler einen Gegner eliminieren kann."""
@@ -69,20 +76,22 @@ def test_elimination_resets_opponent_score(elimination_logic, players):
     player2.score = 100
 
     status, message = elimination_logic._handle_throw(player1, "Triple", 20, players)
-    
+
     assert player1.score == 100
     assert player2.score == 0
-    assert status == 'info'
+    assert status == "info"
     assert "schickt" in message
+
 
 def test_win_condition(elimination_logic, players):
     """Testet, ob das Spiel endet, wenn der Zielscore exakt erreicht wird."""
     player1 = players[0]
-    player1.score = 241 # 301 - 60
+    player1.score = 241  # 301 - 60
     status, message = elimination_logic._handle_throw(player1, "Triple", 20, [])
     assert player1.score == 301
     assert player1.game.end is True
-    assert status == 'win' and "gewinnt" in message
+    assert status == "win" and "gewinnt" in message
+
 
 def test_undo_elimination_restores_victim_score(elimination_logic, players):
     """Testet, ob Undo eine Eliminierung korrekt rückgängig macht."""

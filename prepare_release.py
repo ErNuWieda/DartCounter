@@ -22,6 +22,7 @@ VERSION_FILE = SCRIPT_DIR / "core" / "_version.py"
 CHANGELOG_FILE = SCRIPT_DIR / "CHANGELOG.md"
 RELEASE_CHECKLIST_FILE = SCRIPT_DIR / "RELEASE_CHECKLIST.md"
 
+
 def update_version_file(new_version: str):
     """Aktualisiert den __version__-String in core/_version.py."""
     print(f"Aktualisiere {VERSION_FILE} auf Version {new_version}...")
@@ -31,10 +32,12 @@ def update_version_file(new_version: str):
         new_content = re.sub(
             r"__version__\s*=\s*[\"'].*?[\"']",
             f'__version__ = "{new_version}"',
-            content
+            content,
         )
         if new_content == content:
-            print(f"  -> WARNUNG: Versions-String in {VERSION_FILE} nicht gefunden. Datei wurde nicht geändert.")
+            print(
+                f"  -> WARNUNG: Versions-String in {VERSION_FILE} nicht gefunden. Datei wurde nicht geändert."
+            )
             return
 
         VERSION_FILE.write_text(new_content, encoding="utf-8")
@@ -42,6 +45,7 @@ def update_version_file(new_version: str):
     except FileNotFoundError:
         print(f"  -> FEHLER: {VERSION_FILE} nicht gefunden.")
         sys.exit(1)
+
 
 def update_changelog(new_version: str):
     """Aktualisiert CHANGELOG.md mit der neuen Version und einem frischen [Unreleased]-Abschnitt."""
@@ -65,14 +69,16 @@ def update_changelog(new_version: str):
 """
         # Prüfen, ob der [Unreleased]-Abschnitt existiert
         if "## [Unreleased]" not in content:
-            print(f"  -> FEHLER: Abschnitt '## [Unreleased]' in {CHANGELOG_FILE} nicht gefunden.")
+            print(
+                f"  -> FEHLER: Abschnitt '## [Unreleased]' in {CHANGELOG_FILE} nicht gefunden."
+            )
             sys.exit(1)
 
         # Ersetzt den bestehenden [Unreleased]-Header durch die neue Vorlage und den neuen Versions-Header
         new_content = content.replace(
             "## [Unreleased]",
             unreleased_template + new_version_header,
-            1  # Nur das erste Vorkommen ersetzen
+            1,  # Nur das erste Vorkommen ersetzen
         )
 
         CHANGELOG_FILE.write_text(new_content, encoding="utf-8")
@@ -81,6 +87,7 @@ def update_changelog(new_version: str):
     except FileNotFoundError:
         print(f"  -> FEHLER: {CHANGELOG_FILE} nicht gefunden.")
         sys.exit(1)
+
 
 def update_release_checklist(new_version: str):
     """Aktualisiert die Platzhalter in RELEASE_CHECKLIST.md mit der neuen Version."""
@@ -94,7 +101,9 @@ def update_release_checklist(new_version: str):
         new_content = new_content.replace("X.Y.Z", new_version)
 
         if new_content == content:
-            print(f"  -> WARNUNG: Keine Platzhalter in {RELEASE_CHECKLIST_FILE} gefunden. Datei wurde nicht geändert.")
+            print(
+                f"  -> WARNUNG: Keine Platzhalter in {RELEASE_CHECKLIST_FILE} gefunden. Datei wurde nicht geändert."
+            )
             return
 
         RELEASE_CHECKLIST_FILE.write_text(new_content, encoding="utf-8")
@@ -104,6 +113,7 @@ def update_release_checklist(new_version: str):
         print(f"  -> FEHLER: {RELEASE_CHECKLIST_FILE} nicht gefunden.")
         # Wir brechen hier nicht ab, da die Checkliste optional sein könnte.
         # Ein Fehler in der Versions- oder Changelog-Datei ist kritischer.
+
 
 def main():
     """Hauptfunktion zur Orchestrierung des Versionssprungs."""
@@ -120,6 +130,7 @@ def main():
     update_release_checklist(new_version)
     print("\n✅ Release-Vorbereitung abgeschlossen.")
     print("Bitte überprüfe die Änderungen in den modifizierten Dateien vor dem Commit.")
+
 
 if __name__ == "__main__":
     main()

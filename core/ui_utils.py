@@ -17,7 +17,14 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-def show_message(msg_type: str, title: str, message: str, parent=None, auto_close_for_ai_after_ms: int = 0):
+
+def show_message(
+    msg_type: str,
+    title: str,
+    message: str,
+    parent=None,
+    auto_close_for_ai_after_ms: int = 0,
+):
     """
     Zeigt eine zentrale MessageBox des angegebenen Typs an.
     Kann sich für KI-Spieler nach einem Timeout automatisch schließen.
@@ -46,19 +53,23 @@ def show_message(msg_type: str, title: str, message: str, parent=None, auto_clos
         # OK-Button, der den Dialog und den Timer schließt
         button_frame = ttk.Frame(dialog, padding=(0, 0, 0, 10))
         button_frame.pack()
-        
-        after_id = [None] # Verwende eine Liste, um sie in der verschachtelten Funktion veränderbar zu machen
+
+        after_id = [
+            None
+        ]  # Verwende eine Liste, um sie in der verschachtelten Funktion veränderbar zu machen
 
         def on_ok():
             if after_id[0]:
                 dialog.after_cancel(after_id[0])
             dialog.destroy()
 
-        ok_button = ttk.Button(button_frame, text="OK", command=on_ok, style="Accent.TButton")
+        ok_button = ttk.Button(
+            button_frame, text="OK", command=on_ok, style="Accent.TButton"
+        )
         ok_button.pack()
         ok_button.bind("<Return>", lambda e: on_ok())
         ok_button.focus_set()
-        
+
         # Timer zum automatischen Schließen starten
         after_id[0] = dialog.after(auto_close_for_ai_after_ms, on_ok)
 
@@ -73,16 +84,23 @@ def show_message(msg_type: str, title: str, message: str, parent=None, auto_clos
         x = parent_x + (parent_w // 2) - (dialog_w // 2)
         y = parent_y + (parent_h // 2) - (dialog_h // 2)
         dialog.geometry(f"+{x}+{y}")
-        
+
         dialog.grab_set()
-        dialog.wait_window() # Macht den Dialog blockierend, wie eine echte MessageBox
+        dialog.wait_window()  # Macht den Dialog blockierend, wie eine echte MessageBox
     else:
         # Standard-MessageBox verwenden
-        msg_func = {'info': messagebox.showinfo, 'warning': messagebox.showwarning, 'error': messagebox.showerror}.get(msg_type)
+        msg_func = {
+            "info": messagebox.showinfo,
+            "warning": messagebox.showwarning,
+            "error": messagebox.showerror,
+        }.get(msg_type)
         if msg_func:
             msg_func(title, message, parent=parent)
 
-def ask_question(buttons: str, title: str, message: str, default=None, parent=None) -> bool | None:
+
+def ask_question(
+    buttons: str, title: str, message: str, default=None, parent=None
+) -> bool | None:
     """
     Zeigt eine zentrale Frage-MessageBox an und gibt die Antwort zurück.
     Kapselt die tkinter-Aufrufe an einem Ort.
@@ -94,12 +112,12 @@ def ask_question(buttons: str, title: str, message: str, default=None, parent=No
         parent (tk.Widget, optional): Das übergeordnete Fenster.
     """
     ask_func = {
-        'yesno': tk.messagebox.askyesno,
-        'yesnocancel': tk.messagebox.askyesnocancel,
-        'retrycancel': tk.messagebox.askretrycancel,
-        'okcancel': tk.messagebox.askokcancel
-        }.get(buttons)
-        
+        "yesno": tk.messagebox.askyesno,
+        "yesnocancel": tk.messagebox.askyesnocancel,
+        "retrycancel": tk.messagebox.askretrycancel,
+        "okcancel": tk.messagebox.askokcancel,
+    }.get(buttons)
+
     if ask_func:
         return ask_func(title, message, default=default, parent=parent)
-    return None # Fallback
+    return None  # Fallback

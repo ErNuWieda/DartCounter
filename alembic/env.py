@@ -13,7 +13,7 @@ from alembic import context
 
 # Füge das Hauptverzeichnis des Projekts zum Python-Pfad hinzu,
 # damit wir die 'core'-Module importieren können.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Importiere die 'Base' Metadaten aus deinen DB-Modellen.
 # Alembic benötigt dies, um die Struktur deiner Modelle zu kennen.
@@ -24,6 +24,7 @@ from core.db_models import Base
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
 
 # --- Alembic/Projekt-Integration START ---
 # Funktion zum dynamischen Laden der Datenbank-URL aus der config.ini des Projekts.
@@ -39,8 +40,8 @@ def get_project_db_url():
     # Suche an den gleichen Orten wie der DatabaseManager, bevorzuge aber die
     # Konfiguration im Projekt-Root, was für die Entwicklung typisch ist.
     app_root_path = get_application_root_dir()
-    root_config_path = app_root_path / 'config.ini'
-    user_config_path = get_app_data_dir() / 'config.ini'
+    root_config_path = app_root_path / "config.ini"
+    user_config_path = get_app_data_dir() / "config.ini"
 
     config_path_to_use = None
     if root_config_path.exists():
@@ -49,7 +50,7 @@ def get_project_db_url():
         config_path_to_use = user_config_path
 
     if not config_path_to_use:
-        example_path = app_root_path / 'config.ini.example'
+        example_path = app_root_path / "config.ini.example"
         # Gib eine klare, hilfreiche Fehlermeldung aus.
         raise FileNotFoundError(
             f"Konfigurationsdatei 'config.ini' nicht gefunden.\n"
@@ -61,21 +62,24 @@ def get_project_db_url():
 
     parser.read(config_path_to_use)
 
-    if 'postgresql' not in parser:
+    if "postgresql" not in parser:
         raise configparser.NoSectionError(
-            'postgresql',
-            f"Der Abschnitt [postgresql] fehlt in der Konfigurationsdatei '{config_path_to_use}'."
+            "postgresql",
+            f"Der Abschnitt [postgresql] fehlt in der Konfigurationsdatei '{config_path_to_use}'.",
         )
 
-    db_config = parser['postgresql']
-    required_keys = ['user', 'password', 'host', 'database']
+    db_config = parser["postgresql"]
+    required_keys = ["user", "password", "host", "database"]
     if not all(key in db_config for key in required_keys):
-        raise KeyError(f"Ein oder mehrere benötigte Schlüssel ({', '.join(required_keys)}) fehlen im [postgresql] Abschnitt von '{config_path_to_use}'.")
+        raise KeyError(
+            f"Ein oder mehrere benötigte Schlüssel ({', '.join(required_keys)}) fehlen im [postgresql] Abschnitt von '{config_path_to_use}'."
+        )
 
     return f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}@{db_config['host']}/{db_config['database']}"
 
+
 # Setze die dynamisch geladene URL in der Alembic-Konfiguration.
-config.set_main_option('sqlalchemy.url', get_project_db_url())
+config.set_main_option("sqlalchemy.url", get_project_db_url())
 # --- Alembic/Projekt-Integration END ---
 
 # Interpret the config file for Python logging.
@@ -134,9 +138,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

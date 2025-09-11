@@ -19,10 +19,12 @@ from unittest.mock import MagicMock
 
 # Klasse, die getestet wird
 from core.killer import Killer
+
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
 
 # Die geteilte 'mock_game' Fixture ist automatisch aus conftest.py verfügbar.
+
 
 @pytest.fixture
 def killer_logic(mock_game):
@@ -30,6 +32,7 @@ def killer_logic(mock_game):
     mock_game.options.name = "Killer"
     mock_game.options.lifes = 3
     return Killer(mock_game)
+
 
 @pytest.fixture
 def players(mock_game, killer_logic):
@@ -44,79 +47,90 @@ def players(mock_game, killer_logic):
     killer_logic.set_players(player_list)
     return player_list
 
+
 def test_initialization(players, mock_game):
     """Testet, ob ein Spieler korrekt für Killer initialisiert wird."""
     player1 = players[0]
     assert player1.score == mock_game.options.lifes
-    assert player1.state['life_segment'] is None
-    assert player1.state['can_kill'] is False
+    assert player1.state["life_segment"] is None
+    assert player1.state["can_kill"] is False
+
 
 def test_set_life_segment_success(killer_logic, players):
     """Testet das erfolgreiche Festlegen eines Lebensfeldes."""
     player1 = players[0]
-    status, message = killer_logic._handle_life_segment_phase(player1, "Single", 15, players)
-    assert player1.state['life_segment'] == "15"
+    status, message = killer_logic._handle_life_segment_phase(
+        player1, "Single", 15, players
+    )
+    assert player1.state["life_segment"] == "15"
     assert player1.turn_is_over is True
-    assert status == 'info'
+    assert status == "info"
     assert "hat Lebensfeld" in message
+
 
 def test_set_life_segment_fails_on_taken_segment(killer_logic, players):
     """Testet, dass das Festlegen eines bereits vergebenen Feldes fehlschlägt."""
     player1, player2 = players
-    player2.state['life_segment'] = "15"
+    player2.state["life_segment"] = "15"
 
-    status, message = killer_logic._handle_life_segment_phase(player1, "Single", 15, players)
+    status, message = killer_logic._handle_life_segment_phase(
+        player1, "Single", 15, players
+    )
 
-    assert player1.state['life_segment'] is None
+    assert player1.state["life_segment"] is None
     assert player1.turn_is_over is False
-    assert status == 'warning'
+    assert status == "warning"
     assert "bereits an" in message
+
 
 def test_become_killer_success(killer_logic, players):
     """Testet, ob ein Spieler durch Treffen seines Doubles zum Killer wird."""
     player1 = players[0]
-    player1.state['life_segment'] = "20"
+    player1.state["life_segment"] = "20"
 
     status, message = killer_logic._handle_throw(player1, "Double", 20, [])
 
-    assert player1.state['can_kill'] is True
-    assert status == 'info'
+    assert player1.state["can_kill"] is True
+    assert status == "info"
     assert "ist jetzt ein KILLER" in message
+
 
 def test_killer_takes_opponent_life(killer_logic, players):
     """Testet, ob ein Killer einem Gegner ein Leben nehmen kann."""
     killer, victim = players
-    killer.state['life_segment'] = "20"
-    killer.state['can_kill'] = True
-    victim.state['life_segment'] = "19"
+    killer.state["life_segment"] = "20"
+    killer.state["can_kill"] = True
+    victim.state["life_segment"] = "19"
     victim_initial_lives = victim.score
 
     status, _ = killer_logic._handle_throw(killer, "Double", 19, players)
 
     assert victim.score == victim_initial_lives - 1
-    assert status == 'info'
+    assert status == "info"
+
 
 def test_win_condition_last_player_standing(killer_logic, players):
     """Testet die Gewinnbedingung, wenn nur noch ein Spieler übrig ist."""
     killer, victim = players
-    killer.state['life_segment'] = "20"
-    killer.state['can_kill'] = True
-    victim.state['life_segment'] = "19"
+    killer.state["life_segment"] = "20"
+    killer.state["can_kill"] = True
+    victim.state["life_segment"] = "19"
     victim.score = 1
 
     status, message = killer_logic._handle_throw(killer, "Double", 19, players)
 
     assert victim.score == 0
     assert killer.game.end is True
-    assert status == 'win'
+    assert status == "win"
     assert "gewinnt" in message
+
 
 def test_undo_take_life_restores_victim_life(killer_logic, players, mock_game):
     """Testet, ob das Rückgängigmachen einer 'take_life'-Aktion das Leben wiederherstellt."""
     killer, victim = players
-    killer.state['life_segment'] = "20"
-    killer.state['can_kill'] = True
-    victim.state['life_segment'] = "19"
+    killer.state["life_segment"] = "20"
+    killer.state["can_kill"] = True
+    victim.state["life_segment"] = "19"
 
     killer_logic._handle_throw(killer, "Double", 19, players)
     assert victim.score == mock_game.options.lifes - 1

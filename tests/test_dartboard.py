@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 from core.dartboard_geometry import DartboardGeometry
 from core.dartboard import DartBoard
 
+
 class TestDartboardGeometry:
 
     # Test get_segment_from_coords
@@ -27,7 +28,10 @@ class TestDartboardGeometry:
         # Testet mit der korrekten Referenzgröße der Klasse
         size = DartboardGeometry.ORIGINAL_SIZE
         center = DartboardGeometry.CENTER
-        assert DartboardGeometry.get_segment_from_coords(center, center, size=size) == "Bullseye"
+        assert (
+            DartboardGeometry.get_segment_from_coords(center, center, size=size)
+            == "Bullseye"
+        )
 
     def test_get_segment_from_coords_specific_segments(self):
         # Testet mit der korrekten Referenzgröße der Klasse
@@ -35,24 +39,36 @@ class TestDartboardGeometry:
         center = DartboardGeometry.CENTER
         # Oben im Board, im Triple-20-Segment
         # Radius für T20 ist zwischen 470 und 520. Winkel ist -90 Grad.
-        y_pos_t20 = center - (DartboardGeometry.RADIEN['triple_inner'] + 10)
-        assert DartboardGeometry.get_segment_from_coords(center, y_pos_t20, size=size) == "20"
+        y_pos_t20 = center - (DartboardGeometry.RADIEN["triple_inner"] + 10)
+        assert (
+            DartboardGeometry.get_segment_from_coords(center, y_pos_t20, size=size)
+            == "20"
+        )
         # Rechts im Board, im Single-6-Segment
         # Radius für S6 ist zwischen 80 und 470. Winkel ist 0 Grad.
-        x_pos_s6 = center + (DartboardGeometry.RADIEN['bull'] + 10)
-        assert DartboardGeometry.get_segment_from_coords(x_pos_s6, center, size=size) == "6"
+        x_pos_s6 = center + (DartboardGeometry.RADIEN["bull"] + 10)
+        assert (
+            DartboardGeometry.get_segment_from_coords(x_pos_s6, center, size=size)
+            == "6"
+        )
 
     def test_get_segment_from_coords_miss(self):
         # Außerhalb des Boards
         size = DartboardGeometry.ORIGINAL_SIZE
         assert DartboardGeometry.get_segment_from_coords(0, 0, size=size) == "Miss"
-        assert DartboardGeometry.get_segment_from_coords(size - 1, size - 1, size=size) == "Miss"
+        assert (
+            DartboardGeometry.get_segment_from_coords(size - 1, size - 1, size=size)
+            == "Miss"
+        )
 
     # Test get_target_coords
     def test_get_target_coords(self):
         # Teste einige bekannte Ziel-Koordinaten
         assert DartboardGeometry.get_target_coords("T20") is not None
-        assert DartboardGeometry.get_target_coords("BE") == (DartboardGeometry.CENTER, DartboardGeometry.CENTER)
+        assert DartboardGeometry.get_target_coords("BE") == (
+            DartboardGeometry.CENTER,
+            DartboardGeometry.CENTER,
+        )
         assert DartboardGeometry.get_target_coords("INVALID") is None
 
 
@@ -61,21 +77,24 @@ def mock_dartboard():
     """Fixture to create a mocked DartBoard instance for testing UI-independent logic."""
     # Mock the parent 'spiel' object
     mock_spiel = MagicMock()
-    
+
     # We can't instantiate DartBoard directly because it creates a Toplevel window.
     # So we patch the __init__ method to prevent UI creation.
     with patch.object(DartBoard, "__init__", lambda s, spiel: None):
         board = DartBoard(mock_spiel)
         board.spiel = mock_spiel
-        
+
         # Manually set the attributes that would be created in __init__
         board.center_x = 500
         board.center_y = 500
         # Simulate a board scaled to 1000x1000 for easy calculations
         scale = 1000 / DartboardGeometry.ORIGINAL_SIZE
-        board.skaliert = {k: int(v * scale) for k, v in DartboardGeometry.RADIEN.items()}
-        
+        board.skaliert = {
+            k: int(v * scale) for k, v in DartboardGeometry.RADIEN.items()
+        }
+
         yield board
+
 
 class TestDartBoard:
     """Tests for the DartBoard class, which handles user interaction and click logic."""
@@ -83,9 +102,12 @@ class TestDartBoard:
     def test_get_ring_segment_logic(self, mock_dartboard):
         """Tests the core logic of identifying the ring and segment from coordinates."""
         board = mock_dartboard
-        
+
         # Test Bullseye (scaled radius: 13)
-        assert board.get_ring_segment(500, 500) == ("Bullseye", 50), "Ein Wurf genau in die Mitte sollte ein Bullseye sein."
+        assert board.get_ring_segment(500, 500) == (
+            "Bullseye",
+            50,
+        ), "Ein Wurf genau in die Mitte sollte ein Bullseye sein."
         # Test Bull (25) (scaled radii: bullseye=13, bull=36)
         assert board.get_ring_segment(500, 520) == ("Bull", 25)
         # Test Triple 20 (at the top) (scaled radii: triple_inner=213, triple_outer=236)

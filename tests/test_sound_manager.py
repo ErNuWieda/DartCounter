@@ -4,6 +4,7 @@ import sys
 
 from core.sound_manager import SoundManager
 
+
 @pytest.fixture
 def sound_manager_mocks(monkeypatch):
     """
@@ -11,24 +12,24 @@ def sound_manager_mocks(monkeypatch):
     Also handles singleton reset.
     """
     # Reset singleton to ensure a clean instance for each test
-    if hasattr(SoundManager, '_instance'):
+    if hasattr(SoundManager, "_instance"):
         SoundManager._instance = None
-    if hasattr(SoundManager, '_initialized'):
+    if hasattr(SoundManager, "_initialized"):
         del SoundManager._initialized
 
     # Mock the pygame module
     mock_pygame = MagicMock()
     mock_pygame.mixer.Sound.return_value = MagicMock()
     mock_pygame.error = Exception
-    monkeypatch.setattr('core.sound_manager.pygame', mock_pygame)
+    monkeypatch.setattr("core.sound_manager.pygame", mock_pygame)
 
     # Mock pathlib.Path.exists
     mock_path_exists = MagicMock(return_value=True)
-    monkeypatch.setattr('pathlib.Path.exists', mock_path_exists)
+    monkeypatch.setattr("pathlib.Path.exists", mock_path_exists)
 
     # Mock messagebox
     mock_messagebox = MagicMock()
-    monkeypatch.setattr('core.sound_manager.messagebox', mock_messagebox)
+    monkeypatch.setattr("core.sound_manager.messagebox", mock_messagebox)
 
     # Mock the SettingsManager
     mock_settings_manager = MagicMock()
@@ -39,31 +40,41 @@ def sound_manager_mocks(monkeypatch):
         "root": MagicMock(),
         "mock_pygame": mock_pygame,
         "mock_path_exists": mock_path_exists,
-        "mock_messagebox": mock_messagebox
+        "mock_messagebox": mock_messagebox,
     }
+
 
 class TestSoundManager:
     """
     Testet die SoundManager-Klasse isoliert von Pygame und dem Dateisystem.
     """
+
     def test_init_pygame_not_available(self, sound_manager_mocks, monkeypatch):
         """Testet, ob Sounds deaktiviert sind, wenn pygame nicht verfügbar ist."""
-        monkeypatch.setattr('core.sound_manager.PYGAME_AVAILABLE', False)
-        sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
+        monkeypatch.setattr("core.sound_manager.PYGAME_AVAILABLE", False)
+        sm = SoundManager(
+            sound_manager_mocks["settings_manager"], sound_manager_mocks["root"]
+        )
         assert not sm.sounds_enabled
         sound_manager_mocks["mock_pygame"].mixer.init.assert_not_called()
 
     def test_init_sounds_disabled_in_settings(self, sound_manager_mocks):
         """Testet, ob der Mixer nicht initialisiert wird, wenn Sounds in den Einstellungen deaktiviert sind."""
         sound_manager_mocks["settings_manager"].get.return_value = False
-        sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
+        sm = SoundManager(
+            sound_manager_mocks["settings_manager"], sound_manager_mocks["root"]
+        )
         assert not sm.sounds_enabled
         sound_manager_mocks["mock_pygame"].mixer.init.assert_not_called()
 
     def test_init_mixer_initialization_fails(self, sound_manager_mocks):
         """Testet das Verhalten, wenn pygame.mixer.init() einen Fehler auslöst."""
-        sound_manager_mocks["mock_pygame"].mixer.init.side_effect = sound_manager_mocks["mock_pygame"].error("Mixer-Fehler")
-        sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
+        sound_manager_mocks["mock_pygame"].mixer.init.side_effect = sound_manager_mocks[
+            "mock_pygame"
+        ].error("Mixer-Fehler")
+        sm = SoundManager(
+            sound_manager_mocks["settings_manager"], sound_manager_mocks["root"]
+        )
         assert not sm.sounds_enabled
         assert "Pygame mixer konnte nicht initialisiert werden" in sm.loading_errors[0]
 
@@ -72,7 +83,19 @@ class TestSoundManager:
         mocks = sound_manager_mocks
         # Reihenfolge: hit, win, miss, bust, bull, bullseye, 100, 140, 160, 180, shanghai
         # Simuliere, dass 'bust.wav' (4. Sound) fehlt.
-        mocks["mock_path_exists"].side_effect = [True, True, True, False, True, True, True, True, True, True, True]
+        mocks["mock_path_exists"].side_effect = [
+            True,
+            True,
+            True,
+            False,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ]
         sm = SoundManager(mocks["settings_manager"], mocks["root"])
         assert sm.hit_sound is not None
         assert sm.win_sound is not None
@@ -92,7 +115,7 @@ class TestSoundManager:
         mocks = sound_manager_mocks
         # Simuliere, dass Sound() beim Laden von 'bull.wav' (5. Sound) einen Fehler wirft. Es gibt 11 Sounds.
         sound_mocks = [MagicMock() for _ in range(11)]
-        sound_mocks[4] = mocks["mock_pygame"].error("Ladefehler") # bull.wav fails
+        sound_mocks[4] = mocks["mock_pygame"].error("Ladefehler")  # bull.wav fails
         mocks["mock_pygame"].mixer.Sound.side_effect = sound_mocks
 
         sm = SoundManager(mocks["settings_manager"], mocks["root"])
@@ -100,7 +123,9 @@ class TestSoundManager:
         assert sm.win_sound is not None
         assert sm.miss_sound is not None
         assert sm.bust_sound is not None
-        assert sm.bull_sound is None, "bull_sound sollte None sein, da ein Ladefehler auftrat."
+        assert (
+            sm.bull_sound is None
+        ), "bull_sound sollte None sein, da ein Ladefehler auftrat."
         assert sm.bullseye_sound is not None
         assert sm.score_100_sound is not None
         assert sm.score_140_sound is not None
@@ -118,12 +143,12 @@ class TestSoundManager:
         # Deaktivieren
         sm.toggle_sounds(False)
         assert not sm.sounds_enabled
-        mocks["settings_manager"].set.assert_called_with('sound_enabled', False)
+        mocks["settings_manager"].set.assert_called_with("sound_enabled", False)
 
         # Aktivieren
         sm.toggle_sounds(True)
         assert sm.sounds_enabled
-        mocks["settings_manager"].set.assert_called_with('sound_enabled', True)
+        mocks["settings_manager"].set.assert_called_with("sound_enabled", True)
 
     def test_play_hit_when_enabled(self, sound_manager_mocks):
         """Testet, ob play_hit() den Sound abspielt, wenn aktiviert."""
@@ -145,12 +170,24 @@ class TestSoundManager:
         mocks = sound_manager_mocks
         # Reihenfolge: hit, win, miss, bust, bull, bullseye, 100, 140, 160, 180, shanghai
         # Simuliere, dass miss.wav (3. Sound) nicht gefunden wurde
-        mocks["mock_path_exists"].side_effect = [True, True, False, True, True, True, True, True, True, True, True]
+        mocks["mock_path_exists"].side_effect = [
+            True,
+            True,
+            False,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+        ]
         sm = SoundManager(mocks["settings_manager"], mocks["root"])
-        
+
         # sm.miss_sound ist jetzt None
         assert sm.miss_sound is None
-        
+
         # Der Aufruf sollte einfach nichts tun und keinen Fehler werfen
         try:
             sm.play_miss()

@@ -30,21 +30,24 @@ from core.tournament_manager import TournamentManager
 
 # --- Tests for get_asset_path ---
 
-@patch('main.sys.hasattr', return_value=False)
+
+@patch("main.sys.hasattr", return_value=False)
 def test_get_asset_path_dev_mode(mock_hasattr):
     """Testet den Pfad im normalen Entwicklungsmodus."""
     path = get_asset_path(pathlib.Path("assets/test.png"))
-    assert str(path).endswith(str(pathlib.Path('assets/test.png')))
+    assert str(path).endswith(str(pathlib.Path("assets/test.png")))
 
-@patch('main.sys.hasattr', return_value=True)
-@patch('main.sys._MEIPASS', '/tmp/_MEI12345', create=True)
+
+@patch("main.sys.hasattr", return_value=True)
+@patch("main.sys._MEIPASS", "/tmp/_MEI12345", create=True)
 def test_get_asset_path_pyinstaller_mode(mock_hasattr):
     """Testet den Pfad, wenn die Anwendung gepackt ist (PyInstaller)."""
     path = get_asset_path(pathlib.Path("assets/test.png"))
-    assert str(path) == str(pathlib.Path('/tmp/_MEI12345/assets/test.png'))
+    assert str(path) == str(pathlib.Path("/tmp/_MEI12345/assets/test.png"))
 
 
 # --- Fixture for App tests ---
+
 
 @pytest.fixture
 def app_with_mocks():
@@ -53,33 +56,34 @@ def app_with_mocks():
     Dies ersetzt die repetitive setUp-Methode aus unittest.
     """
     patches = {
-        'sv_ttk_set_theme': patch('main.sv_ttk.set_theme'),
-        'image_open': patch('main.Image.open'),
-        'image_tk': patch('main.ImageTk.PhotoImage'),
-        'canvas': patch('main.tk.Canvas'),
-        'menu': patch('main.tk.Menu'),
-        'ui_utils': patch('main.ui_utils'),
-        'game_settings_dialog': patch('main.GameSettingsDialog'),
-        'save_load_manager': patch('main.SaveLoadManager'),
-        'highscore_manager': patch('main.HighscoreManager'),
-        'player_stats_manager': patch('main.PlayerStatsManager'),
-        'app_settings_dialog': patch('main.AppSettingsDialog'),
-        'tournament_view': patch('main.TournamentView'),
-        'db_manager': patch('main.DatabaseManager'),
-        'tournament_manager_from_dict': patch('main.TournamentManager.from_dict'),
+        "sv_ttk_set_theme": patch("main.sv_ttk.set_theme"),
+        "image_open": patch("main.Image.open"),
+        "image_tk": patch("main.ImageTk.PhotoImage"),
+        "canvas": patch("main.tk.Canvas"),
+        "menu": patch("main.tk.Menu"),
+        "ui_utils": patch("main.ui_utils"),
+        "game_settings_dialog": patch("main.GameSettingsDialog"),
+        "save_load_manager": patch("main.SaveLoadManager"),
+        "highscore_manager": patch("main.HighscoreManager"),
+        "player_stats_manager": patch("main.PlayerStatsManager"),
+        "app_settings_dialog": patch("main.AppSettingsDialog"),
+        "tournament_view": patch("main.TournamentView"),
+        "db_manager": patch("main.DatabaseManager"),
+        "tournament_manager_from_dict": patch("main.TournamentManager.from_dict"),
     }
-    
+
     mocks = {name: p.start() for name, p in patches.items()}
     mock_root = MagicMock()
     app_instance = App(mock_root)
-    
+
     yield app_instance, mocks
-    
+
     for p in patches.values():
         p.stop()
 
 
 # --- App Tests ---
+
 
 def test_initialization(app_with_mocks):
     """Testet, ob die App korrekt mit all ihren Managern initialisiert wird."""
@@ -89,22 +93,33 @@ def test_initialization(app_with_mocks):
     assert app.highscore_manager is not None
     assert app.player_stats_manager is not None
     assert app.game_instance is None
-    with patch('main.__version__', "9.9.9"):
+    with patch("main.__version__", "9.9.9"):
         re_app = App(MagicMock())
         assert re_app.version == "v9.9.9"
 
-@patch('main.App._initialize_game_session')
+
+@patch("main.App._initialize_game_session")
 def test_new_game_starts_successfully(mock_init_session, app_with_mocks):
     """Testet den 'Neues Spiel'-Workflow, wenn der Benutzer den Dialog bestätigt."""
     app, mocks = app_with_mocks
-    mock_dialog_class = mocks['game_settings_dialog']
+    mock_dialog_class = mocks["game_settings_dialog"]
 
     # Konfiguriere die Mock-Dialog-Instanz
     mock_dialog_instance = mock_dialog_class.return_value
     mock_dialog_instance.was_started = True
     # Der Dialog gibt ein Dictionary zurück
-    mock_dialog_instance.result = {"game": "501", "players": ["Player 1"], "opt_out": "Double", "count_to": 501, "opt_in": "Single", 
-                                   "opt_atc": "Single", "lifes": 3, "rounds": 7, "legs_to_win": 1, "sets_to_win": 1}
+    mock_dialog_instance.result = {
+        "game": "501",
+        "players": ["Player 1"],
+        "opt_out": "Double",
+        "count_to": 501,
+        "opt_in": "Single",
+        "opt_atc": "Single",
+        "lifes": 3,
+        "rounds": 7,
+        "legs_to_win": 1,
+        "sets_to_win": 1,
+    }
 
     mock_game_instance = MagicMock(spec=Game)
     mock_game_instance.dartboard = MagicMock()
@@ -116,7 +131,9 @@ def test_new_game_starts_successfully(mock_init_session, app_with_mocks):
     app.new_game()
 
     # Überprüfe die Aufrufe
-    mock_dialog_class.assert_called_once_with(app.root, app.settings_manager, app.profile_manager)
+    mock_dialog_class.assert_called_once_with(
+        app.root, app.settings_manager, app.profile_manager
+    )
     app.root.wait_window.assert_any_call(mock_dialog_instance)
 
     # Überprüfe, ob die Spiel-Session mit einem GameOptions-Objekt und den Spielernamen gestartet wurde
@@ -125,11 +142,12 @@ def test_new_game_starts_successfully(mock_init_session, app_with_mocks):
     assert mock_init_session.call_args.args[1] == ["Player 1"]
     assert app.game_instance is not None
 
-@patch('main.App._initialize_game_session')
+
+@patch("main.App._initialize_game_session")
 def test_new_game_cancelled_by_user(mock_init_session, app_with_mocks):
     """Testet den 'Neues Spiel'-Workflow, wenn der Benutzer den Dialog abbricht."""
     app, mocks = app_with_mocks
-    mock_dialog_class = mocks['game_settings_dialog']
+    mock_dialog_class = mocks["game_settings_dialog"]
 
     mock_dialog_instance = mock_dialog_class.return_value
     mock_dialog_instance.was_started = False
@@ -137,15 +155,18 @@ def test_new_game_cancelled_by_user(mock_init_session, app_with_mocks):
 
     app.new_game()
 
-    mock_dialog_class.assert_called_once_with(app.root, app.settings_manager, app.profile_manager)
+    mock_dialog_class.assert_called_once_with(
+        app.root, app.settings_manager, app.profile_manager
+    )
     mock_init_session.assert_not_called()
     assert app.game_instance is None
     app.root.deiconify.assert_called_once()
 
+
 def test_check_and_close_existing_game_confirmed(app_with_mocks):
     """Testet, ob ein laufendes Spiel beendet wird, wenn der Benutzer bestätigt."""
     app, mocks = app_with_mocks
-    mock_ui_utils = mocks['ui_utils']
+    mock_ui_utils = mocks["ui_utils"]
     mock_ui_utils.ask_question.return_value = True
 
     mock_game = MagicMock(spec=Game)
@@ -159,10 +180,11 @@ def test_check_and_close_existing_game_confirmed(app_with_mocks):
     assert app.game_instance is None
     assert result is True
 
+
 def test_check_and_close_existing_game_cancelled(app_with_mocks):
     """Testet, ob ein laufendes Spiel NICHT beendet wird, wenn der Benutzer abbricht."""
     app, mocks = app_with_mocks
-    mock_ui_utils = mocks['ui_utils']
+    mock_ui_utils = mocks["ui_utils"]
     mock_ui_utils.ask_question.return_value = False
 
     mock_game = MagicMock(spec=Game)
@@ -176,20 +198,28 @@ def test_check_and_close_existing_game_cancelled(app_with_mocks):
     assert app.game_instance is not None
     assert result is False
 
-@patch('main.App._ensure_no_active_session', return_value=True)
-@patch('main.App._initialize_game_session')
+
+@patch("main.App._ensure_no_active_session", return_value=True)
+@patch("main.App._initialize_game_session")
 def test_load_game_successful(mock_init_session, mock_check_close, app_with_mocks):
     """Testet den erfolgreichen Ladevorgang eines Spiels."""
     app, mocks = app_with_mocks
-    mock_slm = mocks['save_load_manager']
+    mock_slm = mocks["save_load_manager"]
     mock_load_data = mock_slm.load_game_data
     mock_restore = mock_slm.restore_game_state
 
     mock_data = {
-        'save_type': 'game', 'name': '301', 'opt_in': 'Single',
-        'opt_out': 'Double', 'opt_atc': 'Single', 'count_to': 301,
-        'lifes': 3, 'rounds': 7, 'legs_to_win': 1, 'sets_to_win': 1,
-        'players': [{'name': 'P1'}]
+        "save_type": "game",
+        "name": "301",
+        "opt_in": "Single",
+        "opt_out": "Double",
+        "opt_atc": "Single",
+        "count_to": 301,
+        "lifes": 3,
+        "rounds": 7,
+        "legs_to_win": 1,
+        "sets_to_win": 1,
+        "players": [{"name": "P1"}],
     }
     mock_load_data.return_value = mock_data
 
@@ -207,24 +237,29 @@ def test_load_game_successful(mock_init_session, mock_check_close, app_with_mock
     assert app.game_instance == mock_game_instance
     app.root.wait_window.assert_called_once_with(mock_game_instance.dartboard.root)
 
+
 def test_save_game_with_no_active_game(app_with_mocks):
     """Testet, dass das Speichern fehlschlägt, wenn kein Spiel läuft."""
     app, mocks = app_with_mocks
-    mock_save = mocks['save_load_manager'].save_state
-    mock_showinfo = mocks['ui_utils'].show_message
+    mock_save = mocks["save_load_manager"].save_state
+    mock_showinfo = mocks["ui_utils"].show_message
 
     app.game_instance = None
     app.save_game()
 
     mock_save.assert_not_called()
     mock_showinfo.assert_called_once_with(
-        'info', "Spiel speichern", "Es läuft kein aktives Spiel, das gespeichert werden könnte.", parent=app.root
+        "info",
+        "Spiel speichern",
+        "Es läuft kein aktives Spiel, das gespeichert werden könnte.",
+        parent=app.root,
     )
+
 
 def test_save_game_with_active_game(app_with_mocks):
     """Testet, dass die Speichern-Funktion bei einem aktiven Spiel aufgerufen wird."""
     app, mocks = app_with_mocks
-    mock_save = mocks['save_load_manager'].save_state
+    mock_save = mocks["save_load_manager"].save_state
 
     app.game_instance = MagicMock(spec=Game)
     app.game_instance.end = False
@@ -234,10 +269,11 @@ def test_save_game_with_active_game(app_with_mocks):
 
     mock_save.assert_called_once_with(app.game_instance, app.root)
 
+
 def test_quit_game_confirmed(app_with_mocks):
     """Testet, ob die Anwendung bei Bestätigung beendet wird."""
     app, mocks = app_with_mocks
-    mock_ask_question = mocks['ui_utils'].ask_question
+    mock_ask_question = mocks["ui_utils"].ask_question
     mock_ask_question.return_value = True
 
     app.root.quit = MagicMock()
@@ -246,52 +282,57 @@ def test_quit_game_confirmed(app_with_mocks):
 
     app.quit_game()
 
-    mock_ask_question.assert_called_once_with('yesno', "Programm beenden", "DartCounter wirklich beenden?", parent=app.root)
+    mock_ask_question.assert_called_once_with(
+        "yesno", "Programm beenden", "DartCounter wirklich beenden?", parent=app.root
+    )
     app.settings_manager.save_settings.assert_called_once()
     app.db_manager.close_connection.assert_called_once()
     app.root.quit.assert_called_once()
 
+
 def test_show_highscores_calls_manager(app_with_mocks):
     """Testet, ob das Anzeigen der Highscores an den Manager delegiert wird."""
     app, mocks = app_with_mocks
-    mock_highscore_manager = mocks['highscore_manager']
+    mock_highscore_manager = mocks["highscore_manager"]
     app.highscore_manager = mock_highscore_manager
 
     app.show_highscores()
     mock_highscore_manager.show_highscores_window.assert_called_once_with(app.root)
 
+
 def test_show_player_stats_calls_manager(app_with_mocks):
     """Testet, ob das Anzeigen der Statistiken an den Manager delegiert wird."""
     app, mocks = app_with_mocks
-    mock_player_stats_manager = mocks['player_stats_manager']
+    mock_player_stats_manager = mocks["player_stats_manager"]
     app.player_stats_manager = mock_player_stats_manager
 
     app.show_player_stats()
     mock_player_stats_manager.show_stats_window.assert_called_once_with(app.root)
 
+
 def test_open_profile_manager_calls_dialog_correctly(app_with_mocks):
     """Testet, ob der Profil-Manager-Dialog mit den korrekten Managern aufgerufen wird."""
     app, mocks = app_with_mocks
     # Mock the dialog class itself to check its instantiation
-    with patch('main.ProfileManagerDialog') as mock_dialog_class:
+    with patch("main.ProfileManagerDialog") as mock_dialog_class:
         app.open_profile_manager()
 
         # Verify that the dialog was called with the root window, profile manager, and stats manager
         mock_dialog_class.assert_called_once_with(
-            app.root,
-            app.profile_manager,
-            app.player_stats_manager
+            app.root, app.profile_manager, app.player_stats_manager
         )
         # Verify that wait_window was called on the created dialog instance
         app.root.wait_window.assert_called_once_with(mock_dialog_class.return_value)
 
+
 # --- Tournament Flow Tests ---
+
 
 def test_save_tournament_with_active_tournament(app_with_mocks):
     """Testet, dass save_tournament den Manager aufruft, wenn ein Turnier aktiv ist."""
     app, mocks = app_with_mocks
-    mock_save = mocks['save_load_manager'].save_state
-    mock_show_message = mocks['ui_utils'].show_message
+    mock_save = mocks["save_load_manager"].save_state
+    mock_show_message = mocks["ui_utils"].show_message
 
     app.tournament_manager = MagicMock(spec=TournamentManager)
     app.tournament_manager.is_finished = False
@@ -301,11 +342,12 @@ def test_save_tournament_with_active_tournament(app_with_mocks):
     mock_save.assert_called_once_with(app.tournament_manager, app.root)
     mock_show_message.assert_not_called()
 
+
 def test_save_tournament_with_no_active_tournament(app_with_mocks):
     """Testet, dass save_tournament eine Nachricht anzeigt, wenn kein Turnier aktiv ist."""
     app, mocks = app_with_mocks
-    mock_save = mocks['save_load_manager'].save_state
-    mock_show_message = mocks['ui_utils'].show_message
+    mock_save = mocks["save_load_manager"].save_state
+    mock_show_message = mocks["ui_utils"].show_message
 
     app.tournament_manager = None
     app.save_tournament()
@@ -313,15 +355,16 @@ def test_save_tournament_with_no_active_tournament(app_with_mocks):
     mock_save.assert_not_called()
     mock_show_message.assert_called_once()
 
-@patch('main.App._ensure_no_active_session', return_value=True)
+
+@patch("main.App._ensure_no_active_session", return_value=True)
 def test_load_tournament_successful(mock_check_close, app_with_mocks):
     """Testet den erfolgreichen Ladevorgang eines Turniers."""
     app, mocks = app_with_mocks
-    mock_load_data = mocks['save_load_manager'].load_tournament_data
-    mock_from_dict = mocks['tournament_manager_from_dict']
-    mock_view_class = mocks['tournament_view']
+    mock_load_data = mocks["save_load_manager"].load_tournament_data
+    mock_from_dict = mocks["tournament_manager_from_dict"]
+    mock_view_class = mocks["tournament_view"]
 
-    mock_data = {'player_names': ['A', 'B'], 'game_mode': '501', 'bracket': {}}
+    mock_data = {"player_names": ["A", "B"], "game_mode": "501", "bracket": {}}
     mock_load_data.return_value = mock_data
     mock_tm_instance = MagicMock(spec=TournamentManager)
     mock_from_dict.return_value = mock_tm_instance
@@ -332,5 +375,7 @@ def test_load_tournament_successful(mock_check_close, app_with_mocks):
     mock_load_data.assert_called_once_with(app.root)
     mock_from_dict.assert_called_once_with(mock_data)
     assert app.tournament_manager == mock_tm_instance
-    mock_view_class.assert_called_once_with(app.root, mock_tm_instance, app.start_next_tournament_match)
+    mock_view_class.assert_called_once_with(
+        app.root, mock_tm_instance, app.start_next_tournament_match
+    )
     assert app.tournament_view is not None

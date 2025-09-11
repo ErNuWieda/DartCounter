@@ -16,11 +16,13 @@
 
 from core.player_profile import PlayerProfile
 
+
 def test_initialization():
     """Testet die korrekte Initialisierung eines Profils."""
     profile = PlayerProfile(name="Gemini", avatar_path="assets/avatars/gemini.png")
     assert profile.name == "Gemini"
     assert profile.avatar_path == "assets/avatars/gemini.png"
+
 
 def test_serialization_and_deserialization():
     """Testet, ob die Konvertierung zu und von einem Dictionary funktioniert."""
@@ -28,13 +30,14 @@ def test_serialization_and_deserialization():
     profile_dict = profile.to_dict()
 
     expected_dict = {
-        'id': None,
-        'name': 'Martin',
-        'avatar_path': 'assets/avatars/martin.png',
-        'dart_color': '#ff0000',
-        'is_ai': False,
-        'difficulty': None,
-        'preferred_double': None, 'accuracy_model': None
+        "id": None,
+        "name": "Martin",
+        "avatar_path": "assets/avatars/martin.png",
+        "dart_color": "#ff0000",
+        "is_ai": False,
+        "difficulty": None,
+        "preferred_double": None,
+        "accuracy_model": None,
     }
     assert profile_dict == expected_dict
 
