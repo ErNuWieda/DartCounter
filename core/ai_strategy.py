@@ -73,10 +73,7 @@ class X01AIStrategy(AIStrategy):
             return "Triple", 20
         # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist) ---
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
-            score,
-            self.game.options.opt_out,
-            darts_left,
-            preferred_double=preferred_double,
+            score, self.game.options.opt_out, darts_left, preferred_double=preferred_double
         )
         if checkout_path_str and checkout_path_str != "-":
             targets = checkout_path_str.split(", ")

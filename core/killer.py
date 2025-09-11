@@ -79,9 +79,8 @@ class Killer(GameLogicBase):
         if len(active_players) == 1:
             self.game.end = True
             winner = active_players[0]
-            msg = f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!"
-            return ("win", msg)
-        elif not active_players and len(self.players) > 0:  # noqa
+            return ("win", f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!")
+        elif not active_players and len(self.players) > 0:
             self.game.end = True
             return "Niemand gewinnt! Alle Spieler wurden eliminiert."
         return None
@@ -207,19 +206,20 @@ class Killer(GameLogicBase):
             victim.score -= 1
             self.turn_log.append({"action": "take_life", "victim": victim})
             victim.sb.set_score_value(victim.score)
-            opp_name = victim.name
             if victim == player:
                 opp_name = "sich selbst"
+            else:
+                opp_name = victim.name
 
             if victim.score > 0:
-                msg = f"{player.name} nimmt {opp_name} ein Leben!\n"
-                msg += f"{victim.name} hat noch {victim.score} Leben."
-                return ("info", msg)
+                return (
+                    "info",
+                    f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.",
+                )
             else:
                 win_result = self._check_and_handle_win_condition()
                 if win_result:
                     return win_result
-                # Kein Sieger, nur eliminiert
                 return ("info", f"{player.name} hat {opp_name} eliminiert!")
 
         player.sb.update_score(player.score)

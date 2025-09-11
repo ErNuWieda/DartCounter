@@ -98,13 +98,12 @@ class BracketCanvas(tk.Canvas):
         # Runde 1 wird vertikal zentriert
         available_height = self.winfo_height() - self.HEADER_HEIGHT
         total_height_round1 = len(rounds_data[0]) * self.MATCH_HEIGHT
-        y_offset_round1 = self.HEADER_HEIGHT + (available_height - total_height_round1) // 2  # noqa
+        y_offset_round1 = self.HEADER_HEIGHT + (available_height - total_height_round1) // 2
         if y_offset_round1 < self.HEADER_HEIGHT + self.PADDING:
             y_offset_round1 = self.HEADER_HEIGHT + self.PADDING
 
         for match_idx, _ in enumerate(rounds_data[0]):
             y_pos = y_offset_round1 + (match_idx * self.MATCH_HEIGHT)
-            match_positions[(0, match_idx)] = y_pos + (self.BOX_HEIGHT // 2)
 
         # Folge-Runden werden relativ zur vorherigen Runde positioniert
         for round_idx in range(len(rounds_data) - 1):
@@ -114,13 +113,13 @@ class BracketCanvas(tk.Canvas):
 
             for next_match_idx, _ in enumerate(rounds_data[next_round_idx]):
                 if is_lb_feed_in_round:
-                    # In einer Feed-in-Runde hat jedes Match nur einen Elternteil aus der vorherigen LB-Runde.
-                    # Die Position wird direkt vom Elternteil übernommen.
+                    # In einer Feed-in-Runde hat jedes Match nur einen Elternteil
+                    # aus der vorherigen LB-Runde. Die Position wird übernommen.
                     parent_y = match_positions.get((round_idx, next_match_idx))
                     y_center = parent_y if parent_y else self.winfo_height() / 2
                 else:
-                    # Standardlogik für WB oder interne LB-Runden # noqa
-                    parent1_y = match_positions.get((round_idx, next_match_idx * 2))  # noqa
+                    # Standardlogik für WB oder interne LB-Runden
+                    parent1_y = match_positions.get((round_idx, next_match_idx * 2))
                     parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
 
                     if parent1_y and parent2_y:

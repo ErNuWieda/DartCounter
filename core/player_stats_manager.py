@@ -101,15 +101,17 @@ class PlayerStatsManager:
 
         def do_reset(player_to_reset):
             mode_name = f"'{player_to_reset}'" if player_to_reset else "alle Spieler"
-            confirm_msg = f"Bist du sicher, dass du die Spiel-Statistiken für "
-            confirm_msg += f"{mode_name} unwiderruflich löschen möchtest?"
+            confirm_msg = (
+                f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} "
+                "unwiderruflich löschen möchtest?"
+            )
             if not messagebox.askyesno("Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
             self.db_manager.reset_game_records(player_to_reset)
-            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)  # type: ignore
+            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)
             reset_dialog.destroy()
-            stats_win.destroy()  # Schließt das Hauptfenster, um ein Neuladen zu erzwingen
+            stats_win.destroy()
 
         if selected_player:
             ttk.Button(
@@ -118,16 +120,14 @@ class PlayerStatsManager:
                 command=lambda: do_reset(selected_player),
             ).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
-            side="left", padx=5  # noqa
-        )  # noqa
+            side="left", padx=5
+        )
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(
             side="left", padx=5
         )
 
-    def _calculate_streaks(self, records: list[dict]) -> dict:
-        """
-        Berechnet verschiedene "Serien"-Statistiken aus einer Liste von Spiel-Datensätzen.
-        """
+    def _calculate_streaks(self, records: list[dict]) -> dict:  # noqa: F541
+        """Berechnet "Serien"-Statistiken aus einer Liste von Spiel-Datensätzen."""
         if not records:
             return {"best_win_streak": 0}
 
@@ -148,10 +148,8 @@ class PlayerStatsManager:
 
         return {"best_win_streak": max_win_streak}
 
-    def update_accuracy_model(self, player_name: str, parent_window=None):
-        """# noqa
-        Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es. # noqa
-        """
+    def update_accuracy_model(self, player_name: str, parent_window=None):  # noqa: F541
+        """Berechnet das Wurf-Genauigkeitsmodell für einen Spieler und speichert es."""
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",

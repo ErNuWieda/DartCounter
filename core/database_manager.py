@@ -137,8 +137,8 @@ class DatabaseManager:
             if not all(key in db_config for key in required_keys):
                 log_msg = (
                     "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] "
-                    "Abschnitt. Datenbankfunktionen sind deaktiviert."  # noqa
-                )  # noqa
+                    "Abschnitt. Datenbankfunktionen sind deaktiviert."
+                )
                 logger.error(log_msg)
                 return
 
@@ -177,8 +177,8 @@ class DatabaseManager:
             # Führe den 'upgrade head'-Befehl aus
             command.upgrade(alembic_cfg, "head")
 
-            logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")  # noqa
-        except SQLAlchemyError as e:  # noqa
+            logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
+        except SQLAlchemyError as e:
             # Fängt Fehler ab, die während der Migration auftreten können
             logger.error(f"Fehler während der Datenbank-Migration: {e}", exc_info=True)
             self.is_connected = False
@@ -361,8 +361,8 @@ class DatabaseManager:
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
-                log_msg = f"Versuch, ein Profil mit dem bereits existierenden Namen '{name}'"
-                logger.warning(log_msg + " zu erstellen.")
+                log_msg = f"Versuch, ein Profil mit dem bereits existierenden Namen"
+                logger.warning(f"{log_msg} '{name}' zu erstellen.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -420,9 +420,9 @@ class DatabaseManager:
                 if profile:
                     profile.accuracy_model = model
                     session.commit()
-                    return True  # noqa
-                log_msg = f"Konnte Genauigkeitsmodell nicht speichern: Profil '{player_name}'"
-                logger.warning(log_msg)
+                    return True
+                log_msg = "Konnte Genauigkeitsmodell nicht speichern: "
+                logger.warning(f"{log_msg}Profil '{player_name}' nicht gefunden.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -444,8 +444,8 @@ class DatabaseManager:
                 return True
             return False
 
-    def reset_scores(self, game_mode=None):  # noqa
-        """Setzt Highscores zurück. Entweder für einen spezifischen Modus oder alle."""  # noqa
+    def reset_scores(self, game_mode=None):
+        """Setzt Highscores zurück. Entweder für einen spezifischen Modus oder alle."""
         if not self.Session:
             return
         with self.Session() as session:
