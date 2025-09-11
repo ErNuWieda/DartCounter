@@ -29,7 +29,6 @@ import pathlib
 from core.game_options import GameOptions
 from core.game_settings_dialog import GameSettingsDialog
 from core.game import Game
-from core.dartboard import DartBoard
 from core.save_load_manager import SaveLoadManager
 from core.sound_manager import SoundManager
 from core.player_stats_manager import PlayerStatsManager
@@ -214,7 +213,7 @@ class App:
                 msg_type = (
                     "error"
                     if result.status in ("bust", "invalid_open", "invalid_target", "error")
-                    else result.status
+                    else "info"
                 )
                 title = title_map.get(result.status, "Info")
                 ui_utils.show_message(
@@ -346,7 +345,8 @@ class App:
         """Speichert den Zustand des aktuell laufenden Turniers."""
         if self.tournament_manager and not self.tournament_manager.is_finished:
             SaveLoadManager.save_state(self.tournament_manager, self.root)
-        else:  # pragma: no cover
+        else:
+            title = "Turnier speichern"
             message = "Es läuft kein aktives Turnier, das gespeichert werden könnte."
             ui_utils.show_message("info", title, message, parent=self.root)
 
@@ -421,7 +421,7 @@ class App:
             SaveLoadManager.save_state(self.game_instance, self.root)
         else:  # pragma: no cover
             message = "Es läuft kein aktives Spiel, das gespeichert werden könnte."
-            ui_utils.show_message("info", title, message, parent=self.root)
+            ui_utils.show_message("info", "Spiel speichern", message, parent=self.root)
 
     def show_highscores(self):
         """Öffnet das Fenster zur Anzeige der Highscores."""
@@ -454,8 +454,8 @@ class App:
             "von Martin Hehl (airnooweeda)\n\n"
             "Ein besonderer Dank geht an Gemini Code Assist\n"
             "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
-            f"© 2025 Martin Hehl"
-        )  # noqa: F541
+            "© 2025 Martin Hehl"
+        )
         ui_utils.show_message("info", f"Dartcounter {self.version}", about_text, parent=self.root)
 
     def open_donate_link(self):
