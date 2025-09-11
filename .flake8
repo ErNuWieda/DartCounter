@@ -1,0 +1,16 @@
+[flake8]
+# Set the max line length to 88 characters to match 'black'
+max-line-length = 88
+# Ignore some warnings that conflict with black's formatting style
+extend-ignore = 
+    E203, # whitespace before ':'
+    W503  # line break before binary operator
+
+# Ignore specific errors per file.
+# F401: 'module' imported but unused
+# F841: local variable ... is assigned to but never used
+per-file-ignores =
+    # It's common to have unused imports or variables in these files (e.g., for fixtures)
+    __init__.py: F401
+    tests/*: F841, F401
+
