@@ -25,9 +25,7 @@ def db_manager_setup(monkeypatch):
     monkeypatch.setattr("pathlib.Path.exists", mock_exists)
 
     mock_configparser = MagicMock()
-    monkeypatch.setattr(
-        "core.database_manager.configparser.ConfigParser", mock_configparser
-    )
+    monkeypatch.setattr("core.database_manager.configparser.ConfigParser", mock_configparser)
 
     mock_config_instance = mock_configparser.return_value
     # Simuliere den Zugriff via `config['postgresql']`
@@ -40,9 +38,7 @@ def db_manager_setup(monkeypatch):
 
     # Mock für SQLAlchemy-Engine und Session
     # Verhindere, dass die echten Migrationen im Test ausgeführt werden, was zu ImportErrors führt.
-    monkeypatch.setattr(
-        "core.database_manager.DatabaseManager._run_migrations", MagicMock()
-    )
+    monkeypatch.setattr("core.database_manager.DatabaseManager._run_migrations", MagicMock())
 
     with patch("core.database_manager.create_engine") as mock_create_engine:
         mock_engine_instance = MagicMock()
@@ -95,13 +91,9 @@ def config_test_setup(monkeypatch):
     """Eine Fixture, die die gesamte Umgebung für die Konfigurations-Tests einrichtet."""
     # Wir verwenden `with` hier, um sicherzustellen, dass die Mocks nach dem Test
     # automatisch aufgeräumt werden.
-    with patch(
-        "core.database_manager.configparser.ConfigParser"
-    ) as MockConfigParser, patch(
+    with patch("core.database_manager.configparser.ConfigParser") as MockConfigParser, patch(
         "core.database_manager.shutil.copy"
-    ) as mock_shutil_copy, patch(
-        "core.database_manager.DatabaseManager._connect_to_db"
-    ):
+    ) as mock_shutil_copy, patch("core.database_manager.DatabaseManager._connect_to_db"):
 
         # 1. Setze das Singleton vor jedem Test zurück.
         reset_db_manager_singleton()
@@ -109,17 +101,11 @@ def config_test_setup(monkeypatch):
         # 2. Mocke die Pfad-Funktionen.
         mock_app_data_dir = Path("/fake/appdata/dir/DartCounter")
         mock_root_dir = Path("/fake/root/dir")
-        monkeypatch.setattr(
-            "core.database_manager.get_app_data_dir", lambda: mock_app_data_dir
-        )
-        monkeypatch.setattr(
-            "core.database_manager.get_application_root_dir", lambda: mock_root_dir
-        )
+        monkeypatch.setattr("core.database_manager.get_app_data_dir", lambda: mock_app_data_dir)
+        monkeypatch.setattr("core.database_manager.get_application_root_dir", lambda: mock_root_dir)
 
         # 3. Erstelle eine flexible Factory für `pathlib.Path.exists`.
-        def mock_exists_factory(
-            user_exists=False, root_exists=False, example_exists=False
-        ):
+        def mock_exists_factory(user_exists=False, root_exists=False, example_exists=False):
             user_config_path = mock_app_data_dir / "config.ini"
             root_config_path = mock_root_dir / "config.ini"
             example_config_path = mock_root_dir / "config.ini.example"
@@ -199,9 +185,7 @@ def test_initialization_connection_error(monkeypatch):
         "user": "u",
         "password": "p",
     }
-    monkeypatch.setattr(
-        "core.database_manager.configparser.ConfigParser", mock_configparser
-    )
+    monkeypatch.setattr("core.database_manager.configparser.ConfigParser", mock_configparser)
 
     # Simuliere einen Fehler bei create_engine
     with patch(
@@ -223,9 +207,7 @@ def test_initialization_config_key_error(monkeypatch, mock_logger):
         "host": "h",
         "database": "d",
     }  # user/pw fehlen
-    monkeypatch.setattr(
-        "core.database_manager.configparser.ConfigParser", mock_configparser
-    )
+    monkeypatch.setattr("core.database_manager.configparser.ConfigParser", mock_configparser)
 
     db_manager = DatabaseManager()
     assert not db_manager.is_connected
@@ -309,9 +291,7 @@ def test_delete_profile_returns_true_on_success(db_manager_setup):
 
     # Simuliere, dass ein Profil gefunden wird
     mock_profile = PlayerProfile(name="Existing Player")
-    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = (
-        mock_profile
-    )
+    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = mock_profile
 
     result = db_manager.delete_profile("Existing Player")
     assert result
@@ -325,9 +305,7 @@ def test_delete_profile_returns_false_if_not_found(db_manager_setup):
     mock_session.reset_mock()
 
     # Simuliere, dass kein Profil gefunden wird (Standardverhalten des Mocks)
-    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = (
-        None
-    )
+    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = None
 
     result = db_manager.delete_profile("Non-Existing Player")
     assert not result
@@ -338,14 +316,10 @@ def test_delete_profile_returns_false_if_not_found(db_manager_setup):
 def test_update_profile_handles_integrity_error(db_manager_setup, mock_logger):
     """Testet, ob update_profile bei einem IntegrityError korrekt reagiert."""
     db_manager, _, mock_session, _ = db_manager_setup
-    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = (
-        MagicMock()
-    )
+    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = MagicMock()
     mock_session.commit.side_effect = IntegrityError("test", "test", "test")
 
-    result = db_manager.update_profile(
-        1, "ExistingName", "/path", "#ff0000", False, None, None
-    )
+    result = db_manager.update_profile(1, "ExistingName", "/path", "#ff0000", False, None, None)
 
     assert not result
     mock_session.rollback.assert_called_once()
@@ -356,9 +330,7 @@ def test_update_profile_accuracy_model(db_manager_setup):
     """Testet das Aktualisieren des Genauigkeitsmodells."""
     db_manager, _, mock_session, _ = db_manager_setup
     mock_profile = MagicMock()
-    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = (
-        mock_profile
-    )
+    mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = mock_profile
 
     model_data = {"T20": {"mean_offset_x": 5}}
     result = db_manager.update_profile_accuracy_model("Tester", model_data)

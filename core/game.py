@@ -122,9 +122,7 @@ class Game:
         self.players = []
         for name in player_names:
             profile = (
-                self.profile_manager.get_profile_by_name(name)
-                if self.profile_manager
-                else None
+                self.profile_manager.get_profile_by_name(name) if self.profile_manager else None
             )
             if profile and profile.is_ai:
                 self.players.append(AIPlayer(name, self, profile=profile))
@@ -161,11 +159,7 @@ class Game:
         """Zerstört alle UI-Elemente, die zu diesem Spiel gehören, sicher."""
         # Das Zerstören des Dartboard-Fensters zerstört automatisch alle untergeordneten
         # Scoreboard-Fenster.
-        if (
-            self.dartboard
-            and self.dartboard.root
-            and self.dartboard.root.winfo_exists()
-        ):
+        if self.dartboard and self.dartboard.root and self.dartboard.root.winfo_exists():
             self.dartboard.root.destroy()
         # Setzt die Referenzen zurück, um Speicherlecks zu vermeiden.
         self.dartboard = None
@@ -202,10 +196,7 @@ class Game:
             self.current -= 1
 
         # NEU: Passe auch den Startspieler-Index für das nächste Leg an.
-        if (
-            self.is_leg_set_match
-            and player_to_remove_index < self.leg_start_player_index
-        ):
+        if self.is_leg_set_match and player_to_remove_index < self.leg_start_player_index:
             self.leg_start_player_index -= 1
 
         # Entferne den Spieler aus der Liste
@@ -254,12 +245,8 @@ class Game:
             self.shanghai_finish = False
         player = self.current_player()
         if player and player.throws:
-            popped_throw = (
-                player.throws.pop()
-            )  # This is now a 3-tuple (ring, segment, coords)
-            self.game._handle_throw_undo(
-                player, popped_throw[0], popped_throw[1], self.players
-            )
+            popped_throw = player.throws.pop()  # This is now a 3-tuple (ring, segment, coords)
+            self.game._handle_throw_undo(player, popped_throw[0], popped_throw[1], self.players)
         self.dartboard.clear_last_dart_image_from_canvas()
         # Nach dem Undo die Button-Zustände aktualisieren
         self.dartboard.update_button_states()
@@ -321,12 +308,7 @@ class Game:
             player.take_turn()
         else:
             # Für einen menschlichen Spieler wird eine blockierende MessageBox angezeigt.
-            if (
-                self.current == 0
-                and self.round == 1
-                and not player.throws
-                and self.dartboard
-            ):
+            if self.current == 0 and self.round == 1 and not player.throws and self.dartboard:
                 ui_utils.show_message(
                     "info",
                     "Spielstart",
@@ -338,9 +320,7 @@ class Game:
             turn_message_data = self.game.get_turn_start_message(player)  # type: ignore
             if turn_message_data and self.dartboard:
                 msg_type, title, message = turn_message_data
-                ui_utils.show_message(
-                    msg_type, title, message, parent=self.dartboard.root
-                )
+                ui_utils.show_message(msg_type, title, message, parent=self.dartboard.root)
 
     def next_player(self):
         """
@@ -450,9 +430,7 @@ class Game:
 
         for p in self.players:
             # Sammle alle Wurfkoordinaten des Spielers aus dem gesamten Spiel
-            all_coords = [
-                coords for _, _, coords in p.all_game_throws if coords is not None
-            ]
+            all_coords = [coords for _, _, coords in p.all_game_throws if coords is not None]
 
             stats_data = {
                 "game_mode": self.options.name,
@@ -474,9 +452,7 @@ class Game:
             # Für X01 ist die Metrik die Anzahl der Darts
             if self.options.name in ("301", "501", "701"):
                 total_darts = winner.get_total_darts_in_game()
-                self.highscore_manager.add_score(
-                    self.options.name, winner.name, total_darts
-                )
+                self.highscore_manager.add_score(self.options.name, winner.name, total_darts)
             # Für Cricket ist die Metrik die MPR
             elif self.options.name in ("Cricket", "Cut Throat", "Tactics"):
                 mpr = winner.get_mpr()
@@ -568,9 +544,7 @@ class Game:
         # Prüfen, ob der Satz gewonnen wurde
         if self.player_leg_scores[winner.id] >= self.legs_to_win:
             self.player_set_scores[winner.id] += 1
-            self.player_leg_scores = {
-                p.id: 0 for p in self.players
-            }  # Reset für nächsten Satz
+            self.player_leg_scores = {p.id: 0 for p in self.players}  # Reset für nächsten Satz
             self._update_leg_set_displays()  # Anzeige aktualisieren (Legs=0, Sets++)
             ui_utils.show_message(
                 "info",
@@ -611,9 +585,7 @@ class Game:
             self.game.initialize_player_state(player)  # Setzt Score, etc.
 
         # Wer beginnt das nächste Leg? (abwechselnd)
-        self.leg_start_player_index = (self.leg_start_player_index + 1) % len(
-            self.players
-        )
+        self.leg_start_player_index = (self.leg_start_player_index + 1) % len(self.players)
         self.current = self.leg_start_player_index
 
         # UI für alle Scoreboards aktualisieren

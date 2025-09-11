@@ -31,9 +31,7 @@ class AIStrategy:
 
     def get_target(self, throw_number: int) -> tuple[str, int]:
         """Gibt das Ziel als (Ring, Segment)-Tupel zurück."""
-        raise NotImplementedError(
-            "Diese Methode muss in der Unterklasse implementiert werden."
-        )
+        raise NotImplementedError("Diese Methode muss in der Unterklasse implementiert werden.")
 
     def _parse_target_string(self, target_str: str) -> tuple[str, int]:
         """Hilfsmethode zum Parsen von Ziel-Strings (z.B. "T20")."""
@@ -216,16 +214,10 @@ class KillerAIStrategy(AIStrategy):
         # Phase 2: Killer werden
         if not player_state.get("can_kill"):
             my_segment = player_state["life_segment"]
-            return (
-                ("Bullseye", 50)
-                if my_segment == "Bull"
-                else ("Double", int(my_segment))
-            )
+            return ("Bullseye", 50) if my_segment == "Bull" else ("Double", int(my_segment))
 
         # Phase 3: Als Killer agieren
-        opponents = [
-            p for p in self.game.players if p != self.ai_player and p.score > 0
-        ]
+        opponents = [p for p in self.game.players if p != self.ai_player and p.score > 0]
         if not opponents:
             return "Bullseye", 50  # Keine Gegner mehr
 
@@ -244,11 +236,7 @@ class KillerAIStrategy(AIStrategy):
             # Fallback, falls ein Gegner aus irgendeinem Grund kein Lebensfeld hat
             return "Bullseye", 50
 
-        return (
-            ("Bullseye", 50)
-            if victim_segment == "Bull"
-            else ("Double", int(victim_segment))
-        )
+        return ("Bullseye", 50) if victim_segment == "Bull" else ("Double", int(victim_segment))
 
 
 class ShanghaiAIStrategy(AIStrategy):

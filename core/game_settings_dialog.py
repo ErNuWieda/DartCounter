@@ -53,9 +53,7 @@ def _load_game_config():
                 return config if config else {}
         else:
             # Weder Benutzer- noch Standardkonfiguration gefunden
-            logger.warning(
-                "Keine 'game_config.json' gefunden. Spieloptionen sind nicht verfügbar."
-            )
+            logger.warning("Keine 'game_config.json' gefunden. Spieloptionen sind nicht verfügbar.")
             return {}
 
     # Schritt 2: Lade die Konfiguration aus dem Benutzerverzeichnis.
@@ -195,21 +193,15 @@ class GameSettingsDialog(tk.Toplevel):
     def _on_start(self):
         """Entspricht der alten 'run'-Methode."""
         num_players = int(self.player_count_var.get())
-        player_names = [
-            entry.get().strip() for entry in self.player_name_entries[:num_players]
-        ]
+        player_names = [entry.get().strip() for entry in self.player_name_entries[:num_players]]
 
         # --- Validierung (analog zum TournamentSettingsDialog) ---
         if any(not name for name in player_names):
-            messagebox.showerror(
-                "Fehler", "Alle Spielernamen müssen ausgefüllt sein.", parent=self
-            )
+            messagebox.showerror("Fehler", "Alle Spielernamen müssen ausgefüllt sein.", parent=self)
             return
 
         if len(set(player_names)) != len(player_names):
-            messagebox.showerror(
-                "Fehler", "Spielernamen müssen eindeutig sein.", parent=self
-            )
+            messagebox.showerror("Fehler", "Spielernamen müssen eindeutig sein.", parent=self)
             return
 
         if self.settings_manager:
@@ -303,9 +295,7 @@ class GameSettingsDialog(tk.Toplevel):
             ttk.Label(players_frame, text=f"Spieler {i+1}:").grid(
                 row=i + 1, column=0, sticky="w", pady=2
             )
-            combo = ttk.Combobox(
-                players_frame, font=("Arial", 10), values=profile_names
-            )
+            combo = ttk.Combobox(players_frame, font=("Arial", 10), values=profile_names)
             combo.grid(row=i + 1, column=1, sticky="ew", pady=2, padx=5)
             combo.insert(0, last_names[i])
             combo.bind("<<ComboboxSelected>>", self._update_available_profiles)
@@ -320,9 +310,7 @@ class GameSettingsDialog(tk.Toplevel):
             text="Profile verwalten...",
             command=self._open_profile_manager,
         )
-        manage_profiles_button.grid(
-            row=self.max_players + 1, column=0, columnspan=2, pady=(10, 5)
-        )
+        manage_profiles_button.grid(row=self.max_players + 1, column=0, columnspan=2, pady=(10, 5))
 
     def _update_available_profiles(self, event=None):
         """
@@ -332,9 +320,7 @@ class GameSettingsDialog(tk.Toplevel):
         if not self.profile_manager:
             return
 
-        all_profile_names = sorted(
-            [p.name for p in self.profile_manager.get_profiles()]
-        )
+        all_profile_names = sorted([p.name for p in self.profile_manager.get_profiles()])
 
         # Korrigierte Logik: Sammle ALLE ausgewählten Namen (Profile & Gäste), um Duplikate zu verhindern.
         selected_names = {
@@ -345,9 +331,7 @@ class GameSettingsDialog(tk.Toplevel):
 
         # Aktualisiere die `values` für jede aktive Combobox
         for entry in self.player_name_entries:
-            if (
-                entry and entry.cget("state") != "disabled"
-            ):  # Die Prüfung ist hier korrekt
+            if entry and entry.cget("state") != "disabled":  # Die Prüfung ist hier korrekt
                 current_value = entry.get()
                 available = [
                     name
@@ -370,12 +354,8 @@ class GameSettingsDialog(tk.Toplevel):
 
     def _create_option_widget(self, parent, row, label_text, values, variable):
         """Hilfsmethode zur Erstellung eines Labels und einer Combobox für eine Spieloption."""
-        ttk.Label(parent, text=f"{label_text}:").grid(
-            row=row, column=0, sticky="w", pady=2
-        )
-        widget = ttk.Combobox(
-            parent, textvariable=variable, values=values, state="readonly"
-        )
+        ttk.Label(parent, text=f"{label_text}:").grid(row=row, column=0, sticky="w", pady=2)
+        widget = ttk.Combobox(parent, textvariable=variable, values=values, state="readonly")
         widget.grid(row=row, column=1, sticky="ew", padx=5, pady=2)
 
     def _create_dynamic_option_frames(self, parent, start_row):

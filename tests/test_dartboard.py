@@ -28,10 +28,7 @@ class TestDartboardGeometry:
         # Testet mit der korrekten Referenzgröße der Klasse
         size = DartboardGeometry.ORIGINAL_SIZE
         center = DartboardGeometry.CENTER
-        assert (
-            DartboardGeometry.get_segment_from_coords(center, center, size=size)
-            == "Bullseye"
-        )
+        assert DartboardGeometry.get_segment_from_coords(center, center, size=size) == "Bullseye"
 
     def test_get_segment_from_coords_specific_segments(self):
         # Testet mit der korrekten Referenzgröße der Klasse
@@ -40,26 +37,17 @@ class TestDartboardGeometry:
         # Oben im Board, im Triple-20-Segment
         # Radius für T20 ist zwischen 470 und 520. Winkel ist -90 Grad.
         y_pos_t20 = center - (DartboardGeometry.RADIEN["triple_inner"] + 10)
-        assert (
-            DartboardGeometry.get_segment_from_coords(center, y_pos_t20, size=size)
-            == "20"
-        )
+        assert DartboardGeometry.get_segment_from_coords(center, y_pos_t20, size=size) == "20"
         # Rechts im Board, im Single-6-Segment
         # Radius für S6 ist zwischen 80 und 470. Winkel ist 0 Grad.
         x_pos_s6 = center + (DartboardGeometry.RADIEN["bull"] + 10)
-        assert (
-            DartboardGeometry.get_segment_from_coords(x_pos_s6, center, size=size)
-            == "6"
-        )
+        assert DartboardGeometry.get_segment_from_coords(x_pos_s6, center, size=size) == "6"
 
     def test_get_segment_from_coords_miss(self):
         # Außerhalb des Boards
         size = DartboardGeometry.ORIGINAL_SIZE
         assert DartboardGeometry.get_segment_from_coords(0, 0, size=size) == "Miss"
-        assert (
-            DartboardGeometry.get_segment_from_coords(size - 1, size - 1, size=size)
-            == "Miss"
-        )
+        assert DartboardGeometry.get_segment_from_coords(size - 1, size - 1, size=size) == "Miss"
 
     # Test get_target_coords
     def test_get_target_coords(self):
@@ -89,9 +77,7 @@ def mock_dartboard():
         board.center_y = 500
         # Simulate a board scaled to 1000x1000 for easy calculations
         scale = 1000 / DartboardGeometry.ORIGINAL_SIZE
-        board.skaliert = {
-            k: int(v * scale) for k, v in DartboardGeometry.RADIEN.items()
-        }
+        board.skaliert = {k: int(v * scale) for k, v in DartboardGeometry.RADIEN.items()}
 
         yield board
 

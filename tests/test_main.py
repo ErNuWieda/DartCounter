@@ -131,9 +131,7 @@ def test_new_game_starts_successfully(mock_init_session, app_with_mocks):
     app.new_game()
 
     # Überprüfe die Aufrufe
-    mock_dialog_class.assert_called_once_with(
-        app.root, app.settings_manager, app.profile_manager
-    )
+    mock_dialog_class.assert_called_once_with(app.root, app.settings_manager, app.profile_manager)
     app.root.wait_window.assert_any_call(mock_dialog_instance)
 
     # Überprüfe, ob die Spiel-Session mit einem GameOptions-Objekt und den Spielernamen gestartet wurde
@@ -155,9 +153,7 @@ def test_new_game_cancelled_by_user(mock_init_session, app_with_mocks):
 
     app.new_game()
 
-    mock_dialog_class.assert_called_once_with(
-        app.root, app.settings_manager, app.profile_manager
-    )
+    mock_dialog_class.assert_called_once_with(app.root, app.settings_manager, app.profile_manager)
     mock_init_session.assert_not_called()
     assert app.game_instance is None
     app.root.deiconify.assert_called_once()

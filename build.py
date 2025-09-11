@@ -51,12 +51,8 @@ def run_tests():
         print("FEHLER: Die Test-Suite ist fehlgeschlagen.")
         print("Mögliche Ursachen:")
         print("  - Ein oder mehrere Tests sind nicht erfolgreich.")
-        print(
-            "  - Die Test-Abhängigkeiten (pytest, pytest-cov) sind nicht installiert."
-        )
-        print(
-            "Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:"
-        )
+        print("  - Die Test-Abhängigkeiten (pytest, pytest-cov) sind nicht installiert.")
+        print("Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:")
         print("  pip install -r requirements-dev.txt")
         print("=" * 50 + "\n")
         return False
@@ -84,9 +80,7 @@ def main():
     print(">>> Schritt 0: Überprüfe Voraussetzungen...")
     if not SCRIPT_NAME.is_file():
         print(f"\nFEHLER: Hauptskript '{SCRIPT_NAME}' nicht gefunden.")
-        print(
-            "Stellen Sie sicher, dass Sie das Skript im Hauptverzeichnis des Projekts ausführen."
-        )
+        print("Stellen Sie sicher, dass Sie das Skript im Hauptverzeichnis des Projekts ausführen.")
         sys.exit(1)
 
     if not ASSETS_DIR.is_dir():
@@ -99,9 +93,7 @@ def main():
         print(">>> PyInstaller-Modul gefunden.")
     except ImportError:
         print("\nFEHLER: Das Modul 'PyInstaller' wurde nicht gefunden.")
-        print(
-            f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:"
-        )
+        print(f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:")
         print("pip install pyinstaller")
         sys.exit(1)
 
@@ -118,9 +110,7 @@ def main():
         else (f"{APP_NAME}.app" if system == "Darwin" else APP_NAME)
     )
     release_dir = pathlib.Path(f"{APP_NAME}_{system}_v{VERSION}")
-    icon_extension = (
-        ".ico" if system == "Windows" else ".icns" if system == "Darwin" else None
-    )
+    icon_extension = ".ico" if system == "Windows" else ".icns" if system == "Darwin" else None
 
     print(f"\n>>> Erstelle Release für {system} v{VERSION}...")
 
@@ -175,17 +165,13 @@ def main():
         print(
             "Bitte überprüfen Sie die obige Ausgabe von PyInstaller auf die genaue Fehlermeldung."
         )
-        print(
-            "Stellen Sie sicher, dass alle Abhängigkeiten aus requirements.txt installiert sind."
-        )
+        print("Stellen Sie sicher, dass alle Abhängigkeiten aus requirements.txt installiert sind.")
         print("=" * 50 + "\n")
         sys.exit(1)
     print(">>> PyInstaller erfolgreich abgeschlossen.")
 
     # --- Schritt 3: Release-Verzeichnis erstellen und Dateien kopieren ---
-    print(
-        f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren..."
-    )
+    print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
     release_dir.mkdir(exist_ok=True)
 
     # Haupt-Artefakt verschieben
@@ -212,15 +198,11 @@ def main():
         print(
             "\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe ZIP-Erstellung und Cleanup."
         )
-        print(
-            f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'"
-        )
+        print(f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'")
     else:
         # --- Schritt 4: ZIP-Archiv erstellen (lokaler Build) ---
         print(f"\n>>> Schritt 4: ZIP-Archiv '{release_dir}.zip' erstellen...")
-        shutil.make_archive(
-            str(release_dir), "zip", root_dir=".", base_dir=str(release_dir)
-        )
+        shutil.make_archive(str(release_dir), "zip", root_dir=".", base_dir=str(release_dir))
 
         # --- Schritt 5: Temporäre Build-Artefakte bereinigen (lokaler Build) ---
         print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")

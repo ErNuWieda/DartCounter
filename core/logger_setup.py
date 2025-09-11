@@ -38,9 +38,7 @@ def setup_logging():
     logger.setLevel(logging.INFO)
 
     # Formatter für alle Handler definieren
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # --- FileHandler mit Fehlerbehandlung ---
     # Versucht, einen File-Logger zu erstellen. Wenn dies fehlschlägt (z.B. wegen

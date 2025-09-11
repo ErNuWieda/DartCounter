@@ -24,9 +24,7 @@ def _x01_game_factory(game_factory):
             def score_updater_factory(player_instance):
                 def updater(score, subtract=True):
                     player_instance.score = (
-                        player_instance.score - score
-                        if subtract
-                        else player_instance.score + score
+                        player_instance.score - score if subtract else player_instance.score + score
                     )
 
                 return updater
@@ -121,9 +119,7 @@ class TestGameWithX01:
 
         game.next_player()  # zurück zu Alice
         assert game.current_player().name == "Alice"
-        assert (
-            game.round == 2
-        ), "Nach einem vollen Durchlauf sollte eine neue Runde beginnen."
+        assert game.round == 2, "Nach einem vollen Durchlauf sollte eine neue Runde beginnen."
 
     def test_remove_player(self, x01_game):
         """Testet das Entfernen von Spielern aus dem Spiel."""
@@ -145,9 +141,7 @@ class TestGameWithX01:
         game.leave(alice)
         assert len(game.players) == 1
         assert game.players[0].name == "Bob"
-        assert (
-            game.current_player().name == "Bob"
-        ), "Der nächste Spieler sollte nun am Zug sein."
+        assert game.current_player().name == "Bob", "Der nächste Spieler sollte nun am Zug sein."
 
     def test_undo_dispatches_to_logic_handler(self, x01_game):
         """Testet, ob game.undo() den Aufruf an den Spiellogik-Handler weiterleitet."""
@@ -162,9 +156,7 @@ class TestGameWithX01:
         game.undo()
 
         # Überprüfen, ob die Undo-Methode des Logik-Handlers aufgerufen wurde
-        game.game._handle_throw_undo.assert_called_once_with(
-            player, "Triple", 20, game.players
-        )
+        game.game._handle_throw_undo.assert_called_once_with(player, "Triple", 20, game.players)
         # Überprüfen, ob die clear-Methode des Dartboards aufgerufen wurde
         game.dartboard.clear_last_dart_image_from_canvas.assert_called_once()
 
@@ -197,18 +189,14 @@ class TestGameWithX01:
         assert alice.score == 40
 
         game.undo()  # Undo S1
-        assert (
-            alice.score == 41
-        ), "Score sollte nach dem ersten Undo auf 41 zurückgesetzt werden."
+        assert alice.score == 41, "Score sollte nach dem ersten Undo auf 41 zurückgesetzt werden."
         assert len(alice.throws) == 1, "Es sollte nur noch ein Wurf in der Liste sein."
 
         game.undo()  # Undo T20
         assert (
             alice.score == 101
         ), "Score sollte nach dem zweiten Undo auf den Startwert zurückgesetzt werden."
-        assert (
-            len(alice.throws) == 0
-        ), "Die Wurfliste sollte nach allen Undos leer sein."
+        assert len(alice.throws) == 0, "Die Wurfliste sollte nach allen Undos leer sein."
 
     def test_stat_recording_on_win(self, x01_game):
         """Testet, ob Statistiken bei einem Sieg korrekt erfasst werden."""
@@ -249,9 +237,7 @@ class TestGameWithX01:
                 assert stats_dict_arg["highest_finish"] == 120
                 break
 
-        assert (
-            winner_call_found
-        ), "Statistikaufzeichnung für den Gewinner wurde nicht gefunden."
+        assert winner_call_found, "Statistikaufzeichnung für den Gewinner wurde nicht gefunden."
 
     def test_undo_winning_throw_resets_game_state(self, x01_game):
         """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spielzustand (end, winner) zurücksetzt."""
@@ -273,12 +259,8 @@ class TestGameWithX01:
 
         # Überprüfung des wiederhergestellten Zustands
         assert not game.end, "Die 'end'-Flagge sollte nach dem Undo zurückgesetzt sein."
-        assert (
-            game.winner is None
-        ), "Der 'winner' sollte nach dem Undo zurückgesetzt sein."
-        assert (
-            alice.score == 40
-        ), "Der Punktestand von Alice sollte wiederhergestellt sein."
+        assert game.winner is None, "Der 'winner' sollte nach dem Undo zurückgesetzt sein."
+        assert alice.score == 40, "Der Punktestand von Alice sollte wiederhergestellt sein."
 
     def test_save_and_load_leg_set_match(self, _x01_game_factory):
         """
@@ -371,15 +353,11 @@ class TestGameWithX01:
         game.throw("Double", 20)  # Winning throw for the leg
 
         assert not game.end
-        assert (
-            p1.stats["total_darts_thrown"] == 0
-        ), "Darts Thrown should be reset for the new leg"
+        assert p1.stats["total_darts_thrown"] == 0, "Darts Thrown should be reset for the new leg"
         assert (
             p1.stats["total_score_thrown"] == 0
         ), "Score Thrown should be reset for the new leg"  # This was the bug
-        assert (
-            p1.stats["highest_finish"] == 120
-        ), "Highest Finish should be preserved across legs"
+        assert p1.stats["highest_finish"] == 120, "Highest Finish should be preserved across legs"
 
     def test_leg_and_set_win_flow(self, leg_set_game):
         """
@@ -406,20 +384,15 @@ class TestGameWithX01:
         bob.score = 50
         game.throw("Bullseye", 50)
         assert game.player_leg_scores[bob.id] == 1
-        assert (
-            game.current_player() == alice
-        ), "Alice sollte das entscheidende Leg beginnen."
+        assert game.current_player() == alice, "Alice sollte das entscheidende Leg beginnen."
 
         # Leg 3: Alice gewinnt das Leg und damit Set 1.
         game.current = 0  # Alice am Zug
         alice.score = 60
         game.throw("Double", 30)
+        assert game.player_set_scores[alice.id] == 1, "Alice sollte ein Set gewonnen haben."
         assert (
-            game.player_set_scores[alice.id] == 1
-        ), "Alice sollte ein Set gewonnen haben."
-        assert (
-            game.player_leg_scores[alice.id] == 0
-            and game.player_leg_scores[bob.id] == 0
+            game.player_leg_scores[alice.id] == 0 and game.player_leg_scores[bob.id] == 0
         ), "Leg-Scores sollten für das neue Set zurückgesetzt werden."
         assert game.current_player() == bob, "Bob sollte das neue Set beginnen."
         assert not game.end
@@ -434,8 +407,6 @@ class TestGameWithX01:
         game.throw("Double", 20)  # Alice gewinnt Leg 2
 
         # Finale Prüfung
-        assert (
-            game.end
-        ), "Das Match sollte beendet sein, nachdem Alice zwei Sets gewonnen hat."
+        assert game.end, "Das Match sollte beendet sein, nachdem Alice zwei Sets gewonnen hat."
         assert game.winner == alice
         assert game.player_set_scores[alice.id] == 2

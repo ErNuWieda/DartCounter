@@ -75,9 +75,7 @@ class Shanghai(GameLogicBase):
         # Prüfen, ob der Wurf auf das Ziel der aktuellen Runde ging
         if str(segment) == str(self.game.round):
             # Trefferzähler erhöhen
-            player.hits[str(self.game.round)] = (
-                player.hits.get(str(self.game.round), 0) + 1
-            )
+            player.hits[str(self.game.round)] = player.hits.get(str(self.game.round), 0) + 1
 
             # Punkte berechnen und Score aktualisieren
             points_for_this_throw = self.game.get_score(ring, segment)

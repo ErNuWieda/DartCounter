@@ -69,9 +69,7 @@ def update_changelog(new_version: str):
 """
         # Prüfen, ob der [Unreleased]-Abschnitt existiert
         if "## [Unreleased]" not in content:
-            print(
-                f"  -> FEHLER: Abschnitt '## [Unreleased]' in {CHANGELOG_FILE} nicht gefunden."
-            )
+            print(f"  -> FEHLER: Abschnitt '## [Unreleased]' in {CHANGELOG_FILE} nicht gefunden.")
             sys.exit(1)
 
         # Ersetzt den bestehenden [Unreleased]-Header durch die neue Vorlage und den neuen Versions-Header

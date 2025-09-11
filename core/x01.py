@@ -104,9 +104,7 @@ class X01(GameLogicBase):
         throw_score = self.game.get_score(ring, segment)
         if throw_score == 0:  # Miss-Wurf, nichts zu tun außer UI-Update
             # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
-            preferred_double = (
-                player.profile.preferred_double if player.profile else None
-            )
+            preferred_double = player.profile.preferred_double if player.profile else None
             darts_remaining = 3 - len(player.throws)
             suggestion = CheckoutCalculator.get_checkout_suggestion(
                 player.score,
@@ -181,12 +179,8 @@ class X01(GameLogicBase):
             return True
 
         # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
-        player.sb.update_score(
-            player.score
-        )  # Update display for throw history (now in Game.throw)
-        option_text = (
-            "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
-        )
+        player.sb.update_score(player.score)  # Update display for throw history (now in Game.throw)
+        option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
         msg_base = f"{player.name} braucht ein {option_text} zum Start!"
 
         remaining_darts = 3 - len(player.throws)
@@ -309,9 +303,7 @@ class X01(GameLogicBase):
             # player.update_score_value(score, subtract=True) # score is 0, so no change.
             player.sb.update_score(player.score)
 
-            preferred_double = (
-                player.profile.preferred_double if player.profile else None
-            )
+            preferred_double = player.profile.preferred_double if player.profile else None
             # Finish-Vorschlag für die verbleibenden Darts aktualisieren
             darts_remaining = 3 - len(player.throws)
             suggestion = CheckoutCalculator.get_checkout_suggestion(

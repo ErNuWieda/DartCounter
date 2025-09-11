@@ -145,8 +145,7 @@ class Killer(GameLogicBase):
             return ("warning", "Kein gültiges Segment für ein Lebensfeld getroffen.")
 
         is_taken = any(
-            p != player and p.state["life_segment"] == determined_segment
-            for p in players
+            p != player and p.state["life_segment"] == determined_segment for p in players
         )
         if is_taken:
             occupier = next(

@@ -122,19 +122,13 @@ class App:
             image = Image.open(image_path)
         except FileNotFoundError:
             ui_utils.show_message(
-                "error",
-                "Fehler",
-                f"Image nicht gefunden: {image_path}",
-                parent=self.root,
+                "error", "Fehler", f"Image nicht gefunden: {image_path}", parent=self.root
             )
             self.root.quit()
             return
         except Exception as e:
             ui_utils.show_message(
-                "error",
-                "Fehler",
-                f"Fehler beim Laden des Images: {e}",
-                parent=self.root,
+                "error", "Fehler", f"Fehler beim Laden des Images: {e}", parent=self.root
             )
             self.root.quit()
             return
@@ -220,8 +214,7 @@ class App:
                 }
                 msg_type = (
                     "error"
-                    if result.status
-                    in ("bust", "invalid_open", "invalid_target", "error")
+                    if result.status in ("bust", "invalid_open", "invalid_target", "error")
                     else result.status
                 )
                 title = title_map.get(result.status, "Info")
@@ -233,9 +226,7 @@ class App:
                     auto_close_for_ai_after_ms=auto_close_ms,
                 )
 
-    def _initialize_game_session(
-        self, game_options, player_names, is_tournament_match=False
-    ):
+    def _initialize_game_session(self, game_options, player_names, is_tournament_match=False):
         """Erstellt die Game-Instanz, die ihre eigene UI initialisiert."""
         return Game(
             root=self.root,
@@ -280,14 +271,13 @@ class App:
         """Startet den Workflow zum Erstellen eines neuen Spiels."""
         if not self._ensure_no_active_session(
             "Neues Spiel",
-            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein neues Spiel starten?",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein "
+            "neues Spiel starten?",
         ):
             return
 
         self.root.withdraw()
-        dialog = GameSettingsDialog(
-            self.root, self.settings_manager, self.profile_manager
-        )
+        dialog = GameSettingsDialog(self.root, self.settings_manager, self.profile_manager)
         self.root.wait_window(dialog)
 
         if dialog.was_started and dialog.result:
@@ -302,7 +292,7 @@ class App:
         """Startet den Workflow zum Laden eines gespeicherten Spiels."""
         if not self._ensure_no_active_session(
             "Spiel laden",
-            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Spiel laden?",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein " "Spiel laden?",
         ):
             return
 
@@ -324,13 +314,12 @@ class App:
         """Startet den Workflow zum Erstellen eines neuen Turniers."""
         if not self._ensure_no_active_session(
             "Neues Turnier",
-            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Turnier starten?",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein "
+            "Turnier starten?",
         ):
             return
 
-        dialog = TournamentSettingsDialog(
-            self.root, self.profile_manager, self.settings_manager
-        )
+        dialog = TournamentSettingsDialog(self.root, self.profile_manager, self.settings_manager)
         self.root.wait_window(dialog)
         if not dialog.cancelled:
             tournament_manager = TournamentManager(
@@ -344,7 +333,8 @@ class App:
         """Startet den Workflow zum Laden eines gespeicherten Turniers."""
         if not self._ensure_no_active_session(
             "Turnier laden",
-            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein Turnier laden?",
+            "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein "
+            "Turnier laden?",
         ):
             return
 
@@ -358,12 +348,9 @@ class App:
         if self.tournament_manager and not self.tournament_manager.is_finished:
             SaveLoadManager.save_state(self.tournament_manager, self.root)
         else:
-            ui_utils.show_message(
-                "info",
-                "Turnier speichern",
-                "Es läuft kein aktives Turnier, das gespeichert werden könnte.",
-                parent=self.root,
-            )
+            title = "Turnier speichern"
+            message = "Es läuft kein aktives Turnier, das gespeichert werden könnte."
+            ui_utils.show_message("info", title, message, parent=self.root)
 
     def _finalize_tournament_match(self, match):
         """Verarbeitet das Ergebnis eines beendeten Turniermatches."""
@@ -426,9 +413,7 @@ class App:
 
     def open_profile_manager(self):
         """Öffnet den Dialog zur Verwaltung von Spielerprofilen."""
-        dialog = ProfileManagerDialog(
-            self.root, self.profile_manager, self.player_stats_manager
-        )
+        dialog = ProfileManagerDialog(self.root, self.profile_manager, self.player_stats_manager)
         self.root.wait_window(dialog)
 
     def save_game(self):
@@ -437,12 +422,9 @@ class App:
         if self.game_instance and not self.game_instance.end:
             SaveLoadManager.save_state(self.game_instance, self.root)
         else:
-            ui_utils.show_message(
-                "info",
-                "Spiel speichern",
-                "Es läuft kein aktives Spiel, das gespeichert werden könnte.",
-                parent=self.root,
-            )
+            title = "Spiel speichern"
+            message = "Es läuft kein aktives Spiel, das gespeichert werden könnte."
+            ui_utils.show_message("info", title, message, parent=self.root)
 
     def show_highscores(self):
         """Öffnet das Fenster zur Anzeige der Highscores."""
@@ -456,10 +438,7 @@ class App:
     def quit_game(self):
         """Beendet die Anwendung nach einer Bestätigungsabfrage."""
         confirm = ui_utils.ask_question(
-            "yesno",
-            "Programm beenden",
-            "DartCounter wirklich beenden?",
-            parent=self.root,
+            "yesno", "Programm beenden", "DartCounter wirklich beenden?", parent=self.root
         )
         if confirm:
             if self.settings_manager:
@@ -480,21 +459,19 @@ class App:
             "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
             f"© 2025 Martin Hehl"
         )
-        ui_utils.show_message(
-            "info", f"Dartcounter {self.version}", about_text, parent=self.root
-        )
+        ui_utils.show_message("info", f"Dartcounter {self.version}", about_text, parent=self.root)
 
     def open_donate_link(self):
         """Öffnet den Spenden-Link im Standard-Webbrowser des Benutzers."""
         # --- WICHTIG: Bitte diese URL durch deinen persönlichen Spenden-Link ersetzen ---
         DONATE_URL = "https://paypal.me/ernuwieda"
 
-        ui_utils.show_message(
-            "info",
-            "Browser wird geöffnet",
-            "Vielen Dank für deine Unterstützung!\n\nDein Standard-Browser wird jetzt geöffnet, um die Spendenseite zu laden.",
-            parent=self.root,
+        title = "Browser wird geöffnet"
+        message = (
+            "Vielen Dank für deine Unterstützung!\n\n"
+            "Dein Standard-Browser wird jetzt geöffnet, um die Spendenseite zu laden."
         )
+        ui_utils.show_message("info", title, message, parent=self.root)
         try:
             webbrowser.open_new_tab(DONATE_URL)
         except Exception as e:

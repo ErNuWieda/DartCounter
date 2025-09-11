@@ -92,9 +92,7 @@ class Player:
         self.turn_is_over = False
         self.all_game_throws = []  # Hält alle Würfe des gesamten Spiels für Statistiken
         self.throws = []
-        self.sb = (
-            None  # ScoreBoard wird extern von der Game-Klasse erstellt und zugewiesen
-        )
+        self.sb = None  # ScoreBoard wird extern von der Game-Klasse erstellt und zugewiesen
 
     def is_ai(self) -> bool:
         """Gibt an, ob es sich um einen KI-Spieler handelt. Wird von AIPlayer überschrieben."""
@@ -241,6 +239,4 @@ class Player:
         """
         if self.stats["checkout_opportunities"] == 0:
             return 0.0
-        return (
-            self.stats["checkouts_successful"] / self.stats["checkout_opportunities"]
-        ) * 100
+        return (self.stats["checkouts_successful"] / self.stats["checkout_opportunities"]) * 100

@@ -154,16 +154,10 @@ class TestGameSettingsDialog:
         assert dialog.result["opt_out"] == "Double"
 
         expected_saved_names = ["Martin", "Gemini", "", ""]
-        mock_settings_manager.set.assert_called_once_with(
-            "last_player_names", expected_saved_names
-        )
-        assert (
-            not dialog.winfo_exists()
-        ), "Der Dialog sollte nach dem Start geschlossen sein."
+        mock_settings_manager.set.assert_called_once_with("last_player_names", expected_saved_names)
+        assert not dialog.winfo_exists(), "Der Dialog sollte nach dem Start geschlossen sein."
 
-    def test_start_button_shows_error_on_duplicate_names(
-        self, dialog_setup, monkeypatch
-    ):
+    def test_start_button_shows_error_on_duplicate_names(self, dialog_setup, monkeypatch):
         """Testet, ob ein Fehler angezeigt wird, wenn Spielernamen doppelt sind."""
         dialog, _, _ = dialog_setup
         mock_messagebox = MagicMock()
@@ -180,9 +174,7 @@ class TestGameSettingsDialog:
         mock_messagebox.showerror.assert_called_once_with(
             "Fehler", "Spielernamen müssen eindeutig sein.", parent=dialog
         )
-        assert (
-            dialog.winfo_exists()
-        ), "Der Dialog sollte nach einem Fehler offen bleiben."
+        assert dialog.winfo_exists(), "Der Dialog sollte nach einem Fehler offen bleiben."
 
     def test_cancel_button_sets_flag_and_destroys(self, dialog_setup):
         """Testet, ob der Abbrechen-Button den Dialog korrekt beendet."""
@@ -190,6 +182,4 @@ class TestGameSettingsDialog:
         dialog._on_cancel()
         assert not dialog.was_started
         assert dialog.result is None
-        assert (
-            not dialog.winfo_exists()
-        ), "Der Dialog sollte nach dem Abbrechen geschlossen sein."
+        assert not dialog.winfo_exists(), "Der Dialog sollte nach dem Abbrechen geschlossen sein."

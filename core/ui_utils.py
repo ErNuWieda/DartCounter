@@ -63,9 +63,7 @@ def show_message(
                 dialog.after_cancel(after_id[0])
             dialog.destroy()
 
-        ok_button = ttk.Button(
-            button_frame, text="OK", command=on_ok, style="Accent.TButton"
-        )
+        ok_button = ttk.Button(button_frame, text="OK", command=on_ok, style="Accent.TButton")
         ok_button.pack()
         ok_button.bind("<Return>", lambda e: on_ok())
         ok_button.focus_set()
@@ -98,9 +96,7 @@ def show_message(
             msg_func(title, message, parent=parent)
 
 
-def ask_question(
-    buttons: str, title: str, message: str, default=None, parent=None
-) -> bool | None:
+def ask_question(buttons: str, title: str, message: str, default=None, parent=None) -> bool | None:
     """
     Zeigt eine zentrale Frage-MessageBox an und gibt die Antwort zurück.
     Kapselt die tkinter-Aufrufe an einem Ort.

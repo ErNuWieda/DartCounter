@@ -1,6 +1,6 @@
 [flake8]
-# Set the max line length to 88 characters to match 'black'
-max-line-length = 88
+# Set the max line length to 100 characters to match 'black'
+max-line-length = 100
 
 # Ignore some warnings that conflict with black's formatting style
 # E203: whitespace before ':'

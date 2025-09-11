@@ -79,9 +79,7 @@ class SoundManager:
         self.loaded_sounds = []  # To store all sound objects
 
         if not PYGAME_AVAILABLE:
-            logger.warning(
-                "pygame ist nicht installiert. Soundeffekte sind deaktiviert."
-            )
+            logger.warning("pygame ist nicht installiert. Soundeffekte sind deaktiviert.")
             self.sounds_enabled = False
             return
 
@@ -95,13 +93,9 @@ class SoundManager:
         try:
             pygame.mixer.init()
         except pygame.error as e:
-            logger.error(
-                f"Pygame mixer konnte nicht initialisiert werden: {e}", exc_info=True
-            )
+            logger.error(f"Pygame mixer konnte nicht initialisiert werden: {e}", exc_info=True)
             self.sounds_enabled = False
-            self.loading_errors.append(
-                f"Pygame mixer konnte nicht initialisiert werden: {e}"
-            )
+            self.loading_errors.append(f"Pygame mixer konnte nicht initialisiert werden: {e}")
             return
 
         self._load_all_sounds()

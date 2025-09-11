@@ -68,9 +68,7 @@ class SaveLoadManager:
         Returns:
             str: Der hexadezimale Checksum-String.
         """
-        canonical_string = json.dumps(
-            data, sort_keys=True, separators=(",", ":")
-        ).encode("utf-8")
+        canonical_string = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return hashlib.sha256(canonical_string).hexdigest()
 
     @staticmethod
@@ -185,9 +183,7 @@ class SaveLoadManager:
         Speichert den Zustand eines beliebigen Objekts, das die Speicher-Schnittstelle
         (`to_dict` und `get_save_meta`) implementiert.
         """
-        if not hasattr(savable_object, "to_dict") or not hasattr(
-            savable_object, "get_save_meta"
-        ):
+        if not hasattr(savable_object, "to_dict") or not hasattr(savable_object, "get_save_meta"):
             ui_utils.show_message(
                 "error",
                 "Speicherfehler",

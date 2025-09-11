@@ -122,9 +122,11 @@ class DatabaseManager:
                     )
 
         if not config_path_to_use or not config_path_to_use.exists():
-            logger.info(
-                "'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis gefunden. Datenbankfunktionen sind deaktiviert."
+            log_msg = (
+                "'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis "
+                "gefunden. Datenbankfunktionen sind deaktiviert."
             )
+            logger.info(log_msg)
             return None
 
         config.read(config_path_to_use)
@@ -139,9 +141,11 @@ class DatabaseManager:
             db_config = config["postgresql"]
             required_keys = ["host", "database", "user", "password"]
             if not all(key in db_config for key in required_keys):
-                logger.error(
-                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] Abschnitt. Datenbankfunktionen sind deaktiviert."
+                log_msg = (
+                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im "
+                    "[postgresql] Abschnitt. Datenbankfunktionen sind deaktiviert."
                 )
+                logger.error(log_msg)
                 return
 
             # SQLAlchemy Verbindungs-URL im Format: dialect+driver://user:password@host/dbname
@@ -162,10 +166,7 @@ class DatabaseManager:
 
     def _model_to_dict(self, model_instance):
         """Konvertiert eine SQLAlchemy-Modellinstanz in ein Dictionary."""
-        return {
-            c.name: getattr(model_instance, c.name)
-            for c in model_instance.__table__.columns
-        }
+        return {c.name: getattr(model_instance, c.name) for c in model_instance.__table__.columns}
 
     def _run_migrations(self):
         """Führt Alembic-Migrationen aus, um die Datenbank auf den neuesten Stand zu bringen."""
@@ -196,9 +197,7 @@ class DatabaseManager:
             return []
         try:
             with self.Session() as session:
-                sort_func = (
-                    desc if game_mode in ("Cricket", "Cut Throat", "Tactics") else asc
-                )
+                sort_func = desc if game_mode in ("Cricket", "Cut Throat", "Tactics") else asc
 
                 results = (
                     session.query(Highscore)
@@ -312,10 +311,7 @@ class DatabaseManager:
                 .all()
             )
             # Konvertiere in Dictionaries für UI-Kompatibilität
-            return [
-                {c.name: getattr(r, c.name) for c in r.__table__.columns}
-                for r in results
-            ]
+            return [{c.name: getattr(r, c.name) for c in r.__table__.columns} for r in results]
 
     def reset_game_records(self, player_name=None):
         """
@@ -367,9 +363,7 @@ class DatabaseManager:
                 session.add(new_profile)
                 session.commit()
                 return True
-            except (
-                IntegrityError
-            ):  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
+            except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
                 logger.warning(
                     f"Versuch, ein Profil mit dem bereits existierenden Namen '{name}' zu erstellen."
@@ -377,9 +371,7 @@ class DatabaseManager:
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
-                logger.error(
-                    f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True
-                )
+                logger.error(f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True)
                 return False
 
     def update_profile(
@@ -398,9 +390,7 @@ class DatabaseManager:
             return False
         with self.Session() as session:
             try:
-                profile = (
-                    session.query(PlayerProfile).filter_by(id=profile_id).one_or_none()
-                )
+                profile = session.query(PlayerProfile).filter_by(id=profile_id).one_or_none()
                 if profile:
                     profile.name = new_name
                     profile.avatar_path = new_avatar_path
@@ -432,11 +422,7 @@ class DatabaseManager:
             return False
         with self.Session() as session:
             try:
-                profile = (
-                    session.query(PlayerProfile)
-                    .filter_by(name=player_name)
-                    .one_or_none()
-                )
+                profile = session.query(PlayerProfile).filter_by(name=player_name).one_or_none()
                 if profile:
                     profile.accuracy_model = model
                     session.commit()
@@ -458,9 +444,7 @@ class DatabaseManager:
         if not self.Session:
             return False
         with self.Session() as session:
-            profile = (
-                session.query(PlayerProfile).filter_by(name=profile_name).one_or_none()
-            )
+            profile = session.query(PlayerProfile).filter_by(name=profile_name).one_or_none()
             if profile:
                 session.delete(profile)
                 session.commit()

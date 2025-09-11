@@ -131,13 +131,9 @@ class Micky(GameLogicBase):
 
         # Prüfen, ob das korrekte Ziel getroffen wurde
         if not target_hit or target_hit != current_target:
-            player.sb.update_score(
-                player.score
-            )  # Scoreboard aktualisieren (für Wurf-Historie)
+            player.sb.update_score(player.score)  # Scoreboard aktualisieren (für Wurf-Historie)
             needed_hits = 3 - player.hits.get(current_target, 0)
-            msg_base = (
-                f"{player.name} muss {current_target} noch {needed_hits}x treffen!"
-            )
+            msg_base = f"{player.name} muss {current_target} noch {needed_hits}x treffen!"
             remaining_darts = 3 - len(player.throws)
             if remaining_darts > 0:
                 return (

@@ -110,9 +110,7 @@ class DartboardGeometry:
             return None  # Ungültiger Ring
 
         inner_key, outer_key = radius_keys_map[ring_char]
-        radius = (
-            DartboardGeometry.RADIEN[inner_key] + DartboardGeometry.RADIEN[outer_key]
-        ) / 2
+        radius = (DartboardGeometry.RADIEN[inner_key] + DartboardGeometry.RADIEN[outer_key]) / 2
 
         return DartboardGeometry._polar_to_cartesian(radius, angle_deg)
 
@@ -124,7 +122,5 @@ class DartboardGeometry:
         """
         angle_rad = math.radians(angle_deg)
         x = int(DartboardGeometry.CENTER + radius * math.cos(angle_rad))
-        y = int(
-            DartboardGeometry.CENTER - radius * math.sin(angle_rad)
-        )  # Y-Achse ist invertiert
+        y = int(DartboardGeometry.CENTER - radius * math.sin(angle_rad))  # Y-Achse ist invertiert
         return (x, y)

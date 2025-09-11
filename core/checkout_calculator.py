@@ -63,13 +63,9 @@ _SINGLE_DART_FINISH_MAP[50] = "BE"
 for i in range(20, 0, -1):  # Absteigend, um höhere Doubles zu bevorzugen
     _SINGLE_DART_FINISH_MAP[i * 2] = f"D{i}"
 # Triples (dritthöchste Priorität, für Scoring)
-for i in range(
-    20, 0, -1
-):  # Absteigend, um höhere Triples bei gleichem Score zu bevorzugen
+for i in range(20, 0, -1):  # Absteigend, um höhere Triples bei gleichem Score zu bevorzugen
     score = i * 3
-    if (
-        score not in _SINGLE_DART_FINISH_MAP
-    ):  # Only add if not already covered by a Double or BE
+    if score not in _SINGLE_DART_FINISH_MAP:  # Only add if not already covered by a Double or BE
         _SINGLE_DART_FINISH_MAP[score] = f"T{i}"
 # Bull (25) (vierte Priorität)
 if (
@@ -264,22 +260,15 @@ class CheckoutCalculator:
                         if isinstance(possible_paths_raw, str)
                         else possible_paths_raw
                     )
-                    target_double_str = (
-                        "BE" if preferred_double == 25 else f"D{preferred_double}"
-                    )
+                    target_double_str = "BE" if preferred_double == 25 else f"D{preferred_double}"
                     for path in possible_paths:
-                        if (
-                            path.endswith(target_double_str)
-                            and len(path.split()) <= darts_left
-                        ):
+                        if path.endswith(target_double_str) and len(path.split()) <= darts_left:
                             return path.replace(" ", ", ")
 
             # 2. Priorität: Wenn kein Standard-Pfad passt, versuche einen neuen zu BERECHNEN.
             if preferred_double:
-                calculated_path = (
-                    CheckoutCalculator._calculate_path_for_preferred_double(
-                        score, darts_left, preferred_double
-                    )
+                calculated_path = CheckoutCalculator._calculate_path_for_preferred_double(
+                    score, darts_left, preferred_double
                 )
                 # Akzeptiere den berechneten Pfad nur, wenn er qualitativ hochwertig ist
                 # (d.h. nicht mit einem einfachen Single- oder Double-Feld beginnt,
@@ -287,8 +276,7 @@ class CheckoutCalculator:
                 # Ein guter 3-Dart-Checkout beginnt mit T oder BE.
                 first_throw = calculated_path.split(", ")[0] if calculated_path else ""
                 if calculated_path and (
-                    len(calculated_path.split(", ")) < 3
-                    or first_throw.startswith(("T", "BE"))
+                    len(calculated_path.split(", ")) < 3 or first_throw.startswith(("T", "BE"))
                 ):
                     return calculated_path
 
@@ -298,9 +286,7 @@ class CheckoutCalculator:
                 return "-"
 
             possible_paths = (
-                [possible_paths_raw]
-                if isinstance(possible_paths_raw, str)
-                else possible_paths_raw
+                [possible_paths_raw] if isinstance(possible_paths_raw, str) else possible_paths_raw
             )
 
             # Nimm den Standardpfad, wenn er spielbar ist

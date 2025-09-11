@@ -54,9 +54,7 @@ class JsonIOHandler:
             return None
 
     @staticmethod
-    def write_json(
-        filepath: Path, data: dict, parent_for_dialog=None, show_success=False
-    ) -> bool:
+    def write_json(filepath: Path, data: dict, parent_for_dialog=None, show_success=False) -> bool:
         """
         Kodiert und schreibt Daten in eine JSON-Datei mit zentralisierter Fehlerbehandlung.
         """

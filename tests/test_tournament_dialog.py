@@ -33,9 +33,7 @@ def dialog_setup(tk_root, monkeypatch):
     mock_profile_b.name = "ProfB"
     mock_profile_manager.get_profiles.return_value = [mock_profile_a, mock_profile_b]
 
-    dialog = TournamentSettingsDialog(
-        tk_root, mock_profile_manager, mock_settings_manager
-    )
+    dialog = TournamentSettingsDialog(tk_root, mock_profile_manager, mock_settings_manager)
     dialog.update()
 
     yield dialog, mock_settings_manager, mock_profile_manager
@@ -83,15 +81,11 @@ class TestTournamentSettingsDialog:
             "last_tournament_players", ["Alice", "Bob"]
         )
 
-    def test_start_button_shows_error_on_duplicate_names(
-        self, dialog_setup, monkeypatch
-    ):
+    def test_start_button_shows_error_on_duplicate_names(self, dialog_setup, monkeypatch):
         """Testet, ob ein Fehler angezeigt wird, wenn die Spielernamen nicht eindeutig sind."""
         dialog, _, _ = dialog_setup
         mock_showerror = MagicMock()
-        monkeypatch.setattr(
-            "core.tournament_dialog.messagebox.showerror", mock_showerror
-        )
+        monkeypatch.setattr("core.tournament_dialog.messagebox.showerror", mock_showerror)
 
         dialog.player_count_var.set("2")
         dialog._update_player_entries()

@@ -135,13 +135,10 @@ class Cricket(GameLogicBase):
 
         if scoring_marks_to_undo > 0:
             is_target_open_for_scoring = any(
-                opp != player and opp.state["hits"].get(target_hit, 0) < 3
-                for opp in players
+                opp != player and opp.state["hits"].get(target_hit, 0) < 3 for opp in players
             )
             if is_target_open_for_scoring:
-                points_to_undo = (
-                    self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks_to_undo
-                )
+                points_to_undo = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks_to_undo
 
                 if self.name in ("Cricket", "Tactics"):
                     player.update_score_value(points_to_undo, subtract=True)
@@ -219,9 +216,7 @@ class Cricket(GameLogicBase):
         target_hit, marks_scored = self._get_target_and_marks(ring, segment)
 
         if not target_hit:
-            player.sb.update_score(
-                player.score
-            )  # Scoreboard aktualisieren (für Wurf-Historie)
+            player.sb.update_score(player.score)  # Scoreboard aktualisieren (für Wurf-Historie)
         else:
             # Statistik für Marks-per-Round (MPR) aktualisieren
             player.stats["total_marks_scored"] += marks_scored
@@ -239,22 +234,16 @@ class Cricket(GameLogicBase):
             if scoring_marks > 0:
                 # Prüfen, ob das Ziel bei mindestens einem Gegner noch offen ist
                 is_target_open_for_scoring = any(
-                    opp != player and opp.state["hits"].get(target_hit, 0) < 3
-                    for opp in players
+                    opp != player and opp.state["hits"].get(target_hit, 0) < 3 for opp in players
                 )
                 if is_target_open_for_scoring:
-                    points_for_this_throw = (
-                        self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks
-                    )
+                    points_for_this_throw = self.CRICKET_TARGET_VALUES[target_hit] * scoring_marks
 
                     if self.name in ("Cricket", "Tactics"):
                         player.update_score_value(points_for_this_throw, subtract=False)
                     else:  # Cut Throat
                         for opp in players:
-                            if (
-                                opp != player
-                                and opp.state["hits"].get(target_hit, 0) < 3
-                            ):
+                            if opp != player and opp.state["hits"].get(target_hit, 0) < 3:
                                 opp.score += points_for_this_throw
                                 opp.sb.set_score_value(opp.score)
 

@@ -39,9 +39,7 @@ class AppSettingsDialog(tk.Toplevel):
         self._create_sound_settings(self)
         self._create_theme_settings(self)
         self._create_ai_settings(self)
-        ttk.Button(self, text="Schließen", command=self.destroy).pack(
-            side="bottom", pady=15
-        )
+        ttk.Button(self, text="Schließen", command=self.destroy).pack(side="bottom", pady=15)
 
     def _create_sound_settings(self, parent):
         sound_frame = ttk.LabelFrame(parent, text="Sound")
@@ -63,12 +61,8 @@ class AppSettingsDialog(tk.Toplevel):
         self.volume_value_label = ttk.Label(volume_label_frame, text="")
         self.volume_value_label.pack(side="right")
 
-        self.sound_volume_var = tk.DoubleVar(
-            value=self.settings_manager.get("sound_volume", 0.5)
-        )
-        self.volume_value_label.config(
-            text=f"{int(self.sound_volume_var.get() * 100)} %"
-        )
+        self.sound_volume_var = tk.DoubleVar(value=self.settings_manager.get("sound_volume", 0.5))
+        self.volume_value_label.config(text=f"{int(self.sound_volume_var.get() * 100)} %")
 
         volume_slider = ttk.Scale(
             sound_frame,
@@ -88,9 +82,7 @@ class AppSettingsDialog(tk.Toplevel):
         theme_frame = ttk.LabelFrame(parent, text="Design")
         theme_frame.pack(fill="x", padx=15, pady=10)
 
-        self.theme_combo = ttk.Combobox(
-            theme_frame, values=["Light", "Dark"], state="readonly"
-        )
+        self.theme_combo = ttk.Combobox(theme_frame, values=["Light", "Dark"], state="readonly")
         self.theme_combo.pack(pady=10, padx=10, fill="x")
         current_theme = self.settings_manager.get("theme", "light")
         self.theme_combo.set(current_theme.capitalize())
@@ -123,9 +115,7 @@ class AppSettingsDialog(tk.Toplevel):
         self.delay_value_label.pack(side="right")
 
         # Slider zur Einstellung der Verzögerung
-        self.ai_delay_var = tk.IntVar(
-            value=self.settings_manager.get("ai_throw_delay", 1000)
-        )
+        self.ai_delay_var = tk.IntVar(value=self.settings_manager.get("ai_throw_delay", 1000))
         self.delay_value_label.config(text=f"{self.ai_delay_var.get()} ms")
 
         delay_slider = ttk.Scale(

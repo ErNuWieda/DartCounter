@@ -99,9 +99,7 @@ class TestHighscoreManager(unittest.TestCase):
     def test_show_highscores_window_successful(self):
         """Testet die korrekte Erstellung des Highscore-Fensters und die Datenanzeige."""
         # Mock-Daten für verschiedene Spielmodi
-        mock_scores_301 = [
-            {"player_name": "Alice", "score_metric": 18, "date": date(2023, 1, 1)}
-        ]
+        mock_scores_301 = [{"player_name": "Alice", "score_metric": 18, "date": date(2023, 1, 1)}]
         mock_scores_cricket = [
             {"player_name": "Bob", "score_metric": 2.57, "date": date(2023, 1, 2)}
         ]
@@ -144,9 +142,7 @@ class TestHighscoreManager(unittest.TestCase):
         """
         for _ in range(retries):
             for widget in window.winfo_children():
-                if isinstance(widget, (ttk.Button, tk.Button)) and text in str(
-                    widget.cget("text")
-                ):
+                if isinstance(widget, (ttk.Button, tk.Button)) and text in str(widget.cget("text")):
                     return widget
                 # Rekursiver Aufruf, um auch in verschachtelten Frames zu suchen
                 found = self._find_button_by_text(widget, text, retries=1)
@@ -223,9 +219,7 @@ class TestHighscoreManager(unittest.TestCase):
 
         # 3. Finde den "Alle zurücksetzen"-Button und klicke ihn
         all_reset_button = self._find_button_by_text(reset_dialog, "Alle zurücksetzen")
-        self.assertIsNotNone(
-            all_reset_button, "Button 'Alle zurücksetzen' nicht gefunden."
-        )
+        self.assertIsNotNone(all_reset_button, "Button 'Alle zurücksetzen' nicht gefunden.")
         self.assertIsNotNone(all_reset_button)
         all_reset_button.invoke()
 

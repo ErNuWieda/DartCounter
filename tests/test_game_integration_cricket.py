@@ -123,9 +123,7 @@ class TestGameWithCricket:
         assert alice.state["hits"]["20"] == 4
 
         game.undo()
-        assert (
-            alice.score == 0
-        ), "Der Punktestand sollte nach dem Undo zurückgesetzt sein."
+        assert alice.score == 0, "Der Punktestand sollte nach dem Undo zurückgesetzt sein."
         assert (
             alice.state["hits"]["20"] == 3
         ), "Die Anzahl der Marks sollte nach dem Undo zurückgesetzt sein."

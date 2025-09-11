@@ -52,18 +52,14 @@ class TestSoundManager:
     def test_init_pygame_not_available(self, sound_manager_mocks, monkeypatch):
         """Testet, ob Sounds deaktiviert sind, wenn pygame nicht verfügbar ist."""
         monkeypatch.setattr("core.sound_manager.PYGAME_AVAILABLE", False)
-        sm = SoundManager(
-            sound_manager_mocks["settings_manager"], sound_manager_mocks["root"]
-        )
+        sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
         assert not sm.sounds_enabled
         sound_manager_mocks["mock_pygame"].mixer.init.assert_not_called()
 
     def test_init_sounds_disabled_in_settings(self, sound_manager_mocks):
         """Testet, ob der Mixer nicht initialisiert wird, wenn Sounds in den Einstellungen deaktiviert sind."""
         sound_manager_mocks["settings_manager"].get.return_value = False
-        sm = SoundManager(
-            sound_manager_mocks["settings_manager"], sound_manager_mocks["root"]
-        )
+        sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
         assert not sm.sounds_enabled
         sound_manager_mocks["mock_pygame"].mixer.init.assert_not_called()
 
@@ -72,9 +68,7 @@ class TestSoundManager:
         sound_manager_mocks["mock_pygame"].mixer.init.side_effect = sound_manager_mocks[
             "mock_pygame"
         ].error("Mixer-Fehler")
-        sm = SoundManager(
-            sound_manager_mocks["settings_manager"], sound_manager_mocks["root"]
-        )
+        sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
         assert not sm.sounds_enabled
         assert "Pygame mixer konnte nicht initialisiert werden" in sm.loading_errors[0]
 
@@ -123,9 +117,7 @@ class TestSoundManager:
         assert sm.win_sound is not None
         assert sm.miss_sound is not None
         assert sm.bust_sound is not None
-        assert (
-            sm.bull_sound is None
-        ), "bull_sound sollte None sein, da ein Ladefehler auftrat."
+        assert sm.bull_sound is None, "bull_sound sollte None sein, da ein Ladefehler auftrat."
         assert sm.bullseye_sound is not None
         assert sm.score_100_sound is not None
         assert sm.score_140_sound is not None

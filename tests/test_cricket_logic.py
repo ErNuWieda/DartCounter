@@ -107,9 +107,7 @@ class TestCricketLogic:
         assert alice.score == 60  # 3 * 20
         alice.update_score_value.assert_called_once_with(60, subtract=False)
 
-    def test_handle_throw_no_scoring_if_all_opponents_closed(
-        self, cricket_logic, mock_players
-    ):
+    def test_handle_throw_no_scoring_if_all_opponents_closed(self, cricket_logic, mock_players):
         """Testet, dass keine Punkte vergeben werden, wenn alle Gegner das Ziel geschlossen haben."""
         alice, bob = mock_players
         cricket_logic.initialize_player_state(alice)
@@ -162,12 +160,8 @@ class TestCricketLogic:
         # Alice trifft ein bereits geschlossenes Ziel, was die Gewinnprüfung auslöst
         status, msg = cricket_logic._handle_throw(alice, "Single", 20, mock_players)
 
-        assert (
-            status == "ok"
-        ), "Spiel sollte nicht enden, wenn der Spieler weniger Punkte hat."
-        assert (
-            cricket_logic.game.end is False
-        ), "Die 'end'-Flagge sollte nicht gesetzt werden."
+        assert status == "ok", "Spiel sollte nicht enden, wenn der Spieler weniger Punkte hat."
+        assert cricket_logic.game.end is False, "Die 'end'-Flagge sollte nicht gesetzt werden."
 
     def test_undo_simple_mark(self, cricket_logic, mock_players):
         """Testet das Rückgängigmachen eines einfachen Treffers."""

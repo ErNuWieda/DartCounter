@@ -176,9 +176,7 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
 
 
 @patch("core.ai_strategy.CheckoutCalculator.get_checkout_suggestion", return_value="-")
-def test_get_strategic_target_for_x01_no_checkout_path(
-    mock_get_suggestion, x01_ai_player
-):
+def test_get_strategic_target_for_x01_no_checkout_path(mock_get_suggestion, x01_ai_player):
     """Testet die Zielauswahl, wenn kein Checkout-Pfad gefunden wird (Fallback)."""
     ai_player, mock_game = x01_ai_player
     ai_player.score = 169  # Kein 2-Dart-Finish
@@ -477,9 +475,7 @@ def test_execute_throw_simulates_click(
         ai_player._execute_throw(1)
 
     # Verifiziert, dass die Klick-Simulation des Dartboards mit den korrekten Koordinaten aufgerufen wurde
-    mock_game.dartboard.on_click_simulated.assert_called_once_with(
-        expected_x, expected_y
-    )
+    mock_game.dartboard.on_click_simulated.assert_called_once_with(expected_x, expected_y)
 
 
 def test_execute_throw_stops_on_bust(ai_player_with_mocks):

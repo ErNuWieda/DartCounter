@@ -29,9 +29,7 @@ class EditProfileDialog(tk.Toplevel):
     Trennt die UI-Erstellung klar von der Logik.
     """
 
-    def __init__(
-        self, parent, profile_manager, profile_to_edit: PlayerProfile | None = None
-    ):
+    def __init__(self, parent, profile_manager, profile_to_edit: PlayerProfile | None = None):
         super().__init__(parent)
         self.transient(parent)
         self.profile_manager = profile_manager
@@ -39,9 +37,7 @@ class EditProfileDialog(tk.Toplevel):
 
         # Initialwerte setzen
         self.new_avatar_path = profile_to_edit.avatar_path if profile_to_edit else None
-        self.new_dart_color = (
-            profile_to_edit.dart_color if profile_to_edit else "#ff0000"
-        )
+        self.new_dart_color = profile_to_edit.dart_color if profile_to_edit else "#ff0000"
         # --- Neue Variablen für AI-Einstellungen ---
         self.is_ai_var = tk.BooleanVar()
         self.difficulty_var = tk.StringVar()
@@ -109,31 +105,27 @@ class EditProfileDialog(tk.Toplevel):
 
     def _create_avatar_widgets(self, parent_frame):
         """Erstellt die Widgets für die Avatar-Auswahl."""
-        ttk.Label(parent_frame, text="Avatar:").grid(
-            row=1, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(parent_frame, text="Avatar:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.avatar_preview_label = ttk.Label(
             parent_frame, text="Kein Avatar", relief="solid", width=15, anchor="center"
         )
         self.avatar_preview_label.bind("<Button-1>", lambda e: self._select_avatar())
         self.avatar_preview_label.grid(row=1, column=1, pady=5, sticky="w")
-        ttk.Button(
-            parent_frame, text="Bild auswählen...", command=self._select_avatar
-        ).grid(row=1, column=2, pady=5, padx=5, sticky="w")
+        ttk.Button(parent_frame, text="Bild auswählen...", command=self._select_avatar).grid(
+            row=1, column=2, pady=5, padx=5, sticky="w"
+        )
 
     def _create_color_widgets(self, parent_frame):
         """Erstellt die Widgets für die Farbauswahl."""
-        ttk.Label(parent_frame, text="Dart-Farbe:").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
+        ttk.Label(parent_frame, text="Dart-Farbe:").grid(row=2, column=0, sticky=tk.W, pady=5)
         self.color_preview_label = tk.Label(
             parent_frame, text="", bg=self.new_dart_color, width=4, relief="solid"
         )
         self.color_preview_label.bind("<Button-1>", lambda e: self._select_dart_color())
         self.color_preview_label.grid(row=2, column=1, pady=5, sticky="w")
-        ttk.Button(
-            parent_frame, text="Farbe auswählen...", command=self._select_dart_color
-        ).grid(row=2, column=2, pady=5, padx=5, sticky="w")
+        ttk.Button(parent_frame, text="Farbe auswählen...", command=self._select_dart_color).grid(
+            row=2, column=2, pady=5, padx=5, sticky="w"
+        )
 
     def _create_player_type_widgets(self, parent_frame):
         """Erstellt die Widgets zur Auswahl des Spielertyps (Mensch/KI)."""
@@ -182,9 +174,7 @@ class EditProfileDialog(tk.Toplevel):
         self.ai_settings_frame.grid(row=5, column=0, columnspan=3, sticky=tk.EW, pady=5)
         self.ai_settings_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(self.ai_settings_frame, text="Schwierigkeit:").grid(
-            row=0, column=0, sticky=tk.W
-        )
+        ttk.Label(self.ai_settings_frame, text="Schwierigkeit:").grid(row=0, column=0, sticky=tk.W)
 
         difficulty_values = [
             "Anfänger",
@@ -204,23 +194,17 @@ class EditProfileDialog(tk.Toplevel):
         self.difficulty_combo.bind("<<ComboboxSelected>>", self._on_difficulty_change)
 
         # --- Adaptiv-Vorlage ---
-        self.adaptive_template_label = ttk.Label(
-            self.ai_settings_frame, text="Klon von:"
-        )
+        self.adaptive_template_label = ttk.Label(self.ai_settings_frame, text="Klon von:")
         self.adaptive_template_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
 
-        human_players = [
-            p.name for p in self.profile_manager.get_profiles() if not p.is_ai
-        ]
+        human_players = [p.name for p in self.profile_manager.get_profiles() if not p.is_ai]
         self.adaptive_template_combo = ttk.Combobox(
             self.ai_settings_frame,
             textvariable=self.adaptive_template_var,
             values=sorted(human_players),
             state="readonly",
         )
-        self.adaptive_template_combo.grid(
-            row=1, column=1, sticky=tk.EW, padx=5, pady=(5, 0)
-        )
+        self.adaptive_template_combo.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=(5, 0))
 
     def _create_button_widgets(self, parent_frame):
         """Erstellt die Speichern- und Abbrechen-Buttons."""
@@ -235,9 +219,7 @@ class EditProfileDialog(tk.Toplevel):
         save_button.pack(side=tk.LEFT, padx=10)
         save_button.bind("<Return>", lambda e: self._on_save())
         save_button.focus_set()
-        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(
-            side=tk.LEFT, padx=10
-        )
+        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(side=tk.LEFT, padx=10)
 
     def _load_avatar_preview(self, path):
         """Lädt und zeigt eine Vorschau des ausgewählten Avatar-Bildes an."""
@@ -311,9 +293,7 @@ class EditProfileDialog(tk.Toplevel):
         """Validiert die Eingaben und speichert das Profil."""
         new_name = self.name_entry.get().strip()
         if not new_name:
-            messagebox.showerror(
-                "Fehler", "Der Name darf nicht leer sein.", parent=self
-            )
+            messagebox.showerror("Fehler", "Der Name darf nicht leer sein.", parent=self)
             return
 
         is_ai = self.is_ai_var.get()
@@ -333,20 +313,22 @@ class EditProfileDialog(tk.Toplevel):
         if is_ai and difficulty == "Adaptiv":
             template_name = self.adaptive_template_var.get()
             if not template_name:
-                messagebox.showerror(
-                    "Fehler",
-                    "Bitte wählen Sie einen menschlichen Spieler als Vorlage für den KI-Klon aus.",
-                    parent=self,
+                title = "Fehler"
+                message = (
+                    "Bitte wählen Sie einen menschlichen Spieler als Vorlage für "
+                    "den KI-Klon aus."
                 )
+                messagebox.showerror(title, message, parent=self)
                 return
 
             template_profile = self.profile_manager.get_profile_by_name(template_name)
             if not template_profile or not template_profile.accuracy_model:
-                messagebox.showerror(
-                    "Fehler",
-                    f"Für '{template_name}' wurde noch kein Genauigkeitsmodell berechnet.\n\nBitte berechnen Sie das Modell zuerst im Profil-Manager.",
-                    parent=self,
+                title = "Fehler"
+                message = (
+                    f"Für '{template_name}' wurde noch kein Genauigkeitsmodell berechnet.\n\n"
+                    "Bitte berechnen Sie das Modell zuerst im Profil-Manager."
                 )
+                messagebox.showerror(title, message, parent=self)
                 return
 
             accuracy_model_to_save = template_profile.accuracy_model
@@ -379,8 +361,6 @@ class EditProfileDialog(tk.Toplevel):
         if success:
             self.destroy()
         else:
-            messagebox.showerror(
-                "Fehler",
-                f"Ein Profil mit dem Namen '{new_name}' existiert bereits.",
-                parent=self,
-            )
+            title = "Fehler"
+            message = f"Ein Profil mit dem Namen '{new_name}' existiert bereits."
+            messagebox.showerror(title, message, parent=self)

@@ -46,9 +46,7 @@ class TournamentView(tk.Toplevel):
         self.update_idletasks()
         self.update_bracket_tree()
 
-        self.protocol(
-            "WM_DELETE_WINDOW", self.withdraw
-        )  # Nicht zerstören, nur verbergen
+        self.protocol("WM_DELETE_WINDOW", self.withdraw)  # Nicht zerstören, nur verbergen
 
     def _setup_double_elim_layout(self, main_frame, finals_frame):
         """Konfiguriert das Layout spezifisch für das Doppel-K.o.-System."""
@@ -96,9 +94,7 @@ class TournamentView(tk.Toplevel):
         main_frame.rowconfigure(3, weight=0)
 
         # --- Winners Bracket ---
-        bracket_title = (
-            "Winners Bracket" if self.manager.system == "Doppel-K.o." else "Turnierbaum"
-        )
+        bracket_title = "Winners Bracket" if self.manager.system == "Doppel-K.o." else "Turnierbaum"
         self.wb_frame = ttk.LabelFrame(main_frame, text=bracket_title, padding=10)
         self.winners_canvas = BracketCanvas(self.wb_frame)
         self.winners_canvas.pack(fill=tk.BOTH, expand=True)

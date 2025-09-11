@@ -91,9 +91,7 @@ class CustomColorChooserDialog(tk.Toplevel):
         # --- Linke Spalte: Große Vorschau und vordefinierte Farben ---
         left_frame = ttk.Frame(main_frame)
         left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
-        self.preview_label = tk.Label(
-            left_frame, text="", relief="solid", borderwidth=1, height=5
-        )
+        self.preview_label = tk.Label(left_frame, text="", relief="solid", borderwidth=1, height=5)
         self.preview_label.pack(fill=tk.X, expand=True)
 
         swatch_frame = ttk.LabelFrame(left_frame, text="Farbfelder", padding=10)
@@ -129,15 +127,11 @@ class CustomColorChooserDialog(tk.Toplevel):
         # --- Untere Reihe: Buttons ---
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=1, column=0, columnspan=2, sticky="e", pady=(20, 0))
-        ok_button = ttk.Button(
-            button_frame, text="OK", command=self._on_ok, style="Accent.TButton"
-        )
+        ok_button = ttk.Button(button_frame, text="OK", command=self._on_ok, style="Accent.TButton")
         ok_button.pack(side=tk.LEFT, padx=5)
         ok_button.bind("<Return>", lambda e: self._on_ok())
         ok_button.focus_set()
-        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(
-            side=tk.LEFT
-        )
+        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(side=tk.LEFT)
 
     def _create_slider(self, parent, label_text, variable, color):
         """Hilfsmethode zur Erstellung eines RGB-Sliders."""
@@ -145,12 +139,10 @@ class CustomColorChooserDialog(tk.Toplevel):
         frame.pack(fill=tk.X, expand=True, pady=2)
         # Verwende ein Label mit fester Breite für eine saubere Ausrichtung
         label_font = font.Font(family="Monospace", size=10, weight="bold")
-        ttk.Label(
-            frame, text=label_text, foreground=color, font=label_font, width=2
-        ).pack(side=tk.LEFT)
-        scale = ttk.Scale(
-            frame, from_=0, to=255, orient=tk.HORIZONTAL, variable=variable
+        ttk.Label(frame, text=label_text, foreground=color, font=label_font, width=2).pack(
+            side=tk.LEFT
         )
+        scale = ttk.Scale(frame, from_=0, to=255, orient=tk.HORIZONTAL, variable=variable)
         scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         # Ein Label, das den numerischen Wert des Sliders anzeigt
         value_label = ttk.Label(frame, textvariable=variable, width=3)

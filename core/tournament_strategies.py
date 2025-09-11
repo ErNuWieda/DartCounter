@@ -40,9 +40,7 @@ class TournamentStrategyBase:
             match_to_update.get("player1"),
             match_to_update.get("player2"),
         ):
-            raise ValueError(
-                f"Spieler '{winner_name}' ist kein Teilnehmer dieses Matches."
-            )
+            raise ValueError(f"Spieler '{winner_name}' ist kein Teilnehmer dieses Matches.")
 
         match_to_update["winner"] = winner_name
         self._update_bracket_state()
@@ -58,11 +56,7 @@ class TournamentStrategyBase:
     def _find_next_in_list(self, match_list: list[dict]) -> dict | None:
         """Sucht das nächste spielbare Match in einer flachen Liste von Matches."""
         for match in match_list:
-            if (
-                match.get("winner") is None
-                and match.get("player1")
-                and match.get("player2")
-            ):
+            if match.get("winner") is None and match.get("player1") and match.get("player2"):
                 return match
         return None
 
@@ -111,9 +105,7 @@ class SingleEliminationStrategy(TournamentStrategyBase):
     """Strategie für ein einfaches K.o.-System."""
 
     def _create_initial_bracket(self, players: list[str], shuffle: bool = True) -> dict:
-        players_for_r1, players_with_byes = self._prepare_initial_players(
-            players, shuffle
-        )
+        players_for_r1, players_with_byes = self._prepare_initial_players(players, shuffle)
 
         round1_matches = self._create_matches_from_players(players_for_r1)
         for player_with_bye in players_with_byes:
@@ -130,8 +122,7 @@ class SingleEliminationStrategy(TournamentStrategyBase):
         while current_round_size > 1:
             next_round_size = current_round_size // 2
             next_round_matches = [
-                {"player1": None, "player2": None, "winner": None}
-                for _ in range(next_round_size)
+                {"player1": None, "player2": None, "winner": None} for _ in range(next_round_size)
             ]
             all_rounds.append(next_round_matches)
             current_round_size = next_round_size
@@ -183,8 +174,7 @@ class SingleEliminationStrategy(TournamentStrategyBase):
         # Das Spiel um Platz 3 gilt als "beendet", wenn es entweder einen Sieger hat
         # oder wenn es gar nicht erst stattfinden kann (z.B. bei < 4 Spielern).
         third_place_finished = (
-            not third_place_match.get("player1")
-            or third_place_match.get("winner") is not None
+            not third_place_match.get("player1") or third_place_match.get("winner") is not None
         )
 
         if final_match_finished and third_place_finished:
@@ -219,9 +209,7 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
     """Strategie für ein Doppel-K.o.-System mit Grand Final und Bracket-Reset."""
 
     def _create_initial_bracket(self, players: list[str], shuffle: bool = True) -> dict:
-        players_for_r1, players_with_byes = self._prepare_initial_players(
-            players, shuffle
-        )
+        players_for_r1, players_with_byes = self._prepare_initial_players(players, shuffle)
 
         round1_matches = self._create_matches_from_players(players_for_r1)
         for player_with_bye in players_with_byes:
@@ -238,8 +226,7 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
         while current_round_size > 1:
             next_round_size = current_round_size // 2
             next_round_matches = [
-                {"player1": None, "player2": None, "winner": None}
-                for _ in range(next_round_size)
+                {"player1": None, "player2": None, "winner": None} for _ in range(next_round_size)
             ]
             wb_rounds.append(next_round_matches)
             current_round_size = next_round_size
@@ -300,30 +287,18 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
                     if lb_round_idx == 0:  # Erste LB-Runde, gefüttert von WB R1
                         wb_parent1 = wb_rounds[0][lb_match_idx * 2]
                         wb_parent2 = wb_rounds[0][lb_match_idx * 2 + 1]
-                        if (
-                            wb_parent1.get("winner")
-                            and match_to_fill.get("player1") is None
-                        ):
+                        if wb_parent1.get("winner") and match_to_fill.get("player1") is None:
                             if loser := self._get_match_loser(wb_parent1):
                                 match_to_fill["player1"] = loser
-                        if (
-                            wb_parent2.get("winner")
-                            and match_to_fill.get("player2") is None
-                        ):
+                        if wb_parent2.get("winner") and match_to_fill.get("player2") is None:
                             if loser := self._get_match_loser(wb_parent2):
                                 match_to_fill["player2"] = loser
                     else:  # Andere gerade Runden, gefüttert von vorheriger LB-Runde
                         lb_parent1 = lb_rounds[lb_round_idx - 1][lb_match_idx * 2]
                         lb_parent2 = lb_rounds[lb_round_idx - 1][lb_match_idx * 2 + 1]
-                        if (
-                            lb_parent1.get("winner")
-                            and match_to_fill.get("player1") is None
-                        ):
+                        if lb_parent1.get("winner") and match_to_fill.get("player1") is None:
                             match_to_fill["player1"] = lb_parent1["winner"]
-                        if (
-                            lb_parent2.get("winner")
-                            and match_to_fill.get("player2") is None
-                        ):
+                        if lb_parent2.get("winner") and match_to_fill.get("player2") is None:
                             match_to_fill["player2"] = lb_parent2["winner"]
                 # Ungerade Runden (1, 3, 5...) sind "Feed-in"-Runden.
                 else:
@@ -358,9 +333,7 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
             )
 
         # 2. Prüfe den Zustand nach dem ersten Grand Final
-        if len(grand_final_matches) == 1 and (gf1 := grand_final_matches[0]).get(
-            "winner"
-        ):
+        if len(grand_final_matches) == 1 and (gf1 := grand_final_matches[0]).get("winner"):
             wb_champion = gf1["player1"]
             lb_champion = gf1["player2"]
 
@@ -374,9 +347,7 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
                 )
 
         # 3. Prüfe den Zustand nach dem zweiten Grand Final
-        if len(grand_final_matches) == 2 and (gf2 := grand_final_matches[1]).get(
-            "winner"
-        ):
+        if len(grand_final_matches) == 2 and (gf2 := grand_final_matches[1]).get("winner"):
             self.winner = gf2["winner"]
 
     def get_next_match(self) -> dict | None:

@@ -31,36 +31,22 @@ class AppMenu:
         # Datei Menü
         file_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Datei", menu=file_menu)
-        file_menu.add_command(
-            label="Neues Turnier", command=self.controller.new_tournament
-        )
-        file_menu.add_command(
-            label="Turnier laden", command=self.controller.load_tournament
-        )
-        file_menu.add_command(
-            label="Turnier speichern", command=self.controller.save_tournament
-        )
+        file_menu.add_command(label="Neues Turnier", command=self.controller.new_tournament)
+        file_menu.add_command(label="Turnier laden", command=self.controller.load_tournament)
+        file_menu.add_command(label="Turnier speichern", command=self.controller.save_tournament)
         file_menu.add_separator()
         file_menu.add_command(label="Neues Spiel", command=self.controller.new_game)
         file_menu.add_command(label="Spiel laden", command=self.controller.load_game)
-        file_menu.add_command(
-            label="Spiel speichern", command=self.controller.save_game
-        )
+        file_menu.add_command(label="Spiel speichern", command=self.controller.save_game)
         file_menu.add_separator()
         file_menu.add_command(
             label="Spielerprofile verwalten",
             command=self.controller.open_profile_manager,
         )
-        file_menu.add_command(
-            label="Einstellungen", command=self.controller.open_settings_dialog
-        )
+        file_menu.add_command(label="Einstellungen", command=self.controller.open_settings_dialog)
         file_menu.add_separator()
-        file_menu.add_command(
-            label="Spielerstatistiken", command=self.controller.show_player_stats
-        )
-        file_menu.add_command(
-            label="Highscores", command=self.controller.show_highscores
-        )
+        file_menu.add_command(label="Spielerstatistiken", command=self.controller.show_player_stats)
+        file_menu.add_command(label="Highscores", command=self.controller.show_highscores)
         file_menu.add_separator()
         file_menu.add_command(label="Spiel beenden", command=self.controller.quit_game)
 

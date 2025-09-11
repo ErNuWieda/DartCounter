@@ -67,4 +67,6 @@ class GameRecord(Base):
     all_throws_coords = Column(JSONB)
 
     def __repr__(self):
-        return f"<GameRecord(player='{self.player_name}', game='{self.game_mode}', win={self.is_win})>"
+        return (
+            f"<GameRecord(player='{self.player_name}', game='{self.game_mode}', win={self.is_win})>"
+        )

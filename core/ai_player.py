@@ -79,9 +79,7 @@ class AIPlayer(Player):
         strategy_class = self._strategy_map.get(game.options.name, DefaultAIStrategy)
         self.strategy: AIStrategy = strategy_class(self)
 
-    def _apply_strategic_offset(
-        self, center_coords: tuple[int, int], ring: str
-    ) -> tuple[int, int]:
+    def _apply_strategic_offset(self, center_coords: tuple[int, int], ring: str) -> tuple[int, int]:
         """
         Applies a small, strategic offset to the target coordinates to aim for
         the "safer" part of a segment (e.g., the inner part of a triple).
@@ -109,9 +107,9 @@ class AIPlayer(Player):
 
         # The "safe" direction is opposite to the vector (towards the board center)
         # The offset is a fraction of the ring's height, depending on AI skill.
-        ring_height = (self.game.dartboard.skaliert or {}).get(
-            f"{ring.lower()}_outer", 0
-        ) - (self.game.dartboard.skaliert or {}).get(f"{ring.lower()}_inner", 0)
+        ring_height = (self.game.dartboard.skaliert or {}).get(f"{ring.lower()}_outer", 0) - (
+            self.game.dartboard.skaliert or {}
+        ).get(f"{ring.lower()}_inner", 0)
         offset_percentage = {
             "Champion": 0.35,
             "Profi": 0.3,
@@ -215,9 +213,7 @@ class AIPlayer(Player):
             "Bull": "B",
         }
         ring_prefix = target_name_map.get(ring, "S")
-        target_name = (
-            ring_prefix if ring in ("Bullseye", "Bull") else f"{ring_prefix}{segment}"
-        )
+        target_name = ring_prefix if ring in ("Bullseye", "Bull") else f"{ring_prefix}{segment}"
 
         if target_coords:
             target_x, target_y = target_coords
@@ -229,22 +225,14 @@ class AIPlayer(Player):
             )
 
         # --- Wurf-Simulation basierend auf Schwierigkeit (Standard vs. Adaptiv) ---
-        if (
-            self.difficulty == "Adaptive"
-            and self.profile
-            and self.profile.accuracy_model
-        ):
-            throw_x, throw_y = self._get_adaptive_throw_coords(
-                (target_x, target_y), target_name
-            )
+        if self.difficulty == "Adaptive" and self.profile and self.profile.accuracy_model:
+            throw_x, throw_y = self._get_adaptive_throw_coords((target_x, target_y), target_name)
         else:
             # Standard-Logik mit kreisförmiger Streuung
             radius = self.throw_radius
             # Sonderregel für Killer: Das Lebensfeld wird mit der "schwachen" Hand ermittelt.
             # Wir simulieren das, indem wir für diesen einen Wurf immer die Anfänger-Genauigkeit verwenden.
-            if self.game.options.name == "Killer" and not self.state.get(
-                "life_segment"
-            ):
+            if self.game.options.name == "Killer" and not self.state.get("life_segment"):
                 radius = self.DIFFICULTY_SETTINGS["Anfänger"]["radius"]
 
             # Erzeugt eine zufällige Abweichung innerhalb eines Kreises um das Ziel

@@ -46,13 +46,9 @@ class HeatmapGenerator:
             PIL.Image.Image or None: Das generierte Heatmap-Bild oder None bei einem Fehler.
         """
         try:
-            board_img_original = Image.open(HeatmapGenerator.DARTBOARD_PATH).convert(
-                "RGBA"
-            )
+            board_img_original = Image.open(HeatmapGenerator.DARTBOARD_PATH).convert("RGBA")
         except FileNotFoundError:
-            print(
-                f"Fehler: Dartboard-Bild nicht gefunden unter {HeatmapGenerator.DARTBOARD_PATH}"
-            )
+            print(f"Fehler: Dartboard-Bild nicht gefunden unter {HeatmapGenerator.DARTBOARD_PATH}")
             return None
 
         # Skaliere das Dartboard-Bild auf die gewünschte Zielgröße

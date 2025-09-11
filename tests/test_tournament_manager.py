@@ -35,18 +35,14 @@ def tm_4_players():
 def tm_3_players():
     """Fixture für ein Turnier mit 3 Spielern (und einem Freilos)."""
     players = ["Alice", "Bob", "Charlie"]
-    return TournamentManager(
-        player_names=players, game_mode="501", system="Doppel-K.o."
-    )
+    return TournamentManager(player_names=players, game_mode="501", system="Doppel-K.o.")
 
 
 @pytest.fixture
 def tm_8_players():
     """Fixture für ein Turnier mit 8 Spielern."""
     players = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"]
-    return TournamentManager(
-        player_names=players, game_mode="501", system="Doppel-K.o."
-    )
+    return TournamentManager(player_names=players, game_mode="501", system="Doppel-K.o.")
 
 
 def test_initialization_with_invalid_player_count_raises_error():
@@ -110,9 +106,7 @@ def test_record_match_winner_updates_bracket(tm_4_players):
 
 def test_record_match_winner_with_invalid_winner_raises_error():
     """Testet, ob ein Fehler ausgelöst wird, wenn ein ungültiger Gewinnername übergeben wird."""
-    tm = TournamentManager(
-        player_names=["Alice", "Bob"], game_mode="501", system="K.o."
-    )
+    tm = TournamentManager(player_names=["Alice", "Bob"], game_mode="501", system="K.o.")
     match_to_play = tm.get_next_match()
     with pytest.raises(ValueError, match="ist kein Teilnehmer dieses Matches"):
         tm.record_match_winner(match_to_play, "Zelda")
@@ -145,9 +139,7 @@ def test_winner_advances_and_loser_drops(tm_4_players):
 def test_get_tournament_winner_returns_none_if_not_finished(tm_4_players):
     """Testet, dass get_tournament_winner None zurückgibt, solange das Turnier läuft."""
     assert tm_4_players.winner is None, "Der Gewinner sollte anfangs None sein."
-    assert (
-        tm_4_players.is_finished is False
-    ), "Das Turnier sollte anfangs nicht beendet sein."
+    assert tm_4_players.is_finished is False, "Das Turnier sollte anfangs nicht beendet sein."
 
 
 def test_full_tournament_flow_4_players(tm_4_players):
@@ -177,9 +169,7 @@ def test_full_tournament_flow_4_players(tm_4_players):
 
     # --- WB Finale ---
     match_wb_r2_m1 = tm.get_next_match()
-    tm.record_match_winner(
-        match_wb_r2_m1, p[0]
-    )  # A schlägt C. A im Grand Final, C fällt.
+    tm.record_match_winner(match_wb_r2_m1, p[0])  # A schlägt C. A im Grand Final, C fällt.
 
     # --- LB Runde 1 ---
     match_lb_r1_m1 = tm.get_next_match()
@@ -343,9 +333,7 @@ def test_full_tournament_flow_8_players(tm_8_players):
     grand_final = tm.get_next_match()
     assert {grand_final["player1"], grand_final["player2"]} == {p[0], p[4]}
     tm.record_match_winner(grand_final, p[0])
-    assert (
-        tm.is_finished is True
-    ), "Das Turnier sollte nach dem Grand Final beendet sein."
+    assert tm.is_finished is True, "Das Turnier sollte nach dem Grand Final beendet sein."
     assert tm.winner == p[0]
 
 

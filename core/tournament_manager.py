@@ -38,9 +38,7 @@ class TournamentManager:
         "Doppel-K.o.": DoubleEliminationStrategy,
     }
 
-    def __init__(
-        self, player_names: list[str], game_mode: str, system: str, shuffle: bool = True
-    ):
+    def __init__(self, player_names: list[str], game_mode: str, system: str, shuffle: bool = True):
         """
         Initialisiert ein neues Turnier.
 
@@ -119,9 +117,7 @@ class TournamentManager:
         instance = cls(
             player_names=data["player_names"],
             game_mode=data["game_mode"],
-            system=data.get(
-                "system", "Doppel-K.o."
-            ),  # Fallback für alte Speicherstände
+            system=data.get("system", "Doppel-K.o."),  # Fallback für alte Speicherstände
         )
         instance.strategy.bracket = data["bracket"]
         instance.strategy.winner = data.get("winner")

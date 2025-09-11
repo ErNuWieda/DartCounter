@@ -60,9 +60,7 @@ def find_text_item(canvas, text_to_find):
 
 def test_draw_simple_bracket(bracket_canvas, simple_bracket_data):
     """Tests if a simple bracket is drawn with the correct player names."""
-    bracket_canvas.draw_bracket(
-        simple_bracket_data, next_match=None, bracket_winner=None
-    )
+    bracket_canvas.draw_bracket(simple_bracket_data, next_match=None, bracket_winner=None)
 
     # Assert that player names are present on the canvas
     assert find_text_item(bracket_canvas, "Alice") is not None
@@ -80,9 +78,7 @@ def test_draw_bracket_with_winner(bracket_canvas, simple_bracket_data):
     final_winner = "Charlie"
     simple_bracket_data[1][0]["winner"] = final_winner  # Set winner for the final match
 
-    bracket_canvas.draw_bracket(
-        simple_bracket_data, next_match=None, bracket_winner=final_winner
-    )
+    bracket_canvas.draw_bracket(simple_bracket_data, next_match=None, bracket_winner=final_winner)
 
     winner_item_id = find_text_item(bracket_canvas, f"🏆 {final_winner}")
     assert winner_item_id is not None, "Winner text with trophy should be drawn."
@@ -101,10 +97,7 @@ def test_draw_bracket_with_next_match_highlight(bracket_canvas, simple_bracket_d
     highlight_rects_found = []
     for item_id in bracket_canvas.find_all():
         if bracket_canvas.type(item_id) == "rectangle":
-            if (
-                bracket_canvas.itemcget(item_id, "fill")
-                == bracket_canvas.NEXT_MATCH_COLOR
-            ):
+            if bracket_canvas.itemcget(item_id, "fill") == bracket_canvas.NEXT_MATCH_COLOR:
                 highlight_rects_found.append(item_id)
 
     assert (

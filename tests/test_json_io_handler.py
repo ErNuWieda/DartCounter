@@ -122,9 +122,7 @@ class TestJsonIOHandler:
         test_data = {"a": 1}
         mock_parent = MagicMock()
 
-        result = JsonIOHandler.write_json(
-            filepath, test_data, parent_for_dialog=mock_parent
-        )
+        result = JsonIOHandler.write_json(filepath, test_data, parent_for_dialog=mock_parent)
 
         assert result is False
         mock_ui_utils.show_message.assert_called_once()

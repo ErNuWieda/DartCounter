@@ -171,9 +171,7 @@ class HighscoreManager:
         reset_dialog.geometry("350x150")
 
         msg = f"Möchtest du die Highscores für '{current_game_mode}' oder alle Highscores zurücksetzen?"
-        ttk.Label(reset_dialog, text=msg, wraplength=330, justify="center").pack(
-            pady=20
-        )
+        ttk.Label(reset_dialog, text=msg, wraplength=330, justify="center").pack(pady=20)
 
         button_frame = ttk.Frame(reset_dialog)
         button_frame.pack(pady=10)
@@ -182,9 +180,7 @@ class HighscoreManager:
             mode_name = current_game_mode if mode else "alle Spielmodi"
             confirm_msg = f"Bist du sicher, dass du die Highscores für '{mode_name}' unwiderruflich löschen möchtest?"
 
-            if not ui_utils.ask_question(
-                "yesno", "Bestätigung", confirm_msg, parent=reset_dialog
-            ):
+            if not ui_utils.ask_question("yesno", "Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
             self.db_manager.reset_scores(mode)
@@ -202,9 +198,9 @@ class HighscoreManager:
             text=f"Nur '{current_game_mode}'",
             command=lambda: do_reset(current_game_mode),
         ).pack(side="left", padx=5)
-        ttk.Button(
-            button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)
-        ).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
+            side="left", padx=5
+        )
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(
             side="left", padx=5
         )
@@ -245,13 +241,9 @@ class HighscoreManager:
             notebook.add(frame, text=f"{game_mode}")
 
             # Spaltenüberschrift dynamisch anpassen
-            score_header = (
-                "MPR" if game_mode in ("Cricket", "Cut Throat", "Tactics") else "Darts"
-            )
+            score_header = "MPR" if game_mode in ("Cricket", "Cut Throat", "Tactics") else "Darts"
 
-            tree = ttk.Treeview(
-                frame, columns=("Rank", "Player", "Score", "Date"), show="headings"
-            )
+            tree = ttk.Treeview(frame, columns=("Rank", "Player", "Score", "Date"), show="headings")
             tree.heading("Rank", text="Platz")
             tree.column("Rank", width=50, anchor="center")
             tree.heading("Player", text="Spieler")
@@ -288,8 +280,7 @@ class HighscoreManager:
                 player_name = score["player_name"]
                 tags = (
                     ("personal_best",)
-                    if player_name in personal_bests
-                    and score_value == personal_bests[player_name]
+                    if player_name in personal_bests and score_value == personal_bests[player_name]
                     else ()
                 )
                 tree.insert(

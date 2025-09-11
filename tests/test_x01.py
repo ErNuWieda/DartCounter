@@ -189,9 +189,7 @@ class TestX01Logic:
 
         status, msg = x01_logic._handle_throw(mock_player, "Double", 20, [])
 
-        assert (
-            status == "win"
-        ), "Ein Shanghai-Finish sollte als 'win' zurückgegeben werden."
+        assert status == "win", "Ein Shanghai-Finish sollte als 'win' zurückgegeben werden."
         assert mock_game.shanghai_finish is True
 
     def test_handle_throw_undo_simple_score(self, mock_game, mock_player):

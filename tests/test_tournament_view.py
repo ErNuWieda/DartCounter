@@ -67,9 +67,7 @@ def test_initial_layout_for_double_elim(view, mock_manager):
     # The view is already created by the fixture, we just need to check its state
     assert view.wb_frame.winfo_ismapped(), "Winners Bracket frame should be visible."
     assert view.lb_frame.winfo_ismapped(), "Losers Bracket frame should be visible."
-    assert (
-        not view.podium_frame.winfo_ismapped()
-    ), "Podium frame should be hidden initially."
+    assert not view.podium_frame.winfo_ismapped(), "Podium frame should be hidden initially."
 
 
 def test_initial_layout_for_single_elim(tk_root_session, mock_manager):
@@ -79,12 +77,8 @@ def test_initial_layout_for_single_elim(tk_root_session, mock_manager):
     view_single = TournamentView(tk_root_session, mock_manager, MagicMock())
     view_single.update()
 
-    assert (
-        view_single.wb_frame.winfo_ismapped()
-    ), "Winners Bracket frame should be visible."
-    assert (
-        not view_single.lb_frame.winfo_ismapped()
-    ), "Losers Bracket frame should be hidden."
+    assert view_single.wb_frame.winfo_ismapped(), "Winners Bracket frame should be visible."
+    assert not view_single.lb_frame.winfo_ismapped(), "Losers Bracket frame should be hidden."
 
     view_single.destroy()
 

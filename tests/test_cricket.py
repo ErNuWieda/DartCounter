@@ -193,9 +193,7 @@ def test_undo_scoring_hit_restores_score_and_marks(cricket_logic, players):
 # --- Cut Throat Specific Tests ---
 
 
-def test_cut_throat_scoring_adds_points_to_opponents(
-    cut_throat_logic, cut_throat_players
-):
+def test_cut_throat_scoring_adds_points_to_opponents(cut_throat_logic, cut_throat_players):
     player1, player2, player3 = cut_throat_players
     player1.state["hits"]["20"] = 3
     player2.state["hits"]["20"] = 1

@@ -124,9 +124,7 @@ class AtC(GameLogicBase):
             if not current_target_is_bull_type and self.opt_atc != "Single":
                 opt_atc_display = self.opt_atc + " "
 
-            base_msg = (
-                f"{player.name} muss {opt_atc_display}{player.next_target} treffen!"
-            )
+            base_msg = f"{player.name} muss {opt_atc_display}{player.next_target} treffen!"
 
             remaining_darts = 3 - len(player.throws)
             if remaining_darts > 0:
@@ -137,8 +135,7 @@ class AtC(GameLogicBase):
             else:  # Last dart of the turn
                 return (
                     "invalid_target",
-                    base_msg
-                    + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.",
+                    base_msg + "\nLetzter Dart dieser Aufnahme. Bitte 'Weiter' klicken.",
                 )
 
         # --- Treffer auf AtC-Ziel verarbeiten ---
@@ -153,9 +150,7 @@ class AtC(GameLogicBase):
                 player.next_target = target
                 break
 
-        player.sb.update_display(
-            player.hits, player.score
-        )  # Update display after successful hit
+        player.sb.update_display(player.hits, player.score)  # Update display after successful hit
 
         # --- Gewinnbedingung prüfen ---
         if all_targets_closed:

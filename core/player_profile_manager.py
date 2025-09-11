@@ -112,9 +112,7 @@ class PlayerProfileManager:
         )
         if success:
             # Finde das Profil in der lokalen Liste und aktualisiere es, um einen Neuladevorgang zu vermeiden
-            profile_to_update = next(
-                (p for p in self.profiles if p.id == profile_id), None
-            )
+            profile_to_update = next((p for p in self.profiles if p.id == profile_id), None)
             if profile_to_update:
                 profile_to_update.name = new_name
                 profile_to_update.avatar_path = new_avatar_path

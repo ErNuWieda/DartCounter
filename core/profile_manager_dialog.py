@@ -79,22 +79,20 @@ class ProfileManagerDialog(tk.Toplevel):
         self.tree.bind("<Double-1>", lambda e: self._edit_selected_profile())
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        scrollbar = ttk.Scrollbar(
-            list_frame, orient=tk.VERTICAL, command=self.tree.yview
-        )
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.config(yscrollcommand=scrollbar.set)
 
         # --- Buttons im Button Frame ---
-        ttk.Button(
-            button_frame, text="Neues Profil", command=self._add_new_profile
-        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Neues Profil", command=self._add_new_profile).pack(
+            side=tk.LEFT, padx=5
+        )
         ttk.Button(
             button_frame, text="Profil bearbeiten", command=self._edit_selected_profile
         ).pack(side=tk.LEFT, padx=5)
-        ttk.Button(
-            button_frame, text="Profil löschen", command=self._delete_selected_profile
-        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Profil löschen", command=self._delete_selected_profile).pack(
+            side=tk.LEFT, padx=5
+        )
 
         recalc_button = ttk.Button(
             button_frame,
@@ -105,9 +103,7 @@ class ProfileManagerDialog(tk.Toplevel):
         if not self.player_stats_manager:
             recalc_button.config(state="disabled")
 
-        ttk.Button(button_frame, text="Schließen", command=self.destroy).pack(
-            side=tk.RIGHT, padx=5
-        )
+        ttk.Button(button_frame, text="Schließen", command=self.destroy).pack(side=tk.RIGHT, padx=5)
 
     def _populate_profile_list(self):
         # Bestehende Einträge und Bildreferenzen löschen
@@ -130,9 +126,7 @@ class ProfileManagerDialog(tk.Toplevel):
         ]
         ai_profiles.sort(
             key=lambda p: (
-                difficulty_order.index(p.difficulty)
-                if p.difficulty in difficulty_order
-                else 99
+                difficulty_order.index(p.difficulty) if p.difficulty in difficulty_order else 99
             )
         )
         # Menschliche Spieler alphabetisch sortieren
@@ -187,9 +181,7 @@ class ProfileManagerDialog(tk.Toplevel):
         profile_name = self.tree.item(selected_item)["values"][0]
         profile_to_edit = self.profile_manager.get_profile_by_name(profile_name)
         if profile_to_edit:
-            dialog = EditProfileDialog(
-                self, self.profile_manager, profile_to_edit=profile_to_edit
-            )
+            dialog = EditProfileDialog(self, self.profile_manager, profile_to_edit=profile_to_edit)
             self.wait_window(dialog)
             self._populate_profile_list()
 
@@ -236,11 +228,12 @@ class ProfileManagerDialog(tk.Toplevel):
         player_type = self.tree.item(selected_item)["values"][1]
 
         if player_type == "KI":
-            messagebox.showwarning(
-                "Falscher Spielertyp",
-                "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus deren Spieldaten berechnet werden.",
-                parent=self,
+            title = "Falscher Spielertyp"
+            message = (
+                "Ein Genauigkeitsmodell kann nur für menschliche Spieler aus deren "
+                "Spieldaten berechnet werden."
             )
+            messagebox.showwarning(title, message, parent=self)
             return
 
         if not self.player_stats_manager:
@@ -249,11 +242,12 @@ class ProfileManagerDialog(tk.Toplevel):
             )
             return
 
-        if messagebox.askyesno(
-            "Bestätigung",
-            f"Möchten Sie das Genauigkeitsmodell für '{profile_name}' jetzt neu berechnen?\n\nDieser Vorgang analysiert alle gespeicherten Würfe und kann einen Moment dauern.",
-            parent=self,
-        ):
+        confirm_title = "Bestätigung"
+        confirm_message = (
+            f"Möchten Sie das Genauigkeitsmodell für '{profile_name}' jetzt neu berechnen?\n\n"
+            "Dieser Vorgang analysiert alle gespeicherten Würfe und kann einen Moment dauern."
+        )
+        if messagebox.askyesno(confirm_title, confirm_message, parent=self):
             success = self.player_stats_manager.update_accuracy_model(
                 profile_name, parent_window=self
             )

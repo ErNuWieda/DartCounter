@@ -36,9 +36,7 @@ class BaseScoreBoard:
         self.score_window = tk.Toplevel(root)
         self.score_window.title(self.original_title)
 
-        final_height = (
-            height if height is not None else self.game.game.get_scoreboard_height()
-        )
+        final_height = height if height is not None else self.game.game.get_scoreboard_height()
 
         if pos_x is not None and pos_y is not None:
             self.score_window.geometry(f"{width}x{final_height}+{pos_x}+{pos_y}")
@@ -57,9 +55,7 @@ class BaseScoreBoard:
         # 2. Button-Frame ganz unten (wird nicht vergrößert)
         bottom_frame = ttk.Frame(self.score_window)
         bottom_frame.pack(side="bottom", fill="x", pady=5)
-        leave_button = ttk.Button(
-            bottom_frame, text="Spiel verlassen", command=self.player.leave
-        )
+        leave_button = ttk.Button(bottom_frame, text="Spiel verlassen", command=self.player.leave)
         leave_button.pack()
 
         # 3. Haupt-Frame, der den restlichen Platz füllt
@@ -69,28 +65,18 @@ class BaseScoreBoard:
         # --- Widgets im Haupt-Frame erstellen ---
         self._create_header(main_frame)
         self._create_extra_widgets(main_frame)  # Hook für Unterklassen
-        ttk.Label(main_frame, text="Current Throws:", font=("Arial", 10)).pack(
-            pady=(10, 0)
-        )
-        self.throws_list = tk.Listbox(
-            main_frame, height=3, font=("Arial", 12), justify="center"
-        )
+        ttk.Label(main_frame, text="Current Throws:", font=("Arial", 10)).pack(pady=(10, 0))
+        self.throws_list = tk.Listbox(main_frame, height=3, font=("Arial", 12), justify="center")
         self.throws_list.pack(fill="x")
 
     def _create_header(self, parent):
         header_frame = ttk.Frame(parent)
         header_frame.pack(fill="x")
 
-        avatar_label = ttk.Label(
-            header_frame, text="?", relief="solid", width=8, anchor="center"
-        )
+        avatar_label = ttk.Label(header_frame, text="?", relief="solid", width=8, anchor="center")
         avatar_label.pack(side="left", padx=(0, 10))
 
-        if (
-            self.profile
-            and self.profile.avatar_path
-            and os.path.exists(self.profile.avatar_path)
-        ):
+        if self.profile and self.profile.avatar_path and os.path.exists(self.profile.avatar_path):
             try:
                 img = Image.open(self.profile.avatar_path)
                 img.thumbnail((64, 64))
@@ -113,9 +99,7 @@ class BaseScoreBoard:
         score_display_frame = ttk.Frame(name_score_frame)
         score_display_frame.pack(pady=(5, 0))
         score_label_text = "Leben:" if self.game.options.name == "Killer" else "Score:"
-        ttk.Label(score_display_frame, text=score_label_text, font=("Arial", 12)).pack(
-            side="left"
-        )
+        ttk.Label(score_display_frame, text=score_label_text, font=("Arial", 12)).pack(side="left")
         self.score_var = tk.StringVar(value=str(self.player.score))
         ttk.Label(
             score_display_frame, textvariable=self.score_var, font=("Arial", 20, "bold")
@@ -178,17 +162,17 @@ class X01ScoreBoard(BaseScoreBoard):
             set_frame.grid(row=0, column=0, sticky="e", padx=(0, 10))
             ttk.Label(set_frame, text="Sätze:", font=("Arial", 10)).pack(side="left")
             self.set_score_var = tk.StringVar(value="0")
-            ttk.Label(
-                set_frame, textvariable=self.set_score_var, font=("Arial", 14, "bold")
-            ).pack(side="left", padx=5)
+            ttk.Label(set_frame, textvariable=self.set_score_var, font=("Arial", 14, "bold")).pack(
+                side="left", padx=5
+            )
 
             leg_frame = ttk.Frame(leg_set_frame)
             leg_frame.grid(row=0, column=1, sticky="w", padx=(10, 0))
             ttk.Label(leg_frame, text="Legs:", font=("Arial", 10)).pack(side="left")
             self.leg_score_var = tk.StringVar(value="0")
-            ttk.Label(
-                leg_frame, textvariable=self.leg_score_var, font=("Arial", 14, "bold")
-            ).pack(side="left", padx=5)
+            ttk.Label(leg_frame, textvariable=self.leg_score_var, font=("Arial", 14, "bold")).pack(
+                side="left", padx=5
+            )
 
         avg_frame = ttk.Frame(parent)
         avg_frame.pack(pady=(0, 5))
@@ -319,10 +303,7 @@ def setup_scoreboards(game_controller):
     Returns:
         list[ScoreBoard]: Eine Liste der erstellten Scoreboard-Instanzen.
     """
-    if (
-        not game_controller.dartboard
-        or not game_controller.dartboard.root.winfo_exists()
-    ):
+    if not game_controller.dartboard or not game_controller.dartboard.root.winfo_exists():
         return []
 
     game_controller.dartboard.root.update_idletasks()

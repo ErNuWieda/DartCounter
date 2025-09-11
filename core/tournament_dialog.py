@@ -142,12 +142,8 @@ class TournamentSettingsDialog(tk.Toplevel):
         if not self.profile_manager:
             return
 
-        all_profile_names = sorted(
-            [p.name for p in self.profile_manager.get_profiles()]
-        )
-        selected_names = {
-            entry.get() for entry in self.player_name_entries if entry.get()
-        }
+        all_profile_names = sorted([p.name for p in self.profile_manager.get_profiles()])
+        selected_names = {entry.get() for entry in self.player_name_entries if entry.get()}
 
         for entry in self.player_name_entries:
             current_value = entry.get()
@@ -183,14 +179,10 @@ class TournamentSettingsDialog(tk.Toplevel):
     def _on_start(self):
         self.player_names = [entry.get().strip() for entry in self.player_name_entries]
         if any(not name for name in self.player_names):
-            messagebox.showerror(
-                "Fehler", "Alle Spielernamen müssen ausgefüllt sein.", parent=self
-            )
+            messagebox.showerror("Fehler", "Alle Spielernamen müssen ausgefüllt sein.", parent=self)
             return
         if len(set(self.player_names)) != len(self.player_names):
-            messagebox.showerror(
-                "Fehler", "Spielernamen müssen eindeutig sein.", parent=self
-            )
+            messagebox.showerror("Fehler", "Spielernamen müssen eindeutig sein.", parent=self)
             return
 
         if self.settings_manager:

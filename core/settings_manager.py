@@ -103,9 +103,7 @@ class SettingsManager:
         load_paths = [self.save_filepath, get_application_root_dir() / "settings.json"]
 
         # Lade die erste existierende Datei aus der Liste.
-        if filepath_to_load_from := next(
-            (path for path in load_paths if path.exists()), None
-        ):
+        if filepath_to_load_from := next((path for path in load_paths if path.exists()), None):
             self.settings = self._load_settings(filepath_to_load_from)
         else:
             self.settings = self._get_defaults()
@@ -161,9 +159,7 @@ class SettingsManager:
         Diese Methode sollte beim Beenden der Anwendung aufgerufen werden.
         """
         if not JsonIOHandler.write_json(self.save_filepath, self.settings):
-            logger.error(
-                f"Fehler beim Speichern der Einstellungen nach: {self.save_filepath}"
-            )
+            logger.error(f"Fehler beim Speichern der Einstellungen nach: {self.save_filepath}")
 
     def get(self, key, default=None):
         """

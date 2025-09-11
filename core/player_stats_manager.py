@@ -96,9 +96,7 @@ class PlayerStatsManager:
             msg = f"Möchtest du nur die Statistiken für '{selected_player}' oder die Statistiken aller Spieler zurücksetzen?"
         else:
             msg = "Möchtest du die Statistiken aller Spieler zurücksetzen?"
-        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(
-            pady=20
-        )
+        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(pady=20)
 
         button_frame = ttk.Frame(reset_dialog)
         button_frame.pack(pady=10)
@@ -111,9 +109,7 @@ class PlayerStatsManager:
                 return
 
             self.db_manager.reset_game_records(player_to_reset)
-            messagebox.showinfo(
-                "Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog
-            )
+            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)
             reset_dialog.destroy()
             stats_win.destroy()  # Schließt das Hauptfenster, um ein Neuladen zu erzwingen
 
@@ -123,9 +119,9 @@ class PlayerStatsManager:
                 text=f"Nur '{selected_player}'",
                 command=lambda: do_reset(selected_player),
             ).pack(side="left", padx=5)
-        ttk.Button(
-            button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)
-        ).pack(side="left", padx=5)
+        ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
+            side="left", padx=5
+        )
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(
             side="left", padx=5
         )
@@ -170,15 +166,10 @@ class PlayerStatsManager:
         # 1. Alle Wurfkoordinaten des Spielers sammeln
         records = self.db_manager.get_records_for_player(player_name)
         all_coords_normalized = [
-            coord
-            for rec in records
-            for coord in rec.get("all_throws_coords", [])
-            if coord
+            coord for rec in records for coord in rec.get("all_throws_coords", []) if coord
         ]
 
-        if (
-            len(all_coords_normalized) < 20
-        ):  # Mindestanzahl an Würfen für eine sinnvolle Analyse
+        if len(all_coords_normalized) < 20:  # Mindestanzahl an Würfen für eine sinnvolle Analyse
             messagebox.showinfo(
                 "Nicht genügend Daten",
                 f"Für '{player_name}' sind nicht genügend Wurfdaten für eine Analyse vorhanden.",
@@ -267,19 +258,13 @@ class PlayerStatsManager:
         control_frame = ttk.Frame(win, padding=10)
         control_frame.pack(fill="x")
 
-        ttk.Label(control_frame, text="Spieler auswählen:").pack(
-            side="left", padx=(0, 10)
-        )
+        ttk.Label(control_frame, text="Spieler auswählen:").pack(side="left", padx=(0, 10))
         player_names = self.get_all_player_names()
-        player_select = ttk.Combobox(
-            control_frame, values=player_names, state="readonly"
-        )
+        player_select = ttk.Combobox(control_frame, values=player_names, state="readonly")
         player_select.pack(side="left")
 
         # Filter für Spielmodus
-        ttk.Label(control_frame, text="Spielmodus filtern:").pack(
-            side="left", padx=(20, 10)
-        )
+        ttk.Label(control_frame, text="Spielmodus filtern:").pack(side="left", padx=(20, 10))
         game_mode_select = ttk.Combobox(control_frame, state="disabled")
         game_mode_select.pack(side="left")
 
@@ -288,13 +273,11 @@ class PlayerStatsManager:
         summary_frame.pack(side="top", fill="x", padx=10, pady=(5, 0))
         summary_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(summary_frame, text="Beste Siegesserie:").grid(
-            row=0, column=0, sticky="w"
-        )
+        ttk.Label(summary_frame, text="Beste Siegesserie:").grid(row=0, column=0, sticky="w")
         best_streak_var = tk.StringVar(value="-")
-        ttk.Label(
-            summary_frame, textvariable=best_streak_var, font=("Arial", 12, "bold")
-        ).grid(row=0, column=1, sticky="w", padx=5)
+        ttk.Label(summary_frame, textvariable=best_streak_var, font=("Arial", 12, "bold")).grid(
+            row=0, column=1, sticky="w", padx=5
+        )
 
         # --- Button Frame (ganz unten) ---
         # Wird vor den expandierenden Widgets gepackt, damit er immer sichtbar ist.
@@ -384,9 +367,7 @@ class PlayerStatsManager:
                 values = [g[metric_key] for g in plot_games]
 
                 ax.plot(dates, values, marker="o", linestyle="-")
-                ax.set_title(
-                    f"{selected_mode} - {metric_label}-Verlauf für {player_name}"
-                )
+                ax.set_title(f"{selected_mode} - {metric_label}-Verlauf für {player_name}")
                 ax.set_ylabel(metric_label)
                 ax.grid(True)
                 ax.xaxis.set_major_formatter(DateFormatter("%d.%m.%y"))
@@ -425,9 +406,7 @@ class PlayerStatsManager:
             if selected_mode == "Alle Spiele":
                 _refresh_views(player_games_cache)
             else:
-                filtered_games = [
-                    g for g in player_games_cache if g["game_mode"] == selected_mode
-                ]
+                filtered_games = [g for g in player_games_cache if g["game_mode"] == selected_mode]
                 _refresh_views(filtered_games)
 
         player_select.bind("<<ComboboxSelected>>", on_player_select)
@@ -531,9 +510,7 @@ class PlayerStatsManager:
 
         photo = ImageTk.PhotoImage(heatmap_img)
         img_label = ttk.Label(heatmap_win, image=photo)
-        img_label.image = (
-            photo  # Wichtig: Referenz behalten, um Garbage Collection zu verhindern
-        )
+        img_label.image = photo  # Wichtig: Referenz behalten, um Garbage Collection zu verhindern
         img_label.pack()
 
         heatmap_win.grab_set()

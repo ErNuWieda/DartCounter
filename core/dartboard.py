@@ -91,9 +91,7 @@ class DartBoard:
 
         # Dart-Maske laden und für die Einfärbung vorbereiten
         self._dart_photo_image = None
-        self.dart_image_ids_on_canvas = (
-            []
-        )  # Speichert IDs mehrerer Darts für den aktuellen Zug
+        self.dart_image_ids_on_canvas = []  # Speichert IDs mehrerer Darts für den aktuellen Zug
         try:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")
@@ -292,9 +290,7 @@ class DartBoard:
         """
         # Neues Dart-Bild auf dem Canvas platzieren, falls das Bild geladen ist
         if self._dart_photo_image and self.canvas:
-            dart_id = self.canvas.create_image(
-                x - 5, y - 20, image=self._dart_photo_image
-            )
+            dart_id = self.canvas.create_image(x - 5, y - 20, image=self._dart_photo_image)
             self.dart_image_ids_on_canvas.append(dart_id)
 
         ring, segment = self.get_ring_segment(x, y)
@@ -336,11 +332,7 @@ class DartBoard:
         if not ring_prefix:
             return None
 
-        target_str = (
-            f"{ring_prefix}{segment}"
-            if ring not in ("Bullseye", "Bull")
-            else ring_prefix
-        )
+        target_str = f"{ring_prefix}{segment}" if ring not in ("Bullseye", "Bull") else ring_prefix
 
         # Hole die unskalierten Original-Koordinaten von der Geometrie-Klasse
         original_coords = DartboardGeometry.get_target_coords(target_str)
@@ -393,9 +385,7 @@ class DartBoard:
         # Buttons erstellen
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(side="bottom", fill="x", pady=5)
-        self.undo_button = ttk.Button(
-            btn_frame, text=" Zurück  ", command=self.spiel.undo
-        )
+        self.undo_button = ttk.Button(btn_frame, text=" Zurück  ", command=self.spiel.undo)
         self.undo_button.pack(pady=5)
         self.done_button = ttk.Button(
             btn_frame,
@@ -407,9 +397,7 @@ class DartBoard:
         quit_button = ttk.Button(btn_frame, text="Beenden", command=self.quit_game)
         quit_button.pack(pady=5)
         self.done_button.bind("<Return>", lambda event: self.spiel.next_player())
-        self.canvas.create_window(
-            new_size[0], new_size[1], window=btn_frame, anchor="se"
-        )
+        self.canvas.create_window(new_size[0], new_size[1], window=btn_frame, anchor="se")
 
         # Fenster zentrieren, nachdem alle Widgets hinzugefügt wurden
         self.root.update_idletasks()
