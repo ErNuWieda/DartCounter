@@ -146,7 +146,7 @@ class TestCricketLogic:
         assert cricket_logic.game.end is True
         assert cricket_logic.game.winner == alice
 
-    def test_win_condition_not_met_lower_score(self, cricket_logic, mock_players):  # noqa
+    def test_win_condition_not_met_lower_score(self, cricket_logic, mock_players):  # noqa: E501
         alice, bob = mock_players
         cricket_logic.initialize_player_state(alice)
         cricket_logic.initialize_player_state(bob)

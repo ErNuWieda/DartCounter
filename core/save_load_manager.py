@@ -169,7 +169,7 @@ class SaveLoadManager:
             ui_utils.show_message(
                 "error",
                 "Inkompatibler Spielstand",
-                f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.",
+                f"Diese Speicherdatei (Version {file_version}) ist nicht mit der aktuellen Programmversion (erwartet Version {SaveLoadManager.SAVE_FORMAT_VERSION}) kompatibel.",  # noqa: E501
                 parent=parent,
             )
             return None
