@@ -65,9 +65,8 @@ class TestSoundManager:
 
     def test_init_mixer_initialization_fails(self, sound_manager_mocks):
         """Testet das Verhalten, wenn pygame.mixer.init() einen Fehler auslöst."""
-        sound_manager_mocks["mock_pygame"].mixer.init.side_effect = sound_manager_mocks[
-            "mock_pygame"
-        ].error("Mixer-Fehler")
+        mocks = sound_manager_mocks
+        mocks["mock_pygame"].mixer.init.side_effect = mocks["mock_pygame"].error("Mixer-Fehler")
         sm = SoundManager(sound_manager_mocks["settings_manager"], sound_manager_mocks["root"])
         assert not sm.sounds_enabled
         assert "Pygame mixer konnte nicht initialisiert werden" in sm.loading_errors[0]
@@ -125,8 +124,7 @@ class TestSoundManager:
         assert sm.score_180_sound is not None
         assert sm.shanghai_sound is not None
         mocks["mock_messagebox"].showwarning.assert_called_once()
-
-    def test_toggle_sounds(self, sound_manager_mocks):
+    def test_toggle_sounds(self, sound_manager_mocks):  # noqa: E501
         """Testet das Aktivieren und Deaktivieren von Sounds."""
         mocks = sound_manager_mocks
         sm = SoundManager(mocks["settings_manager"], mocks["root"])

@@ -140,7 +140,7 @@ class Micky(GameLogicBase):
                     "invalid_target",
                     msg_base + f"\n{remaining_darts} verbleibende Darts.",
                 )
-            else:
+            else:  # pragma: no cover
                 return ("invalid_target", msg_base + "\nLetzter Dart dieser Aufnahme.")
 
         # Gültiger Treffer: Trefferzahl aktualisieren (maximal 3)

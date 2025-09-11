@@ -46,7 +46,7 @@ def run_tests():
         subprocess.run(test_command, check=True)
         print(">>> Alle Tests erfolgreich bestanden.")
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         print("\n" + "=" * 50)
         print("FEHLER: Die Test-Suite ist fehlgeschlagen.")
         print("Mögliche Ursachen:")
@@ -87,11 +87,7 @@ def main():
         print(f"\nFEHLER: Asset-Verzeichnis '{ASSETS_DIR}' nicht gefunden.")
         sys.exit(1)
 
-    try:
-        import PyInstaller
-
-        print(">>> PyInstaller-Modul gefunden.")
-    except ImportError:
+    if not shutil.which("pyinstaller"):
         print("\nFEHLER: Das Modul 'PyInstaller' wurde nicht gefunden.")
         print(f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:")
         print("pip install pyinstaller")
@@ -196,7 +192,8 @@ def main():
     # damit der Installer-Workflow auf die erstellten Dateien zugreifen kann.
     if system == "Windows" and os.getenv("CI"):
         print(
-            "\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe ZIP-Erstellung und Cleanup."
+            "\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe "
+            "ZIP-Erstellung und Cleanup."
         )
         print(f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'")
     else:

@@ -70,8 +70,7 @@ class TestJsonIOHandler:
         args, kwargs = mock_ui_utils.show_message.call_args
         assert args[0] == "error"
         assert args[1] == "Fehler beim Laden"
-        assert f"Fehler beim Lesen oder Parsen der JSON-Datei:\n{filepath}" in args[2]
-        assert "Fehler: " in args[2]
+        assert f"Fehler beim Lesen oder Parsen der JSON-Datei:\n{filepath}" in args[2] and "Fehler: " in args[2]
         assert kwargs["parent"] == mock_parent
 
     @patch("pathlib.Path.exists", return_value=True)

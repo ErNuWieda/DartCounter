@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
-import os
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -103,13 +101,13 @@ class PlayerStatsManager:
 
         def do_reset(player_to_reset):
             mode_name = f"'{player_to_reset}'" if player_to_reset else "alle Spieler"
-            confirm_msg = f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} unwiderruflich löschen möchtest?"
+            confirm_msg = f"Bist du sicher, dass du die Spiel-Statistiken für {mode_name} unwiderruflich löschen möchtest?"  # noqa: E501
 
             if not messagebox.askyesno("Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
             self.db_manager.reset_game_records(player_to_reset)
-            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)
+            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)  # type: ignore
             reset_dialog.destroy()
             stats_win.destroy()  # Schließt das Hauptfenster, um ein Neuladen zu erzwingen
 
@@ -136,8 +134,7 @@ class PlayerStatsManager:
         # Datensätze sind von der DB absteigend nach Datum sortiert, für die Analyse brauchen wir sie aufsteigend.
         sorted_records = sorted(records, key=lambda r: r["game_date"])
 
-        max_win_streak = 0
-        current_win_streak = 0
+        max_win_streak, current_win_streak = 0, 0
 
         for record in sorted_records:
             if record.get("is_win"):
@@ -158,8 +155,8 @@ class PlayerStatsManager:
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",
-                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\nBitte installieren: pip install numpy",
-                parent=parent_window,
+                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
+                "Bitte installieren: pip install numpy", parent=parent_window
             )
             return
 
@@ -484,8 +481,7 @@ class PlayerStatsManager:
 
         if not all_coords:
             messagebox.showinfo(
-                "Keine Daten",
-                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",
+                "Keine Daten", f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",
                 parent=parent,
             )
             return

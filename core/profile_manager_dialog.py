@@ -204,7 +204,7 @@ class ProfileManagerDialog(tk.Toplevel):
         if messagebox.askyesno(
             "Profil löschen",
             f"Möchten Sie das Profil '{profile_name}' wirklich löschen?",
-            parent=self,
+            parent=self,  # type: ignore
         ):
             if self.profile_manager.delete_profile(profile_name):
                 self._populate_profile_list()

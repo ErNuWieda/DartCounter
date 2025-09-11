@@ -30,8 +30,7 @@ class Shanghai(GameLogicBase):
         return self.targets
 
     def _handle_throw_undo(self, player, ring, segment, players):
-        """Macht einen Wurf im Shanghai-Modus rückgängig, indem Punkte und Treffer korrigiert werden."""
-        # Der rückgängig gemachte Wurf war nur dann relevant, wenn er auf das Ziel der Runde ging.
+        """Macht einen Wurf im Shanghai-Modus rückgängig."""
         if str(segment) == str(self.game.round):
             # 1. Punkte des Wurfs ermitteln und vom Score abziehen
             score_to_undo = self.game.get_score(ring, segment)
@@ -101,8 +100,7 @@ class Shanghai(GameLogicBase):
         if rings_hit_on_target == {"Single", "Double", "Triple"}:
             self.game.shanghai_finish = True
             self.game.end = True
-            return (
-                "win",
+            return ("win",
                 f"🏆 {player.name} gewinnt in Runde {self.game.round} mit einem Shanghai auf die {target_segment_for_shanghai}!",
             )
         # --- Weiter / Nächster Spieler ---

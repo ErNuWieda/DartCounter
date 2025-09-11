@@ -255,8 +255,7 @@ class TestGameWithX01:
         assert game.winner == alice, "Alice sollte die Gewinnerin sein."
 
         # Aktion: Undo
-        game.undo()
-
+        game.undo()  # type: ignore
         # Überprüfung des wiederhergestellten Zustands
         assert not game.end, "Die 'end'-Flagge sollte nach dem Undo zurückgesetzt sein."
         assert game.winner is None, "Der 'winner' sollte nach dem Undo zurückgesetzt sein."
@@ -264,8 +263,7 @@ class TestGameWithX01:
 
     def test_save_and_load_leg_set_match(self, _x01_game_factory):
         """
-        Tests that the state of a running "Legs & Sets" match can be correctly
-        saved and restored. This is a migrated test.
+        Tests that the state of a running "Legs & Sets" match can be correctly saved and restored.
         """
         game_options = {
             "name": "501",
@@ -304,8 +302,7 @@ class TestGameWithX01:
 
     def test_leave_player_in_leg_set_match_adjusts_starter(self, _x01_game_factory):
         """
-        Tests that the starting player for the next leg is correctly adjusted
-        when a player leaves the game. This is a migrated test.
+        Tests that the starting player for the next leg is correctly adjusted when a player leaves.
         """
         game_options = {
             "name": "501",
@@ -334,8 +331,7 @@ class TestGameWithX01:
 
     def test_leg_stats_reset_after_win(self, leg_set_game):
         """
-        Tests that leg-specific stats are reset after a leg win,
-        while match stats are preserved. This is a migrated test.
+        Tests that leg-specific stats are reset after a leg win, while match stats are preserved.
         """
         game = leg_set_game
         p1, _ = game.players[0], game.players[1]
@@ -352,15 +348,13 @@ class TestGameWithX01:
         p1.score = 40
         game.throw("Double", 20)  # Winning throw for the leg
 
-        assert not game.end
+        assert not game.end  # type: ignore
         assert p1.stats["total_darts_thrown"] == 0, "Darts Thrown should be reset for the new leg"
-        assert (
-            p1.stats["total_score_thrown"] == 0
-        ), "Score Thrown should be reset for the new leg"  # This was the bug
+        assert p1.stats["total_score_thrown"] == 0, "Score Thrown should be reset"
         assert p1.stats["highest_finish"] == 120, "Highest Finish should be preserved across legs"
 
     def test_leg_and_set_win_flow(self, leg_set_game):
-        """
+        """ # noqa: E501
         Simuliert ein komplettes Match im "Legs & Sets"-Modus, um den korrekten
         Ablauf und die Zustandsübergänge zu verifizieren.
         """

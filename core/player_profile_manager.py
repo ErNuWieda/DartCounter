@@ -98,7 +98,7 @@ class PlayerProfileManager:
             new_dart_color (str): Die (potenziell neue) Farbe für den Dart.
 
         Returns:
-            bool: True bei Erfolg, False wenn der neue Name bereits von einem anderen Profil verwendet wird.
+            bool: True bei Erfolg, False wenn der neue Name bereits von einem anderen Profil verwendet wird. # noqa: E501
         """
         success = self.db_manager.update_profile(
             profile_id,
@@ -111,7 +111,7 @@ class PlayerProfileManager:
             accuracy_model,
         )
         if success:
-            # Finde das Profil in der lokalen Liste und aktualisiere es, um einen Neuladevorgang zu vermeiden
+            # Finde das Profil in der lokalen Liste und aktualisiere es
             profile_to_update = next((p for p in self.profiles if p.id == profile_id), None)
             if profile_to_update:
                 profile_to_update.name = new_name

@@ -70,7 +70,7 @@ for i in range(20, 0, -1):  # Absteigend, um höhere Triples bei gleichem Score 
 # Bull (25) (vierte Priorität)
 if (
     25 not in _SINGLE_DART_FINISH_MAP
-):  # Only add if not already covered (e.g., by D25 if that was added)
+):  # Nur hinzufügen, wenn nicht bereits abgedeckt
     _SINGLE_DART_FINISH_MAP[25] = "25"
 # Singles (niedrigste Priorität)
 for i in range(20, 0, -1):  # Absteigend
@@ -222,8 +222,7 @@ class CheckoutCalculator:
 
         # Maximale Finish-Scores pro Dart-Anzahl
         if (darts_left == 3 and score > 170) or (
-            darts_left == 2 and score > 110
-        ):  # 1-Dart-Finish wird separat geprüft
+            darts_left == 2 and score > 110):
             return "-"
         if (
             darts_left == 1

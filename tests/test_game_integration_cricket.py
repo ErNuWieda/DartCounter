@@ -104,8 +104,7 @@ class TestGameWithCricket:
         assert game.end is True, "Das Spiel sollte nach dem Gewinnwurf beendet sein."
         assert (
             game.winner == alice
-        ), "Der 'winner' wurde nicht gesetzt. Die Cricket-Logik gibt wahrscheinlich nicht den korrekten Gewinn-String zurück."
-        # Prüfen, ob der Highscore-Manager mit der korrekten Metrik (MPR) aufgerufen wurde
+        ), "Der 'winner' wurde nicht gesetzt."
         # Annahme: Der Gewinnwurf ist der erste Wurf im Spiel (1 Dart, 1 Mark). MPR = (1/1)*3 = 3.0
         # Dies testet auch, ob die Statistik-Updates im Gewinnfall korrekt sind.
         mock_highscore_manager.add_score.assert_called_once_with(

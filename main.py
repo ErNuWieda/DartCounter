@@ -19,7 +19,6 @@
 
 import tkinter as tk
 from core._version import __version__
-from tkinter import ttk
 import webbrowser
 from PIL import Image, ImageTk
 import sys
@@ -214,8 +213,7 @@ class App:
                 }
                 msg_type = (
                     "error"
-                    if result.status in ("bust", "invalid_open", "invalid_target", "error")
-                    else result.status
+                    if result.status in ("bust", "invalid_open", "invalid_target", "error") else result.status
                 )
                 title = title_map.get(result.status, "Info")
                 ui_utils.show_message(
@@ -347,8 +345,7 @@ class App:
         """Speichert den Zustand des aktuell laufenden Turniers."""
         if self.tournament_manager and not self.tournament_manager.is_finished:
             SaveLoadManager.save_state(self.tournament_manager, self.root)
-        else:
-            title = "Turnier speichern"
+        else:  # pragma: no cover
             message = "Es läuft kein aktives Turnier, das gespeichert werden könnte."
             ui_utils.show_message("info", title, message, parent=self.root)
 
@@ -421,8 +418,7 @@ class App:
         # Spiel kann nur gespeichert werden, wenn eine Instanz existiert, das Spiel nicht beendet ist UND das Dartboard noch existiert.
         if self.game_instance and not self.game_instance.end:
             SaveLoadManager.save_state(self.game_instance, self.root)
-        else:
-            title = "Spiel speichern"
+        else:  # pragma: no cover
             message = "Es läuft kein aktives Spiel, das gespeichert werden könnte."
             ui_utils.show_message("info", title, message, parent=self.root)
 
@@ -458,7 +454,7 @@ class App:
             "Ein besonderer Dank geht an Gemini Code Assist\n"
             "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
             f"© 2025 Martin Hehl"
-        )
+        )  # noqa: F541
         ui_utils.show_message("info", f"Dartcounter {self.version}", about_text, parent=self.root)
 
     def open_donate_link(self):

@@ -34,8 +34,8 @@ class GameOptions:
     @classmethod
     def from_dict(cls, data: dict):
         """Erstellt eine GameOptions-Instanz aus einem Dictionary."""
-        # Filtere das Dictionary, um nur Schlüssel zu behalten, die auch Felder der Datenklasse sind.
-        # Das verhindert einen TypeError, wenn das Dictionary zusätzliche Schlüssel enthält (z.B. aus einer Speicherdatei).
+        # Filtere das Dictionary, um nur Schlüssel zu behalten, die auch Felder der
+        # Datenklasse sind. Verhindert TypeErrors bei zusätzlichen Schlüsseln.
         field_names = {f.name for f in cls.__dataclass_fields__.values()}
         filtered_data = {k: v for k, v in data.items() if k in field_names}
 
@@ -44,8 +44,8 @@ class GameOptions:
         for field in ["count_to", "lifes", "rounds", "legs_to_win", "sets_to_win"]:
             if field in filtered_data:
                 try:
-                    # Stellt sicher, dass der Wert zu einem Integer konvertiert wird.
-                    # Dies behandelt sowohl Strings ('301') als auch bereits vorhandene Integers (301).
+                    # Stellt sicher, dass der Wert zu einem Integer konvertiert wird,
+                    # behandelt sowohl Strings ('301') als auch Integers (301).
                     filtered_data[field] = int(filtered_data[field])
                 except (ValueError, TypeError):
                     # Fallback für ungültige Werte (z.B. leere Strings)

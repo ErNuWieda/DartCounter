@@ -92,11 +92,10 @@ def test_get_checkout_suggestion_standard_paths(score, darts_left, opt_out, expe
         # Score 98, pref D16. Calculated path not possible. Standard paths for 98 are ["T20 D19", "T18 D22"]. Neither ends in D16.
         # Die Logik berechnet "D8, BE, D16", verwirft diesen aber als unkonventionell und fällt
         # korrekt auf den Standard-Pfad "T20, D19" zurück.
-        (98, 3, 16, "T20, D19"),
+        (98, 3, 16, "T20, D19"),  # Fallback auf Standard
         # Score 98, pref D19. Calculated path not possible, but "T20 D19" is a standard path. It should find it.
-        (98, 3, 19, "T20, D19"),  # The new logic finds this standard path first.
-    ],
-)
+        (98, 3, 19, "T20, D19"),  # Findet Standardpfad, der passt
+    ])
 def test_get_checkout_suggestion_with_preferred_double(
     score, darts_left, preferred_double, expected
 ):

@@ -19,11 +19,6 @@ Dieses Modul definiert die Hauptlogik für x01 Dartspiele.
 Es enthält die x01 Klasse, die den Spielablauf, die Spieler,
 Punktestände und Regeln verwaltet.
 """
-import tkinter as tk
-from . import player
-from .player import Player
-from . import scoreboard
-from .scoreboard import ScoreBoard
 from .game_logic_base import GameLogicBase
 from .checkout_calculator import CheckoutCalculator
 
@@ -59,7 +54,7 @@ class X01(GameLogicBase):
         """
         return []
 
-    def initialize_player_state(self, player):
+    def initialize_player_state(self, player: "Player"):  # type: ignore
         """
         Setzt den Anfangs-Score für X01-Spiele und initialisiert den 'opened'-Status.
         """
@@ -86,7 +81,7 @@ class X01(GameLogicBase):
             return ring in ("Double", "Triple", "Bullseye")
         return False
 
-    def _handle_throw_undo(self, player, ring, segment, players):
+    def _handle_throw_undo(self, player: "Player", ring, segment, players):  # type: ignore
         """
         Macht den letzten Wurf für einen Spieler rückgängig.
 
@@ -105,8 +100,7 @@ class X01(GameLogicBase):
         if throw_score == 0:  # Miss-Wurf, nichts zu tun außer UI-Update
             # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
             preferred_double = player.profile.preferred_double if player.profile else None
-            darts_remaining = 3 - len(player.throws)
-            suggestion = CheckoutCalculator.get_checkout_suggestion(
+            darts_remaining = 3 - len(player.throws); suggestion = CheckoutCalculator.get_checkout_suggestion(
                 player.score,
                 self.opt_out,
                 darts_left=darts_remaining,
@@ -157,7 +151,7 @@ class X01(GameLogicBase):
         player.sb.update_score(player.score)
 
     def _validate_opt_in(self, player, ring, segment):
-        """
+        """ # noqa: E501
         Prüft, ob der Wurf die 'Opt-In'-Bedingung erfüllt und den Spieler öffnet.
 
         Args:
@@ -220,7 +214,7 @@ class X01(GameLogicBase):
 
         return False
 
-    def _is_shanghai_finish(self, player):
+    def _is_shanghai_finish(self, player: "Player"):  # type: ignore
         """Prüft, ob die drei Würfe des Spielers ein 120er Shanghai-Finish ergeben."""
         if len(player.throws) != 3:
             return False
@@ -249,7 +243,7 @@ class X01(GameLogicBase):
             "Triple",
         }
 
-    def _handle_win_condition(self, player, score_before_throw):
+    def _handle_win_condition(self, player: "Player", score_before_throw):  # type: ignore
         """Behandelt die Logik, wenn ein Spieler das Spiel gewinnt (Score erreicht 0)."""
         # --- Checkout-Statistik bei Gewinn aktualisieren ---
         player.stats["checkouts_successful"] += 1
@@ -271,7 +265,7 @@ class X01(GameLogicBase):
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
     def _handle_throw(
-        self, player: Player, ring: str, segment: int, players: list[Player]
+        self, player: "Player", ring: str, segment: int, players: list["Player"]  # type: ignore
     ) -> tuple[str, str | None]:
         """
         Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
@@ -352,8 +346,7 @@ class X01(GameLogicBase):
 
         if player.score == 0:  # Gilt nur für x01
             win_message = self._handle_win_condition(player, score_before_throw)
-            # NEU: Delegiere die Leg/Set-Logik an die Game-Klasse
-            self.game._handle_leg_win(player)
+            self.game._handle_leg_win(player)  # Delegiere die Leg/Set-Logik
             return ("win", win_message)
 
         if len(player.throws) == 3:

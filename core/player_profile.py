@@ -42,10 +42,10 @@ class PlayerProfile:
             name (str): Der eindeutige Name des Spielers.
             avatar_path (str, optional): Der Dateipfad zum Avatarbild. Defaults to None.
             dart_color (str, optional): Die Hex-Farbe für die Dart-Grafik. Defaults to "#ff0000" (rot).
-            is_ai (bool, optional): Gibt an, ob das Profil für eine KI ist. Defaults to False.
+            is_ai (bool, optional): Gibt an, ob das Profil für eine KI ist.
             difficulty (str, optional): Die Schwierigkeitsstufe der KI. Defaults to None.
             profile_id (int, optional): Die ID aus der Datenbank. Defaults to None.
-            preferred_double (int, optional): Das bevorzugte Double-Out-Feld (1-20 oder 25 für Bull). Defaults to None.
+            preferred_double (int, optional): Das bevorzugte Double-Out-Feld (1-20 oder 25 für Bull).
             accuracy_model (dict, optional): Das statistische Wurfmodell. Defaults to None.
         """
         self.name = name

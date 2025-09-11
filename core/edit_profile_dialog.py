@@ -231,7 +231,7 @@ class EditProfileDialog(tk.Toplevel):
             img.thumbnail((100, 100))
             self.avatar_photo = ImageTk.PhotoImage(img)
             self.avatar_preview_label.config(image=self.avatar_photo, text="")
-        except (FileNotFoundError, Image.UnidentifiedImageError, IOError) as e:
+        except (FileNotFoundError, Image.UnidentifiedImageError, IOError):
             self.avatar_preview_label.config(image=None, text="Fehler")
             # print(f"Fehler beim Laden des Avatar-Vorschaubildes: {e}")
 

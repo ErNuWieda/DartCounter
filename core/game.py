@@ -112,18 +112,15 @@ class Game:
         self.current = 0
         self.round = 1
         self.shanghai_finish = False
-        self.is_tournament_match = is_tournament_match
+        self.is_tournament_match = is_tournament_match  # type: ignore
         self.end = False
         self.winner = None
         self.game = self.get_game_logic()
         self.targets = self.game.get_targets()
 
-        # Spieler-Instanzen erstellen und Profile zuweisen
-        self.players = []
+        self.players = []  # Spieler-Instanzen erstellen und Profile zuweisen
         for name in player_names:
-            profile = (
-                self.profile_manager.get_profile_by_name(name) if self.profile_manager else None
-            )
+            profile = self.profile_manager.get_profile_by_name(name) if self.profile_manager else None
             if profile and profile.is_ai:
                 self.players.append(AIPlayer(name, self, profile=profile))
             else:
@@ -333,7 +330,7 @@ class Game:
         if not self.players:  # Keine Spieler mehr im Spiel
             return
 
-        if self.end == True:
+        if self.end:
             self.destroy()
             return
 
@@ -406,7 +403,7 @@ class Game:
         # Sound für Rundenende (nur bei X01)
         if len(player.throws) == 3 and self.options.name in ("301", "501", "701"):
             # Unpack the 3-tuple, ignoring coords
-            round_score = sum(Game.get_score(r, s) for r, s, _ in player.throws)
+            round_score = sum(self.get_score(r, s) for r, s, _ in player.throws)
             score_sounds = {
                 180: "score_180",
                 160: "score_160",
@@ -452,8 +449,8 @@ class Game:
             # Für X01 ist die Metrik die Anzahl der Darts
             if self.options.name in ("301", "501", "701"):
                 total_darts = winner.get_total_darts_in_game()
-                self.highscore_manager.add_score(self.options.name, winner.name, total_darts)
-            # Für Cricket ist die Metrik die MPR
+                self.highscore_manager.add_score(self.options.name, winner.name, total_darts)  # type: ignore
+            # Für Cricket ist die Metrik die MPR # type: ignore
             elif self.options.name in ("Cricket", "Cut Throat", "Tactics"):
                 mpr = winner.get_mpr()
                 self.highscore_manager.add_score(self.options.name, winner.name, mpr)
@@ -476,8 +473,7 @@ class Game:
         if len(player.throws) >= 3:
             ui_utils.show_message(
                 "info",
-                "Zuviel Würfe",
-                "Bitte 'Weiter' klicken!",
+                "Zuviel Würfe", "Bitte 'Weiter' klicken!",
                 parent=self.dartboard.root,
             )
             # Verhindert, dass ein Dart-Bild für einen ungültigen Wurf gezeichnet wird.

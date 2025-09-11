@@ -146,8 +146,7 @@ class TestGameSettingsDialog:
         # Klick auf den Start-Button simulieren
         dialog._on_start()
 
-        # Überprüfe das Ergebnis
-        assert dialog.was_started
+        assert dialog.was_started  # Überprüfe das Ergebnis
         assert dialog.result is not None
         assert dialog.result["players"] == ["Martin", "Gemini"]
         assert dialog.result["game"] == "501"
@@ -171,9 +170,7 @@ class TestGameSettingsDialog:
         dialog._on_start()
 
         assert not dialog.was_started
-        mock_messagebox.showerror.assert_called_once_with(
-            "Fehler", "Spielernamen müssen eindeutig sein.", parent=dialog
-        )
+        mock_messagebox.showerror.assert_called_once_with("Fehler", "Spielernamen müssen eindeutig sein.", parent=dialog)
         assert dialog.winfo_exists(), "Der Dialog sollte nach einem Fehler offen bleiben."
 
     def test_cancel_button_sets_flag_and_destroys(self, dialog_setup):

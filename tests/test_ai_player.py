@@ -50,8 +50,7 @@ def ai_player_with_mocks():
     mock_game.dartboard.get_coords_for_target.return_value = (300, 300)
 
     # FIX: Füge das fehlende settings_manager-Attribut hinzu, das vom AIPlayer-Konstruktor benötigt wird.
-    mock_game.settings_manager = MagicMock()
-    mock_game.settings_manager.get.return_value = 1000  # Standard-Verzögerung für Tests
+    mock_game.settings_manager = MagicMock(get=MagicMock(return_value=1000))
 
     mock_game.targets = []  # Fehlendes Attribut hinzufügen
 
@@ -463,8 +462,7 @@ def test_execute_throw_simulates_click(
     mock_cos.return_value = 0  # cos(pi/2) ≈ 0
     mock_sin.return_value = 1  # sin(pi/2) = 1
 
-    # Zielmitte ist (300, 300). Wurf-Offset ist x=0, y=10.
-    # Erwartete Wurfkoordinaten: x=300, y=310
+    # Zielmitte ist (300, 300). Wurf-Offset ist x=0, y=10. Erwartet: x=300, y=310
     expected_x, expected_y = 300, 310
 
     # Patch the strategic offset method for this test to isolate the throw simulation
@@ -488,9 +486,7 @@ def test_execute_throw_stops_on_bust(ai_player_with_mocks):
     # Die KI sollte keinen Klick simulieren
     mock_game.dartboard.on_click_simulated.assert_not_called()
     # Die KI sollte sofort den nächsten Spieler aufrufen
-    mock_game.dartboard.root.after.assert_called_once_with(
-        ai_player.throw_delay, mock_game.next_player
-    )
+    mock_game.dartboard.root.after.assert_called_once_with(ai_player.throw_delay, mock_game.next_player)
 
 
 def test_take_turn_initiates_sequence(ai_player_with_mocks):

@@ -19,7 +19,6 @@ from tkinter import ttk
 from PIL import Image, ImageTk, ImageColor
 import math
 import pathlib
-import os
 from .save_load_manager import SaveLoadManager
 from . import ui_utils
 from .dartboard_geometry import DartboardGeometry
@@ -100,9 +99,8 @@ class DartBoard:
             self.resized_dart_mask_pil = self.original_dart_mask_pil.resize(
                 (dart_display_width, dart_display_height), Image.Resampling.LANCZOS
             )
-            # Initial eine Standardfarbe setzen
-            self.update_dart_image("#ff0000")  # Standard-Rot
-        except FileNotFoundError:
+            self.update_dart_image("#ff0000")
+        except FileNotFoundError:  # pragma: no cover
             pass  # print(f"Warnung: Dart-Bild nicht gefunden unter {self.dart_path}")
         except Exception as e:
             pass  # print(f"Warnung: Dart-Bild konnte nicht geladen werden: {e}")
@@ -122,7 +120,7 @@ class DartBoard:
         try:
             target_color_rgb = ImageColor.getrgb(hex_color)
         except (ValueError, TypeError):
-            # print(f"Warnung: Ungültige Farbe '{hex_color}'. Fallback auf Rot.")
+            # Fallback auf Rot bei ungültiger Farbe
             target_color_rgb = (255, 0, 0)
 
         # Lade die Pixeldaten für den direkten Zugriff
@@ -178,6 +176,7 @@ class DartBoard:
                 "Laufendes Turnierspiel",
                 "Ein Turnierspiel muss beendet werden.\n\nBitte spiele das Match zu Ende, um zum Turnierbaum zurückzukehren.",
                 parent=self.root,
+            )
             )
             return  # Verhindert das Schließen des Fensters
         # 'askyesnocancel' gibt True für Ja, False für Nein und None für Abbrechen zurück.

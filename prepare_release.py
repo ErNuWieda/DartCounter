@@ -35,9 +35,8 @@ def update_version_file(new_version: str):
             content,
         )
         if new_content == content:
-            print(
-                f"  -> WARNUNG: Versions-String in {VERSION_FILE} nicht gefunden. Datei wurde nicht geändert."
-            )
+            msg = f"  -> WARNUNG: Versions-String in {VERSION_FILE} nicht gefunden. Datei wurde nicht geändert."
+            print(msg)
             return
 
         VERSION_FILE.write_text(new_content, encoding="utf-8")
@@ -81,7 +80,6 @@ def update_changelog(new_version: str):
 
         CHANGELOG_FILE.write_text(new_content, encoding="utf-8")
         print(f"  -> Erfolg: {CHANGELOG_FILE} wurde aktualisiert.")
-
     except FileNotFoundError:
         print(f"  -> FEHLER: {CHANGELOG_FILE} nicht gefunden.")
         sys.exit(1)
@@ -99,9 +97,8 @@ def update_release_checklist(new_version: str):
         new_content = new_content.replace("X.Y.Z", new_version)
 
         if new_content == content:
-            print(
-                f"  -> WARNUNG: Keine Platzhalter in {RELEASE_CHECKLIST_FILE} gefunden. Datei wurde nicht geändert."
-            )
+            msg = f"  -> WARNUNG: Keine Platzhalter in {RELEASE_CHECKLIST_FILE} gefunden. Datei wurde nicht geändert."
+            print(msg)
             return
 
         RELEASE_CHECKLIST_FILE.write_text(new_content, encoding="utf-8")

@@ -40,12 +40,11 @@ def _load_game_config():
             try:
                 # Kopiere die Standardkonfiguration in das Benutzerverzeichnis
                 shutil.copy(default_config_path, user_config_path)
-                logger.info(
-                    f"Keine 'game_config.json' im Benutzerverzeichnis gefunden. Standardkonfiguration wurde kopiert nach: {user_config_path}"
-                )
+                log_msg = f"Keine 'game_config.json' im Benutzerverzeichnis gefunden. Standardkonfiguration wurde kopiert nach: {user_config_path}"
+                logger.info(log_msg)
             except (IOError, shutil.Error) as e:
                 logger.error(
-                    f"Konnte die Standard-Spielkonfiguration nicht in das Benutzerverzeichnis kopieren: {e}",
+                    f"Konnte die Standard-Spielkonfiguration nicht kopieren: {e}",
                     exc_info=True,
                 )
                 # Als Fallback versuchen wir, direkt die Standardkonfiguration zu laden
@@ -307,8 +306,7 @@ class GameSettingsDialog(tk.Toplevel):
         # Button zur direkten Verwaltung der Profile hinzufügen
         manage_profiles_button = ttk.Button(
             players_frame,
-            text="Profile verwalten...",
-            command=self._open_profile_manager,
+            text="Profile verwalten...", command=self._open_profile_manager
         )
         manage_profiles_button.grid(row=self.max_players + 1, column=0, columnspan=2, pady=(10, 5))
 
@@ -405,8 +403,7 @@ class GameSettingsDialog(tk.Toplevel):
         btn = ttk.Button(
             start_button_frame,
             text="Spiel starten",
-            style="Accent.TButton",
-            command=self._on_start,
+            style="Accent.TButton", command=self._on_start
         )
         btn.pack()  # Using pack inside this sub-frame is fine
         btn.bind("<Return>", lambda event: self._on_start())

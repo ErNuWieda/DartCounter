@@ -28,16 +28,13 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import configparser
 import logging
-import os
 from datetime import date
-from pathlib import Path
 import shutil
-import psycopg2
-import json, logging
+import json
 from sqlalchemy import create_engine, desc, asc, func
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -106,11 +103,11 @@ class DatabaseManager:
             if example_config_path.exists():
                 try:
                     shutil.copy(example_config_path, user_config_path)
+                    log_msg = f"Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}"
+                    logger.info(log_msg)
                     logger.info(
-                        f"Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}"
-                    )
-                    logger.info(
-                        "Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen."
+                        "Bitte passen Sie diese Datei bei Bedarf an, um die "
+                        "Datenbankverbindung zu ermöglichen."
                     )
                     # Lese die gerade kopierte Konfigurationsdatei direkt
                     config.read(user_config_path)
@@ -142,8 +139,8 @@ class DatabaseManager:
             required_keys = ["host", "database", "user", "password"]
             if not all(key in db_config for key in required_keys):
                 log_msg = (
-                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im "
-                    "[postgresql] Abschnitt. Datenbankfunktionen sind deaktiviert."
+                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] "
+                    "Abschnitt. Datenbankfunktionen sind deaktiviert."
                 )
                 logger.error(log_msg)
                 return
@@ -404,9 +401,8 @@ class DatabaseManager:
                 return False
             except IntegrityError:
                 session.rollback()
-                logger.warning(
-                    f"Versuch, ein Profil auf einen bereits existierenden Namen '{new_name}' zu aktualisieren."
-                )
+                log_msg = f"Versuch, ein Profil auf einen bereits existierenden Namen '{new_name}' zu aktualisieren."
+                logger.warning(log_msg)
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
@@ -427,9 +423,8 @@ class DatabaseManager:
                     profile.accuracy_model = model
                     session.commit()
                     return True
-                logger.warning(
-                    f"Konnte Genauigkeitsmodell nicht speichern: Profil '{player_name}' nicht gefunden."
-                )
+                log_msg = f"Konnte Genauigkeitsmodell nicht speichern: Profil '{player_name}' nicht gefunden."
+                logger.warning(log_msg)
                 return False
             except SQLAlchemyError as e:
                 session.rollback()

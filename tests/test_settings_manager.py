@@ -10,8 +10,7 @@ from core.settings_manager import SettingsManager
 @pytest.fixture
 def settings_manager_mocks(monkeypatch):
     """Patcht die Hilfsfunktion, um den Dateipfad zu kontrollieren und setzt das Singleton zurück."""
-    # Singleton-Reset, um eine saubere Instanz für jeden Test zu gewährleisten.
-    if hasattr(SettingsManager, "_instance"):
+    if hasattr(SettingsManager, "_instance"):  # Singleton-Reset
         SettingsManager._instance = None
     if hasattr(SettingsManager, "_initialized"):
         delattr(SettingsManager, "_initialized")
@@ -61,8 +60,7 @@ class TestSettingsManager:
             sm = SettingsManager()
             assert sm.get("theme") == "dark"
             assert not sm.get("sound_enabled")
-            assert sm.get("last_player_names") == ["A", "B"]
-            # Wir prüfen, ob die korrekte Datei geöffnet wurde. Die Anzahl der `exists`-Aufrufe ist ein Implementierungsdetail.
+        assert sm.get("last_player_names") == ["A", "B"]  # Prüfen, ob die korrekte Datei geöffnet wurde
             m_open.assert_called_with(expected_filepath, "r", encoding="utf-8")
 
     def test_load_settings_with_partial_file_merges_defaults(

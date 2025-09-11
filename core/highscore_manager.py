@@ -20,7 +20,6 @@ from .database_manager import DatabaseManager
 import csv
 from .settings_manager import get_app_data_dir
 from . import ui_utils
-import os
 
 
 class HighscoreManager:
@@ -178,13 +177,13 @@ class HighscoreManager:
 
         def do_reset(mode):
             mode_name = current_game_mode if mode else "alle Spielmodi"
-            confirm_msg = f"Bist du sicher, dass du die Highscores für '{mode_name}' unwiderruflich löschen möchtest?"
+            confirm_msg = f"Bist du sicher, dass du die Highscores für '{mode_name}' unwiderruflich löschen möchtest?"  # noqa: E501
 
             if not ui_utils.ask_question("yesno", "Bestätigung", confirm_msg, parent=reset_dialog):
                 return
 
             self.db_manager.reset_scores(mode)
-            ui_utils.show_message(
+            ui_utils.show_message(  # type: ignore
                 "info",
                 "Erfolg",
                 "Highscores wurden zurückgesetzt.",
@@ -196,7 +195,7 @@ class HighscoreManager:
         ttk.Button(
             button_frame,
             text=f"Nur '{current_game_mode}'",
-            command=lambda: do_reset(current_game_mode),
+            command=lambda: do_reset(current_game_mode),  # type: ignore
         ).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
             side="left", padx=5
@@ -220,8 +219,7 @@ class HighscoreManager:
         """
         if not self.db_manager.is_connected:
             ui_utils.show_message(
-                "warning",
-                "Datenbankfehler",
+                "warning", "Datenbankfehler",
                 "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.",
                 parent=root,
             )

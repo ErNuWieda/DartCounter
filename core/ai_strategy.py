@@ -18,7 +18,6 @@
 Dieses Modul implementiert das Strategy-Pattern für die KI-Zielauswahl.
 Jede Klasse repräsentiert eine spezifische Strategie für einen Spielmodus.
 """
-import random
 from .checkout_calculator import CheckoutCalculator
 
 
@@ -70,11 +69,13 @@ class X01AIStrategy(AIStrategy):
 
         # --- Phase 1: Power-Scoring (wenn Score zu hoch für ein Finish ist) ---
         # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet maximal, um in den Finish-Bereich zu kommen.
-        if score > 170:
+        if score > 170:  # type: ignore
             return "Triple", 20
 
         # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist) ---
-        checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
+        checkout_path_str = (
+            CheckoutCalculator.get_checkout_suggestion(
+                score,
             score,
             self.game.options.opt_out,
             darts_left,
@@ -124,8 +125,7 @@ class X01AIStrategy(AIStrategy):
         # Fall B: Setup für die NÄCHSTE Runde (letzter Dart oder kein Setup für diese Runde gefunden)
         # Ziel: Eine "gute" gerade Zahl hinterlassen. Geworfen wird auf sichere Single-Felder.
         safe_targets = [
-            20,
-            19,
+            20, 19,
             18,
             17,
             16,
