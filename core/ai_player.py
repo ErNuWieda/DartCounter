@@ -227,7 +227,7 @@ class AIPlayer(Player):
         # --- Wurf-Simulation basierend auf Schwierigkeit (Standard vs. Adaptiv) ---
         if self.difficulty == "Adaptive" and self.profile and self.profile.accuracy_model:
             throw_x, throw_y = self._get_adaptive_throw_coords((target_x, target_y), target_name)
-        else:
+        else:  # noqa: E501
             # Standard-Logik mit kreisförmiger Streuung
             radius = self.throw_radius
             # Sonderregel für Killer: Das Lebensfeld wird mit der "schwachen" Hand ermittelt.

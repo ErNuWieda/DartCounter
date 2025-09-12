@@ -69,7 +69,7 @@ class X01AIStrategy(AIStrategy):
         # --- Phase 1: Power-Scoring (wenn Score zu hoch für ein Finish ist) ---
         # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet
         # maximal, um in den Finish-Bereich zu kommen.
-        if score > 170:  # type: ignore
+        if score > 170:
             return "Triple", 20
         # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist) ---
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(

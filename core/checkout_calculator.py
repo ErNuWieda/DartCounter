@@ -58,7 +58,7 @@ CHECKOUT_PATHS = _load_checkout_paths()
 # (z.B. T20 für 60). Höhere Priorität überschreibt niedrigere.
 _SINGLE_DART_FINISH_MAP = {}
 # Bullseye (höchste Priorität)
-_SINGLE_DART_FINISH_MAP[50] = "BE"
+_SINGLE_DART_FINISH_MAP[50] = "BE"  # noqa: E501
 # Doubles (zweithöchste Priorität, da sie Finish-Felder sind)
 for i in range(20, 0, -1):  # Absteigend, um höhere Doubles zu bevorzugen
     _SINGLE_DART_FINISH_MAP[i * 2] = f"D{i}"
@@ -270,8 +270,10 @@ class CheckoutCalculator:
                 # (d.h. nicht mit einem einfachen Single- oder Double-Feld beginnt,
                 # außer bei 2-Dart-Finishes, wo dies oft notwendig ist).
                 # Ein guter 3-Dart-Checkout beginnt mit T oder BE.
-                first_throw = calculated_path.split(", ")[0] if calculated_path else ""
-                if calculated_path and (
+                first_throw = (
+                    calculated_path.split(", ")[0] if calculated_path else ""
+                )  # noqa: E501
+                if calculated_path and (  # noqa: E501
                     len(calculated_path.split(", ")) < 3 or first_throw.startswith(("T", "BE"))
                 ):
                     return calculated_path

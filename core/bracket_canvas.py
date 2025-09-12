@@ -83,8 +83,8 @@ class BracketCanvas(tk.Canvas):
         dann wird alles gezeichnet. Dies verhindert Überschneidungen.
 
         Args:
-            rounds_data (list): Eine Liste von Runden, wobei jede Runde eine Liste von Matches ist.
-            next_match (dict | None): Das nächste zu spielende Match, um es hervorzuheben.
+            rounds_data (list): Eine Liste von Runden, wobei jede Runde eine Liste von Matches ist. # noqa
+            next_match (dict | None): Das nächste zu spielende Match, um es hervorzuheben. # noqa
             bracket_winner (str | None): Der Name des Siegers dieses Brackets, falls vorhanden.
             bracket_type (str): Der Typ des Brackets ('winners' oder 'losers'), um die Zeichenlogik anzupassen.
         """

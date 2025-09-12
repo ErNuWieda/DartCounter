@@ -223,7 +223,10 @@ class HighscoreManager:
             ui_utils.show_message(
                 "warning",
                 "Datenbankfehler",
-                "Keine Verbindung zur Highscore-Datenbank möglich.\nBitte prüfe die `config.ini` und den Datenbank-Server.",
+                (
+                    "Keine Verbindung zur Highscore-Datenbank möglich.\n"
+                    "Bitte prüfe die `config.ini` und den Datenbank-Server."
+                ),
                 parent=root,
             )
             return
@@ -281,7 +284,8 @@ class HighscoreManager:
                 player_name = score["player_name"]
                 tags = (
                     ("personal_best",)
-                    if player_name in personal_bests and score_value == personal_bests[player_name]
+                    if player_name in personal_bests
+                    and score_value == personal_bests[player_name]  # noqa
                     else ()
                 )
                 tree.insert(

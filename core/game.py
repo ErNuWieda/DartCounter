@@ -505,9 +505,8 @@ class Game:
         # Rufe den Callback auf, um das UI-Feedback zu verarbeiten
         self.on_throw_processed(result, player)
 
-        # NEU: Wenn das Spiel durch diesen Wurf gewonnen wurde, die Statistiken finalisieren.
-        # Für X01 wird dies durch _handle_leg_win() gesteuert, das von der X01-Logik aufgerufen wird.
-        # Für alle anderen Spiele (ohne Legs/Sets) müssen wir es hier explizit aufrufen.
+        # Wenn das Spiel durch diesen Wurf gewonnen wurde, die Statistiken finalisieren.
+        # Für X01 wird dies durch _handle_leg_win() gesteuert.
         if result.status == "win" and self.winner and not self.is_leg_set_match:
             # Die X01-Logik ruft _handle_leg_win, was wiederum _finalize_and_record_stats aufruft.
             self._finalize_and_record_stats(self.winner)

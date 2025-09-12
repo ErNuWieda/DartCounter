@@ -101,10 +101,11 @@ class DatabaseManager:
             if example_config_path.exists():
                 try:
                     shutil.copy(example_config_path, user_config_path)
-                    log_msg = f"Keine 'config.ini' gefunden. Standard-Konfig wurde erstellt: {user_config_path}"  # noqa: E501
+                    log_msg = f"Keine 'config.ini' gefunden. Standard-Konfig wurde erstellt: {user_config_path}"
                     logger.info(log_msg)
-                    logger.info(  # noqa: E501
-                        "Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen."
+                    logger.info(
+                        "Bitte passen Sie diese Datei bei Bedarf an, "
+                        "um die Datenbankverbindung zu ermöglichen."
                     )
                     # Lese die gerade kopierte Konfigurationsdatei direkt
                     config.read(user_config_path)
@@ -363,15 +364,14 @@ class DatabaseManager:
                 session.commit()
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
-                session.rollback()
-                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen "  # noqa: E501
-                logger.warning(f"{log_msg}'{name}' zu erstellen.")
+                session.rollback()  # noqa: E501
+                logger.warning(
+                    f"Versuch, ein Profil mit dem bereits existierenden Namen '{name}' zu erstellen."
+                )
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
-                logger.error(
-                    f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True
-                )  # noqa: E501
+                logger.error(f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True)
                 return False
 
     def update_profile(  # noqa: E501

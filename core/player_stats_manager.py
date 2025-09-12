@@ -92,11 +92,9 @@ class PlayerStatsManager:
         # Nachricht anpassen, je nachdem ob ein Spieler ausgewählt ist
         if selected_player:
             msg = f"Möchtest du nur die Statistiken für '{selected_player}' oder die Statistiken aller Spieler zurücksetzen?"
-        else:  # pragma: no cover
+        else:
             msg = "Möchtest du die Statistiken aller Spieler zurücksetzen?"
-        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(
-            pady=20
-        )  # noqa: E501
+        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(pady=20)
 
         button_frame = ttk.Frame(reset_dialog)
         button_frame.pack(pady=10)
@@ -155,8 +153,10 @@ class PlayerStatsManager:
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",
-                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"  # noqa: E501
-                "Bitte installieren: pip install numpy",  # noqa: E501
+                (
+                    "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
+                    "Bitte installieren: pip install numpy"
+                ),
                 parent=parent_window,
             )
             return
@@ -170,7 +170,10 @@ class PlayerStatsManager:
         if len(all_coords_normalized) < 20:  # Mindestanzahl an Würfen für eine sinnvolle Analyse
             messagebox.showinfo(
                 "Nicht genügend Daten",
-                f"Für '{player_name}' sind nicht genügend Wurfdaten für eine Analyse vorhanden.",  # noqa: E501
+                (
+                    f"Für '{player_name}' sind nicht genügend Wurfdaten für eine Analyse "
+                    "vorhanden."
+                ),
                 parent=parent_window,
             )
             return
@@ -282,8 +285,8 @@ class PlayerStatsManager:
         # Wird vor den expandierenden Widgets gepackt, damit er immer sichtbar ist.
         bottom_frame = ttk.Frame(win, padding=10)
         bottom_frame.pack(side="bottom", fill="x")
-        reset_button = ttk.Button(  # noqa: F841
-            bottom_frame,  # noqa: E501
+        reset_button = ttk.Button(
+            bottom_frame,
             text="Statistiken zurücksetzen...",
             command=lambda: self._prompt_and_reset_stats(win, player_select),
         )
@@ -483,8 +486,8 @@ class PlayerStatsManager:
 
         if not all_coords:
             messagebox.showinfo(
-                "Keine Daten",  # noqa: E501
-                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",  # noqa: E501
+                "Keine Daten",
+                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",
                 parent=parent,
             )
             return
