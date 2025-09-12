@@ -88,9 +88,8 @@ class DartBoard:
         self.root.resizable(False, False)
         self._create_board()
 
-        # Dart-Maske laden und für die Einfärbung vorbereiten
-        self._dart_photo_image = None
-        self.dart_image_ids_on_canvas = []  # Speichert IDs mehrerer Darts für den aktuellen Zug
+        self._dart_photo_image = None  # Wird später mit dem gefärbten Dart-Bild gefüllt
+        self.dart_image_ids_on_canvas = []  # Speichert Canvas-IDs der Darts des aktuellen Zugs
         try:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")

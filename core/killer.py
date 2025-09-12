@@ -170,9 +170,7 @@ class Killer(GameLogicBase):
         player.turn_is_over = True
         return (
             "info",
-            (
-                f"{player.name} hat Lebensfeld: {determined_display}\nBitte 'Weiter' klicken."
-            ),  # noqa: E501
+            f"{player.name} hat Lebensfeld: {determined_display}\nBitte 'Weiter' klicken.",  # noqa: E501
         )
 
     def _handle_become_killer_phase(self, player, ring, segment):

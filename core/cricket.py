@@ -265,8 +265,8 @@ class Cricket(GameLogicBase):
                     if self.name in ("Cricket", "Tactics"):
                         if player.score < opp.score:
                             has_won = False
-                            break
-                    elif self.name == "Cut Throat":
+                            break  # noqa: E701
+                    elif self.name == "Cut Throat":  # noqa
                         if player.score > opp.score:
                             has_won = False
                             break

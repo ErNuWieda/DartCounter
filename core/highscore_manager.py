@@ -223,10 +223,8 @@ class HighscoreManager:
             ui_utils.show_message(
                 "warning",
                 "Datenbankfehler",
-                (
-                    "Keine Verbindung zur Highscore-Datenbank möglich.\n"
-                    "Bitte prüfe die `config.ini` und den Datenbank-Server."
-                ),
+                "Keine Verbindung zur Highscore-Datenbank möglich.\n"
+                "Bitte prüfe die `config.ini` und den Datenbank-Server.",
                 parent=root,
             )
             return
