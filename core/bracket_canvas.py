@@ -104,6 +104,7 @@ class BracketCanvas(tk.Canvas):
 
         for match_idx, _ in enumerate(rounds_data[0]):
             y_pos = y_offset_round1 + (match_idx * self.MATCH_HEIGHT)
+            match_positions[(0, match_idx)] = y_pos + (self.MATCH_HEIGHT // 2)
 
         # Folge-Runden werden relativ zur vorherigen Runde positioniert
         for round_idx in range(len(rounds_data) - 1):

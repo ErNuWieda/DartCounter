@@ -454,15 +454,10 @@ def test_parse_target_string(ai_player_with_mocks):
     assert strategy_instance._parse_target_string("T20") == ("Triple", 20)
     assert strategy_instance._parse_target_string("D18") == ("Double", 18)
     assert strategy_instance._parse_target_string("S1") == ("Single", 1)
-    # Unterscheide klar zwischen dem 25er Bull und dem 50er Bullseye, konsistent mit dem Rest der App.
-    assert strategy_instance._parse_target_string("BULL") == (
-        "Bull",
-        25,
-    )  # Dieser Test schlug vorher fehl
-    assert strategy_instance._parse_target_string("Bullseye") == (
-        "Bullseye",
-        50,
-    )
+    # "BULL" und "BE" sollten beide auf das Bullseye zielen, da dies der höchste Score ist.
+    # Die Unterscheidung zwischen 25 und 50 wird von der `get_ring_segment`-Logik gehandhabt.
+    assert strategy_instance._parse_target_string("BULL") == ("Bullseye", 50)
+    assert strategy_instance._parse_target_string("Bullseye") == ("Bullseye", 50)
     assert strategy_instance._parse_target_string("BE") == ("Bullseye", 50)
     assert strategy_instance._parse_target_string("17") == ("Single", 17)
     assert strategy_instance._parse_target_string("INVALID") == ("Triple", 20)

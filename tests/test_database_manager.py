@@ -56,10 +56,6 @@ def db_manager_setup(monkeypatch):
             None
         )
 
-        # Mock für Base.metadata.create_all
-        mock_base = MagicMock()
-        monkeypatch.setattr("core.database_manager.Base", mock_base)
-
         mock_sessionmaker = MagicMock()
         mock_sessionmaker.return_value.__enter__.return_value = mock_session_instance
 
@@ -67,7 +63,7 @@ def db_manager_setup(monkeypatch):
         db_manager = DatabaseManager()
         db_manager.Session = mock_sessionmaker
 
-        yield db_manager, mock_engine_instance, mock_session_instance, mock_base
+        yield db_manager, mock_engine_instance, mock_session_instance
 
 
 @pytest.fixture
@@ -168,7 +164,7 @@ def test_config_loading_no_config_exists(config_test_setup):
 
 def test_initialization_successful(db_manager_setup):
     """Testet, ob bei erfolgreicher Konfiguration eine Verbindung aufgebaut wird."""
-    db_manager, mock_engine, _, _ = db_manager_setup
+    db_manager, mock_engine, _ = db_manager_setup
     assert db_manager.is_connected
     assert db_manager.engine is not None
     mock_engine.connect.assert_called_once()
@@ -221,7 +217,7 @@ def test_initialization_config_key_error(monkeypatch, mock_logger):
 
 def test_get_scores_calls_correct_query(db_manager_setup):
     """Testet, ob get_scores die korrekte SQLAlchemy-Abfrage ausführt."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
 
     # Test für X01 (ASC)
     db_manager.get_scores("501")
@@ -236,7 +232,7 @@ def test_get_scores_calls_correct_query(db_manager_setup):
 
 def test_add_profile_commits_transaction(db_manager_setup):
     """Testet, ob add_profile einen Commit auslöst."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_session.reset_mock()
 
     db_manager.add_profile("Tester", "/path", "#ff0000")
@@ -246,7 +242,7 @@ def test_add_profile_commits_transaction(db_manager_setup):
 
 def test_operation_on_disconnected_db(db_manager_setup):
     """Testet, dass bei fehlender Verbindung keine DB-Operationen ausgeführt werden."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     db_manager.is_connected = False
     db_manager.Session = None  # Wichtig, um den Zustand zu simulieren
 
@@ -271,7 +267,7 @@ def test_add_profile_handles_integrity_error(db_manager_setup):
     Testet, ob bei einem IntegrityError (z.B. doppelter Name) ein Rollback
     durchgeführt und False zurückgegeben wird.
     """
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_session.reset_mock()
 
     # Simuliere einen Fehler während des Commits
@@ -289,7 +285,7 @@ def test_add_profile_handles_integrity_error(db_manager_setup):
 
 def test_delete_profile_returns_true_on_success(db_manager_setup):
     """Testet, ob delete_profile bei Erfolg True zurückgibt."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_session.reset_mock()
 
     # Simuliere, dass ein Profil gefunden wird
@@ -304,7 +300,7 @@ def test_delete_profile_returns_true_on_success(db_manager_setup):
 
 def test_delete_profile_returns_false_if_not_found(db_manager_setup):
     """Testet, ob delete_profile bei nicht gefundenem Profil False zurückgibt."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_session.reset_mock()
 
     # Simuliere, dass kein Profil gefunden wird (Standardverhalten des Mocks)
@@ -318,7 +314,7 @@ def test_delete_profile_returns_false_if_not_found(db_manager_setup):
 
 def test_update_profile_handles_integrity_error(db_manager_setup, mock_logger):
     """Testet, ob update_profile bei einem IntegrityError korrekt reagiert."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = MagicMock()
     mock_session.commit.side_effect = IntegrityError("test", "test", "test")
 
@@ -331,7 +327,7 @@ def test_update_profile_handles_integrity_error(db_manager_setup, mock_logger):
 
 def test_update_profile_accuracy_model(db_manager_setup):
     """Testet das Aktualisieren des Genauigkeitsmodells."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_profile = MagicMock()
     mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = mock_profile
 
@@ -345,7 +341,7 @@ def test_update_profile_accuracy_model(db_manager_setup):
 
 def test_reset_game_records_for_all_players(db_manager_setup):
     """Testet das Zurücksetzen aller Spiel-Datensätze."""
-    db_manager, _, mock_session, _ = db_manager_setup
+    db_manager, _, mock_session = db_manager_setup
     mock_query = mock_session.query.return_value
 
     db_manager.reset_game_records(player_name=None)

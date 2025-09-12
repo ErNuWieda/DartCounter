@@ -35,10 +35,10 @@ class AIStrategy:
     def _parse_target_string(self, target_str: str) -> tuple[str, int]:
         """Hilfsmethode zum Parsen von Ziel-Strings (z.B. "T20")."""
         target_str = target_str.strip().upper()
-        if target_str in ("BULLSEYE", "BE"):
+        if target_str in ("BULLSEYE", "BE", "BULL"):
             return "Bullseye", 50
-        if target_str == "BULL":
-            return "Bull", 25
+        if target_str == "B":
+            return "Bullseye", 50
         ring_map = {"T": "Triple", "D": "Double", "S": "Single"}
         ring_char = target_str[0]
         if ring_char in ring_map:
@@ -200,10 +200,7 @@ class KillerAIStrategy(AIStrategy):
             preferred = [str(i) for i in range(20, 14, -1)] + ["Bull"]
             for target in preferred:
                 if target not in taken:
-                    # KORREKTUR: "Bull" muss als ("Bull", 25) zurückgegeben werden,
-                    # nicht als ("Single", 25), da dies von der Spiellogik
-                    # erwartet wird.
-                    return ("Bull", 25) if target == "Bull" else ("Single", int(target))
+                    return ("Single", 25) if target == "Bull" else ("Single", int(target))
             return "Single", 1  # Fallback
 
         # Phase 2: Killer werden
