@@ -29,6 +29,8 @@ APP_NAME = "DartCounter"
 SCRIPT_NAME = pathlib.Path("main.py")
 DIST_DIR = pathlib.Path("dist")
 ASSETS_DIR = pathlib.Path("assets")
+BUILD_DIR = pathlib.Path("build")
+SPEC_FILE = pathlib.Path(f"{APP_NAME}.spec")
 
 
 def run_tests():
@@ -61,23 +63,17 @@ def run_tests():
 def clean_previous_builds(release_dir: pathlib.Path):
     """Entfernt alte Build-Artefakte, um einen sauberen Build zu gewährleisten."""
     print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
-    zip_file = release_dir.with_suffix(".zip")
-    spec_file = pathlib.Path(f"{APP_NAME}.spec")
 
-    for path in [
-        release_dir,
-        zip_file,
-        pathlib.Path("build"),
-        DIST_DIR,
-        spec_file,
-    ]:
+    # Eine Liste von Pfaden, die gelöscht werden sollen.
+    paths_to_clean = [release_dir, release_dir.with_suffix(".zip"), BUILD_DIR, DIST_DIR, SPEC_FILE]
+
+    for path in paths_to_clean:
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
         elif path.is_file():
-            try:
-                path.unlink()
-            except OSError:
-                pass
+            path.unlink(
+                missing_ok=True
+            )  # missing_ok=True verhindert Fehler, wenn die Datei nicht existiert.
 
 
 def main():
@@ -105,14 +101,7 @@ def main():
 
     # --- Plattform- und Artefakt-Setup ---
     system = platform.system()
-    data_separator = ";" if system == "Windows" else ":"
-    dist_artifact_name = (
-        f"{APP_NAME}.exe"
-        if system == "Windows"
-        else (f"{APP_NAME}.app" if system == "Darwin" else APP_NAME)
-    )
     release_dir = pathlib.Path(f"{APP_NAME}_{system}_v{VERSION}")
-    icon_extension = ".ico" if system == "Windows" else ".icns" if system == "Darwin" else None
 
     print(f"\n>>> Erstelle Release für {system} v{VERSION}...")
 
@@ -135,22 +124,24 @@ def main():
     ]
 
     # Plattformspezifisches Icon hinzufügen (sauberere Logik)
-    if icon_extension:
-        icon_path = ASSETS_DIR / f"icon{icon_extension}"
-        if icon_path.is_file():
-            pyinstaller_command.append(f"--icon={icon_path}")
+    icon_path = ASSETS_DIR / ("icon.ico" if system == "Windows" else "icon.icns")
+    if system in ("Windows", "Darwin") and icon_path.is_file():
+        pyinstaller_command.append(f"--icon={icon_path}")
+    else:
+        print(f"  -> Hinweis: Kein plattformspezifisches Icon für {system} gefunden oder benötigt.")
 
-    # Daten, die direkt in die ausführbare Datei gebündelt werden sollen.
+    # Daten, die direkt in die ausführbare Datei gebündelt werden sollen (Data-driven).
     data_to_add = [
         (ASSETS_DIR, ASSETS_DIR),
         (pathlib.Path("game_config.json"), pathlib.Path(".")),
         (pathlib.Path("core/checkout_paths.json"), pathlib.Path("core")),
-        # Alembic für Datenbank-Migrationen hinzufügen
         (pathlib.Path("alembic.ini"), pathlib.Path(".")),
         (pathlib.Path("alembic"), pathlib.Path("alembic")),
     ]
+
+    # Füge die --add-data Argumente hinzu, formatiert für PyInstaller.
     for src, dest in data_to_add:
-        pyinstaller_command.append(f"--add-data={src}{data_separator}{dest}")
+        pyinstaller_command.append(f"--add-data={src}{os.pathsep}{dest}")
 
     pyinstaller_command.append(str(SCRIPT_NAME))
 
@@ -176,11 +167,18 @@ def main():
     print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
     release_dir.mkdir(exist_ok=True)
 
-    # Haupt-Artefakt verschieben
-    source_artifact = DIST_DIR / dist_artifact_name
+    # Haupt-Artefakt verschieben (plattformunabhängige Logik)
+    # Auf macOS ist das Artefakt ein Ordner (.app), auf anderen Systemen eine Datei.
+    if system == "Darwin":
+        source_artifact = DIST_DIR / f"{APP_NAME}.app"
+        dest_artifact = release_dir / f"{APP_NAME}.app"
+    else:
+        source_artifact = DIST_DIR / APP_NAME
+        dest_artifact = release_dir / (f"{APP_NAME}.exe" if system == "Windows" else APP_NAME)
+
     if source_artifact.exists():
-        print(f"  -> Verschiebe Artefakt: '{source_artifact}' -> '{release_dir}'")
-        shutil.move(str(source_artifact), str(release_dir / dist_artifact_name))
+        print(f"  -> Verschiebe Artefakt: '{source_artifact}' -> '{dest_artifact}'")
+        shutil.move(str(source_artifact), str(dest_artifact))
     else:
         print(f"FEHLER: Build-Artefakt '{source_artifact}' wurde nicht gefunden!")
         sys.exit(1)
@@ -209,9 +207,9 @@ def main():
 
         # --- Schritt 5: Temporäre Build-Artefakte bereinigen (lokaler Build) ---
         print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
-        shutil.rmtree("build")
+        shutil.rmtree(BUILD_DIR)
         shutil.rmtree(DIST_DIR)
-        pathlib.Path(f"{APP_NAME}.spec").unlink()
+        SPEC_FILE.unlink(missing_ok=True)
         shutil.rmtree(release_dir)
 
     print(f"\n{'='*50}")

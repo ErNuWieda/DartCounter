@@ -1,3 +1,5 @@
+# Dieser Workflow führt die Tests auf verschiedenen Betriebssystemen und Python-Versionen aus.
+# Er nutzt den wiederverwendbaren Workflow, um Code-Duplizierung zu vermeiden.
 name: CI
 
 on:
@@ -7,61 +9,19 @@ on:
     branches: [ "main" ]
 
 jobs:
-  lint:
-    name: Lint & Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install linting dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install black flake8
-
-      - name: Run Black (Format Check)
-        run: black --check .
-
-      - name: Run Flake8 (Lint Check)
-        run: flake8 .
-
-  test:
-    name: Run Tests on ${{ matrix.os }} / Python ${{ matrix.python-version }}
-    needs: lint # Dieser Job startet erst, wenn 'lint' erfolgreich war
-    runs-on: ${{ matrix.os }}
+  call-reusable-test-workflow:
+    uses: ./.github/workflows/reusable-test-workflow.yml
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
+        # Schließe inkompatible Kombinationen aus, falls nötig
+        # exclude:
+        #   - os: macos-latest
+        #     python-version: '3.9'
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # Installiere zuerst die Haupt-Abhängigkeiten
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Installiere dann die Entwicklungs-Abhängigkeiten (für pytest, etc.)
-          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
- 
-      - name: Run tests and generate coverage report
-        run: |
-          pytest --cov=core --cov-report=xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true # Optional: Lässt den Job fehlschlagen, wenn der Upload nicht klappt
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      # container-image wird nicht übergeben, da wir auf dem Host-System testen
