@@ -73,7 +73,10 @@ def dialog_setup(tk_root, monkeypatch):
     mock_profile1.name = "ProfA"
     mock_profile2 = MagicMock()
     mock_profile2.name = "ProfB"
-    mock_profile_manager.get_profiles.return_value = [mock_profile1, mock_profile2]
+    mock_profile_manager.get_profiles.return_value = [
+        mock_profile1,
+        mock_profile2,
+    ]
 
     # Instanziiere den Dialog mit der echten, aber versteckten Wurzel
     dialog = GameSettingsDialog(tk_root, mock_settings_manager, mock_profile_manager)

@@ -99,9 +99,19 @@ class TestHighscoreManager(unittest.TestCase):
     def test_show_highscores_window_successful(self):
         """Testet die korrekte Erstellung des Highscore-Fensters und die Datenanzeige."""
         # Mock-Daten für verschiedene Spielmodi
-        mock_scores_301 = [{"player_name": "Alice", "score_metric": 18, "date": date(2023, 1, 1)}]
+        mock_scores_301 = [
+            {
+                "player_name": "Alice",
+                "score_metric": 18,
+                "date": date(2023, 1, 1),
+            }
+        ]
         mock_scores_cricket = [
-            {"player_name": "Bob", "score_metric": 2.57, "date": date(2023, 1, 2)}
+            {
+                "player_name": "Bob",
+                "score_metric": 2.57,
+                "date": date(2023, 1, 2),
+            }
         ]
         self.mock_db_instance.get_scores.side_effect = [
             mock_scores_301,  # für 301
@@ -173,7 +183,9 @@ class TestHighscoreManager(unittest.TestCase):
 
         # 3. Finde den neu erstellten modalen Dialog
         self.assertGreaterEqual(
-            len(self.created_dialogs), 1, "Der Reset-Dialog wurde nicht erstellt."
+            len(self.created_dialogs),
+            1,
+            "Der Reset-Dialog wurde nicht erstellt.",
         )
         reset_dialog = self.created_dialogs[-1]
         self.windows_to_destroy.append(reset_dialog)
@@ -212,7 +224,9 @@ class TestHighscoreManager(unittest.TestCase):
 
         # 2. Finde den modalen Dialog
         self.assertGreaterEqual(
-            len(self.created_dialogs), 1, "Der Reset-Dialog wurde nicht erstellt."
+            len(self.created_dialogs),
+            1,
+            "Der Reset-Dialog wurde nicht erstellt.",
         )
         reset_dialog = self.created_dialogs[-1]
         self.windows_to_destroy.append(reset_dialog)
@@ -240,7 +254,9 @@ class TestHighscoreManager(unittest.TestCase):
 
         # 2. Finde den modalen Dialog
         self.assertGreaterEqual(
-            len(self.created_dialogs), 1, "Der Reset-Dialog wurde nicht erstellt."
+            len(self.created_dialogs),
+            1,
+            "Der Reset-Dialog wurde nicht erstellt.",
         )
         reset_dialog = self.created_dialogs[-1]
         self.windows_to_destroy.append(reset_dialog)

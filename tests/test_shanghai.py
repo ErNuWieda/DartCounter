@@ -86,7 +86,11 @@ def test_shanghai_win_condition(shanghai_logic, players, mock_game):
     player1 = players[0]
     # Simuliere die Würfe in der aktuellen Runde, bevor der letzte Wurf verarbeitet wird.
     # Die _handle_throw Methode erwartet, dass der aktuelle Wurf bereits in der Liste ist.
-    player1.throws = [("Single", 5, None), ("Double", 5, None), ("Triple", 5, None)]
+    player1.throws = [
+        ("Single", 5, None),
+        ("Double", 5, None),
+        ("Triple", 5, None),
+    ]
 
     # Der dritte Wurf (Triple) löst den Gewinn aus
     status, message = shanghai_logic._handle_throw(player1, "Triple", 5, [])

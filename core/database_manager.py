@@ -157,7 +157,11 @@ class DatabaseManager:
 
             self.Session = sessionmaker(bind=self.engine)
             self.is_connected = True
-        except (configparser.NoSectionError, KeyError, SQLAlchemyError) as error:
+        except (
+            configparser.NoSectionError,
+            KeyError,
+            SQLAlchemyError,
+        ) as error:
             logger.error(
                 f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}",
                 exc_info=True,
@@ -348,7 +352,8 @@ class DatabaseManager:
         preferred_double=None,
         accuracy_model=None,
     ):
-        """Fügt ein neues Spielerprofil hinzu. Gibt True bei Erfolg zurück, False bei Fehlern (z.B. doppelter Name)."""
+        """Fügt ein neues Spielerprofil hinzu. Gibt True bei Erfolg zurück,
+        oder False bei Fehlern (z.B. doppelter Name)."""
         if not self.Session:
             return False
         with self.Session() as session:
@@ -367,17 +372,19 @@ class DatabaseManager:
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
-                logger.warning(
-                    f"Versuch, ein Profil mit dem bereits existierenden Namen '{name}' zu erstellen."
-                )
+                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen"
+                logger.warning(f"{log_msg} '{name}' zu erstellen.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
-                logger.error(f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True)
+                logger.error(
+                    f"Fehler beim Hinzufügen des Profils '{name}': {e}",
+                    exc_info=True,
+                )
                 return False
 
-    def update_profile(  # noqa: E501
-        self,  # noqa: E501
+    def update_profile(
+        self,
         profile_id,
         new_name,
         new_avatar_path,

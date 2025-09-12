@@ -231,7 +231,8 @@ class AIPlayer(Player):
             # Standard-Logik mit kreisförmiger Streuung
             radius = self.throw_radius
             # Sonderregel für Killer: Das Lebensfeld wird mit der "schwachen" Hand ermittelt.
-            # Wir simulieren das, indem wir für diesen einen Wurf immer die Anfänger-Genauigkeit verwenden.
+            # Wir simulieren das, indem wir für diesen einen Wurf
+            # immer die Anfänger-Genauigkeit verwenden.
             if self.game.options.name == "Killer" and not self.state.get("life_segment"):
                 radius = self.DIFFICULTY_SETTINGS["Anfänger"]["radius"]
 

@@ -91,7 +91,8 @@ class PlayerStatsManager:
 
         # Nachricht anpassen, je nachdem ob ein Spieler ausgewählt ist
         if selected_player:
-            msg = f"Möchtest du nur die Statistiken für '{selected_player}' oder die Statistiken aller Spieler zurücksetzen?"
+            msg = f"Möchtest du nur die Statistiken für '{selected_player}' "
+            msg += "oder die Statistiken aller Spieler zurücksetzen?"
         else:
             msg = "Möchtest du die Statistiken aller Spieler zurücksetzen?"
         ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(pady=20)
@@ -109,7 +110,11 @@ class PlayerStatsManager:
                 return
 
             self.db_manager.reset_game_records(player_to_reset)
-            messagebox.showinfo("Erfolg", "Statistiken wurden zurückgesetzt.", parent=reset_dialog)
+            messagebox.showinfo(
+                "Erfolg",
+                "Statistiken wurden zurückgesetzt.",
+                parent=reset_dialog,
+            )
             reset_dialog.destroy()
             stats_win.destroy()
 
@@ -119,9 +124,11 @@ class PlayerStatsManager:
                 text=f"Nur '{selected_player}'",
                 command=lambda: do_reset(selected_player),
             ).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
-            side="left", padx=5
-        )
+        ttk.Button(
+            button_frame,
+            text="Alle zurücksetzen",
+            command=lambda: do_reset(None),
+        ).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(
             side="left", padx=5
         )
@@ -131,7 +138,8 @@ class PlayerStatsManager:
         if not records:
             return {"best_win_streak": 0}
 
-        # Datensätze sind von der DB absteigend nach Datum sortiert, für die Analyse brauchen wir sie aufsteigend.
+        # Datensätze sind von der DB absteigend nach Datum sortiert,
+        # für die Analyse brauchen wir sie aufsteigend.
         sorted_records = sorted(records, key=lambda r: r["game_date"])
 
         max_win_streak, current_win_streak = 0, 0
@@ -153,10 +161,8 @@ class PlayerStatsManager:
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",
-                (
-                    "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
-                    "Bitte installieren: pip install numpy"
-                ),
+                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
+                "Bitte installieren: pip install numpy",
                 parent=parent_window,
             )
             return
@@ -277,9 +283,11 @@ class PlayerStatsManager:
 
         ttk.Label(summary_frame, text="Beste Siegesserie:").grid(row=0, column=0, sticky="w")
         best_streak_var = tk.StringVar(value="-")
-        ttk.Label(summary_frame, textvariable=best_streak_var, font=("Arial", 12, "bold")).grid(
-            row=0, column=1, sticky="w", padx=5
-        )
+        ttk.Label(
+            summary_frame,
+            textvariable=best_streak_var,
+            font=("Arial", 12, "bold"),
+        ).grid(row=0, column=1, sticky="w", padx=5)
 
         # --- Button Frame (ganz unten) ---
         # Wird vor den expandierenden Widgets gepackt, damit er immer sichtbar ist.
@@ -345,7 +353,11 @@ class PlayerStatsManager:
 
             # Metrik und Titel basierend auf dem Filter bestimmen
             metric_key, metric_label = None, ""
-            if selected_mode == "Alle Spiele" or selected_mode in ("301", "501", "701"):
+            if selected_mode == "Alle Spiele" or selected_mode in (
+                "301",
+                "501",
+                "701",
+            ):
                 metric_key, metric_label = "average", "3-Dart-Average"
             elif selected_mode in ("Cricket", "Cut Throat", "Tactics"):
                 metric_key, metric_label = "mpr", "Marks Per Round (MPR)"
@@ -472,14 +484,16 @@ class PlayerStatsManager:
         """Sammelt alle Koordinaten für einen Spieler und zeigt die Heatmap an."""
         if not player_name:
             messagebox.showwarning(
-                "Kein Spieler", "Bitte zuerst einen Spieler auswählen.", parent=parent
+                "Kein Spieler",
+                "Bitte zuerst einen Spieler auswählen.",
+                parent=parent,
             )
             return
 
         all_coords = []
         game_records = self.db_manager.get_records_for_player(player_name)
         for record in game_records:
-            # 'all_throws_coords' wird als JSONB gespeichert und von psycopg2 als Liste zurückgegeben
+            # 'all_throws_coords' wird als JSON gespeichert und von psycopg2 als Liste zurückgegeben
             coords_list = record.get("all_throws_coords")
             if coords_list and isinstance(coords_list, list):
                 all_coords.extend(coords_list)
@@ -501,7 +515,9 @@ class PlayerStatsManager:
         heatmap_img = HeatmapGenerator.create_heatmap(all_coords, target_size)
         if not heatmap_img:
             messagebox.showerror(
-                "Fehler", "Die Heatmap konnte nicht erstellt werden.", parent=parent
+                "Fehler",
+                "Die Heatmap konnte nicht erstellt werden.",
+                parent=parent,
             )
             return
 

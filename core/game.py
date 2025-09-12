@@ -370,7 +370,8 @@ class Game:
         Berechnet den Punktwert eines Wurfs basierend auf Ring und Segment.
 
         Args:
-            ring (str): Der getroffene Ring ("Single", "Double", "Triple", "Bull", "Bullseye", "Miss").
+            ring (str): Der getroffene Ring
+                        ("Single", "Double", "Triple", "Bull", "Bullseye", "Miss").
             segment (int): Der Zahlenwert des getroffenen Segments.
 
         Returns:
@@ -403,7 +404,11 @@ class Game:
             return "bust"
 
         # Sound für Rundenende (nur bei X01)
-        if len(player.throws) == 3 and self.options.name in ("301", "501", "701"):
+        if len(player.throws) == 3 and self.options.name in (
+            "301",
+            "501",
+            "701",
+        ):
             # Unpack the 3-tuple, ignoring coords
             round_score = sum(self.get_score(r, s) for r, s, _ in player.throws)
             score_sounds = {
@@ -451,7 +456,7 @@ class Game:
             # Für X01 ist die Metrik die Anzahl der Darts
             if self.options.name in ("301", "501", "701"):
                 total_darts = winner.get_total_darts_in_game()
-                self.highscore_manager.add_score(self.options.name, winner.name, total_darts)  # type: ignore
+                self.highscore_manager.add_score(self.options.name, winner.name, total_darts)
             # Für Cricket ist die Metrik die MPR # type: ignore
             elif self.options.name in ("Cricket", "Cut Throat", "Tactics"):
                 mpr = winner.get_mpr()
@@ -505,8 +510,8 @@ class Game:
         # Rufe den Callback auf, um das UI-Feedback zu verarbeiten
         self.on_throw_processed(result, player)
 
-        # Bei einem Sieg werden die Statistiken finalisiert. Für X01-Matches mit
-        # Legs/Sets wird dies durch _handle_leg_win() gesteuert.
+        # On a win, stats are finalized. For X01 matches with legs/sets,
+        # this is controlled by _handle_leg_win().
         if result.status == "win" and self.winner and not self.is_leg_set_match:
             # Die X01-Logik ruft _handle_leg_win, was wiederum _finalize_and_record_stats aufruft.
             self._finalize_and_record_stats(self.winner)
@@ -532,7 +537,8 @@ class Game:
         Steuert den Ablauf von Legs und Sets.
         """
         if not self.is_leg_set_match:
-            # Dies ist ein einfaches Spiel (keine Legs/Sets). Der Gewinn des "Legs" ist der Gewinn des Matches.
+            # Dies ist ein einfaches Spiel (keine Legs/Sets).
+            # Der Gewinn des "Legs" ist der Gewinn des Matches.
             self._finalize_and_record_stats(winner)
             return
 

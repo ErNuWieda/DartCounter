@@ -88,11 +88,15 @@ class ProfileManagerDialog(tk.Toplevel):
             side=tk.LEFT, padx=5
         )
         ttk.Button(
-            button_frame, text="Profil bearbeiten", command=self._edit_selected_profile
+            button_frame,
+            text="Profil bearbeiten",
+            command=self._edit_selected_profile,
         ).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Profil löschen", command=self._delete_selected_profile).pack(
-            side=tk.LEFT, padx=5
-        )
+        ttk.Button(
+            button_frame,
+            text="Profil löschen",
+            command=self._delete_selected_profile,
+        ).pack(side=tk.LEFT, padx=5)
 
         recalc_button = ttk.Button(
             button_frame,
@@ -173,7 +177,7 @@ class ProfileManagerDialog(tk.Toplevel):
             )
             return
 
-        # Verhindere Bearbeitung von Gruppen-Headern (obwohl keine mehr da sind, ist das gute Praxis)
+        # Verhindere Bearbeitung von Gruppen-Headern
         item_data = self.tree.item(selected_item)
         if not item_data.get("values"):
             return
@@ -238,7 +242,9 @@ class ProfileManagerDialog(tk.Toplevel):
 
         if not self.player_stats_manager:
             messagebox.showerror(
-                "Fehler", "Der Statistik-Manager ist nicht verfügbar.", parent=self
+                "Fehler",
+                "Der Statistik-Manager ist nicht verfügbar.",
+                parent=self,
             )
             return
 

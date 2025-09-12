@@ -125,7 +125,11 @@ def test_load_checkout_paths_handles_bad_data(monkeypatch):
     Tests that _load_checkout_paths ignores invalid entries in the JSON file.
     This covers the try-except block.
     """
-    mock_data = {"170": "T20 T20 BE", "not_a_number": "some value", "167": "T20 T19 BE"}
+    mock_data = {
+        "170": "T20 T20 BE",
+        "not_a_number": "some value",
+        "167": "T20 T19 BE",
+    }
     monkeypatch.setattr(
         checkout_calculator,
         "JsonIOHandler",

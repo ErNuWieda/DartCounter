@@ -120,7 +120,10 @@ class CustomColorChooserDialog(tk.Toplevel):
         hex_frame.pack(fill=tk.X, pady=(20, 0))
         ttk.Label(hex_frame, text="Hex:").pack(side=tk.LEFT)
         self.hex_entry = ttk.Entry(
-            hex_frame, textvariable=self.hex_color_var, width=10, font=("Monospace", 10)
+            hex_frame,
+            textvariable=self.hex_color_var,
+            width=10,
+            font=("Monospace", 10),
         )
         self.hex_entry.pack(side=tk.LEFT, padx=5)
 

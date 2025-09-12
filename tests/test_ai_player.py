@@ -174,7 +174,10 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
     assert target == ("Double", 20)
 
 
-@patch("core.ai_strategy.CheckoutCalculator.get_checkout_suggestion", return_value="-")
+@patch(
+    "core.ai_strategy.CheckoutCalculator.get_checkout_suggestion",
+    return_value="-",
+)
 def test_get_strategic_target_for_x01_no_checkout_path(mock_get_suggestion, x01_ai_player):
     """Testet die Zielauswahl, wenn kein Checkout-Pfad gefunden wird (Fallback)."""
     ai_player, mock_game = x01_ai_player
@@ -247,7 +250,15 @@ def test_get_strategic_target_for_cricket_scoring(cricket_ai_player):
     # Wichtig: state muss ein Dictionary sein, das 'hits' enthält,
     # damit der '>=' Vergleich in der Strategie funktioniert.
     mock_opponent.state = {
-        "hits": {"20": 3, "19": 2, "18": 3, "17": 3, "16": 3, "15": 3, "Bull": 3}
+        "hits": {
+            "20": 3,
+            "19": 2,
+            "18": 3,
+            "17": 3,
+            "16": 3,
+            "15": 3,
+            "Bull": 3,
+        }
     }
     mock_opponent.hits = mock_opponent.state["hits"]  # Property simulieren
 
@@ -270,7 +281,15 @@ def test_get_strategic_target_for_cricket_defensive_move(cricket_ai_player):
     # Gegner hat die 20 geschlossen und kann punkten.
     mock_opponent = Mock(spec=Player)
     mock_opponent.state = {
-        "hits": {"20": 3, "19": 0, "18": 0, "17": 0, "16": 0, "15": 0, "Bull": 0}
+        "hits": {
+            "20": 3,
+            "19": 0,
+            "18": 0,
+            "17": 0,
+            "16": 0,
+            "15": 0,
+            "Bull": 0,
+        }
     }
     mock_opponent.hits = mock_opponent.state["hits"]
 
@@ -440,13 +459,19 @@ def test_parse_target_string(ai_player_with_mocks):
         "Bull",
         25,
     )  # Dieser Test schlug vorher fehl
-    assert strategy_instance._parse_target_string("Bullseye") == ("Bullseye", 50)
+    assert strategy_instance._parse_target_string("Bullseye") == (
+        "Bullseye",
+        50,
+    )
     assert strategy_instance._parse_target_string("BE") == ("Bullseye", 50)
     assert strategy_instance._parse_target_string("17") == ("Single", 17)
     assert strategy_instance._parse_target_string("INVALID") == ("Triple", 20)
 
 
-@patch("core.ai_strategy.CheckoutCalculator.get_checkout_suggestion", return_value="-")
+@patch(
+    "core.ai_strategy.CheckoutCalculator.get_checkout_suggestion",
+    return_value="-",
+)
 @patch("core.ai_player.random.uniform")
 @patch("core.ai_player.math.cos")
 @patch("core.ai_player.math.sin")
@@ -467,7 +492,9 @@ def test_execute_throw_simulates_click(
 
     # Patch the strategic offset method for this test to isolate the throw simulation
     with patch.object(
-        ai_player, "_apply_strategic_offset", side_effect=lambda coords, ring: coords
+        ai_player,
+        "_apply_strategic_offset",
+        side_effect=lambda coords, ring: coords,
     ):
         # Führt den Wurf aus
         ai_player._execute_throw(1)

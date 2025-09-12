@@ -120,13 +120,19 @@ class App:
             image = Image.open(image_path)
         except FileNotFoundError:
             ui_utils.show_message(
-                "error", "Fehler", f"Image nicht gefunden: {image_path}", parent=self.root
+                "error",
+                "Fehler",
+                f"Image nicht gefunden: {image_path}",
+                parent=self.root,
             )
             self.root.quit()
             return
         except Exception as e:
             ui_utils.show_message(
-                "error", "Fehler", f"Fehler beim Laden des Images: {e}", parent=self.root
+                "error",
+                "Fehler",
+                f"Fehler beim Laden des Images: {e}",
+                parent=self.root,
             )
             self.root.quit()
             return
@@ -439,7 +445,10 @@ class App:
     def quit_game(self):
         """Beendet die Anwendung nach einer Bestätigungsabfrage."""
         confirm = ui_utils.ask_question(
-            "yesno", "Programm beenden", "DartCounter wirklich beenden?", parent=self.root
+            "yesno",
+            "Programm beenden",
+            "DartCounter wirklich beenden?",
+            parent=self.root,
         )
         if confirm:
             if self.settings_manager:

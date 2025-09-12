@@ -52,9 +52,11 @@ class Killer(GameLogicBase):
             return (
                 "info",
                 "Lebensfeld ermitteln",
-                f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                "Wirf mit deiner NICHT-dominanten Hand.\n"
-                "Das Double des getroffenen Segments wird dein Lebensfeld.\n",
+                (
+                    f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
+                    "Wirf mit deiner NICHT-dominanten Hand.\n"
+                    "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
+                ),
             )
 
         if not player.state.get("can_kill"):
@@ -66,8 +68,10 @@ class Killer(GameLogicBase):
             return (
                 "info",
                 "Zum Killer werden",
-                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
-                "um Killer-Status zu erlangen.",
+                (
+                    f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
+                    "um Killer-Status zu erlangen."
+                ),
             )
 
         return None  # In der Killer-Phase gibt es keine spezielle Nachricht.
@@ -80,7 +84,10 @@ class Killer(GameLogicBase):
         if len(active_players) == 1:
             self.game.end = True
             winner = active_players[0]
-            return ("win", f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!")
+            return (
+                "win",
+                f"🏆 {winner.name} gewinnt Killer in Runde {self.game.round}!",
+            )
         elif not active_players and len(self.players) > 0:
             self.game.end = True
             return "Niemand gewinnt! Alle Spieler wurden eliminiert."
@@ -139,7 +146,10 @@ class Killer(GameLogicBase):
         elif isinstance(segment, int) and 1 <= segment <= 20:
             determined_segment = str(segment)
         else:
-            return ("warning", "Kein gültiges Segment für ein Lebensfeld getroffen.")
+            return (
+                "warning",
+                "Kein gültiges Segment für ein Lebensfeld getroffen.",
+            )
 
         is_taken = any(
             p != player and p.state["life_segment"] == determined_segment for p in players

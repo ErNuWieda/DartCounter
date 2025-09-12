@@ -64,11 +64,9 @@ class Killer(GameLogicBase):
                 if player.state["life_segment"] == "Bull"
                 else f"Double {player.state['life_segment']}"
             )
-            return (
-                "info",
-                "Zum Killer werden",
-                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.",
-            )
+            kmsg = f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
+            kmsg += "um Killer-Status zu erlangen."
+            return ("info", "Zum Killer werden", kmsg)
 
         return None  # In der Killer-Phase gibt es keine spezielle Nachricht.
 
@@ -142,7 +140,10 @@ class Killer(GameLogicBase):
         elif isinstance(segment, int) and 1 <= segment <= 20:
             determined_segment = str(segment)
         else:
-            return ("warning", "Kein gültiges Segment für ein Lebensfeld getroffen.")
+            return (
+                "warning",
+                "Kein gültiges Segment für ein Lebensfeld getroffen.",
+            )
 
         is_taken = any(
             p != player and p.state["life_segment"] == determined_segment for p in players
@@ -216,10 +217,9 @@ class Killer(GameLogicBase):
                 opp_name = "sich selbst"
 
             if victim.score > 0:
-                return (
-                    "info",
-                    f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.",
-                )
+                msg = f"{player.name} nimmt {opp_name} ein Leben!"
+                msg += f"\n{victim.name} hat noch {victim.score} Leben."
+                return ("info", msg)
             else:
                 win_result = self._check_and_handle_win_condition()
                 if win_result:

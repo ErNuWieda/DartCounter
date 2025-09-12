@@ -102,7 +102,9 @@ class BaseScoreBoard:
         ttk.Label(score_display_frame, text=score_label_text, font=("Arial", 12)).pack(side="left")
         self.score_var = tk.StringVar(value=str(self.player.score))
         ttk.Label(
-            score_display_frame, textvariable=self.score_var, font=("Arial", 20, "bold")
+            score_display_frame,
+            textvariable=self.score_var,
+            font=("Arial", 20, "bold"),
         ).pack(side="left", padx=5)
 
         separator = ttk.Separator(parent, orient="horizontal")
@@ -131,7 +133,11 @@ class BaseScoreBoard:
     def update_score(self, score):
         self.set_score_value(score)
         self.throws_list.delete(0, tk.END)
-        for r, s, _ in self.player.throws:  # Unpack the 3-tuple, ignoring coords
+        for (
+            r,
+            s,
+            _,
+        ) in self.player.throws:  # Unpack the 3-tuple, ignoring coords
             self.throws_list.insert(tk.END, f"{r} {s}" if r != "Miss" else "Miss")
 
     def update_display(self, hits, score):
@@ -142,7 +148,7 @@ class X01ScoreBoard(BaseScoreBoard):
     """Ein spezialisiertes Scoreboard für X01-Spiele mit zusätzlichen Statistik-Widgets."""
 
     def __init__(self, root, player, pos_x=None, pos_y=None, width=300, height=None):
-        # Ruft super().__init__ auf, was die Basis-UI inklusive des Hooks _create_extra_widgets erstellt.
+        # Aufruf um die Basis-UI inklusive des Hooks _create_extra_widgets zu erstellen
         super().__init__(root, player, pos_x, pos_y, width, height)
         # Nachdem alles erstellt ist, wird die Anzeige initial aktualisiert.
         self.update_score(self.player.score)
@@ -162,17 +168,21 @@ class X01ScoreBoard(BaseScoreBoard):
             set_frame.grid(row=0, column=0, sticky="e", padx=(0, 10))
             ttk.Label(set_frame, text="Sätze:", font=("Arial", 10)).pack(side="left")
             self.set_score_var = tk.StringVar(value="0")
-            ttk.Label(set_frame, textvariable=self.set_score_var, font=("Arial", 14, "bold")).pack(
-                side="left", padx=5
-            )
+            ttk.Label(
+                set_frame,
+                textvariable=self.set_score_var,
+                font=("Arial", 14, "bold"),
+            ).pack(side="left", padx=5)
 
             leg_frame = ttk.Frame(leg_set_frame)
             leg_frame.grid(row=0, column=1, sticky="w", padx=(10, 0))
             ttk.Label(leg_frame, text="Legs:", font=("Arial", 10)).pack(side="left")
             self.leg_score_var = tk.StringVar(value="0")
-            ttk.Label(leg_frame, textvariable=self.leg_score_var, font=("Arial", 14, "bold")).pack(
-                side="left", padx=5
-            )
+            ttk.Label(
+                leg_frame,
+                textvariable=self.leg_score_var,
+                font=("Arial", 14, "bold"),
+            ).pack(side="left", padx=5)
 
         avg_frame = ttk.Frame(parent)
         avg_frame.pack(pady=(0, 5))

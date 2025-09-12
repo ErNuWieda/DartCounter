@@ -18,7 +18,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 StatusType = Literal[
-    "ok", "win", "bust", "info", "warning", "error", "invalid_open", "invalid_target"
+    "ok",
+    "win",
+    "bust",
+    "info",
+    "warning",
+    "error",
+    "invalid_open",
+    "invalid_target",
 ]
 
 

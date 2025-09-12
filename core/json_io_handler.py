@@ -49,7 +49,10 @@ class JsonIOHandler:
             logger.error(error_msg, exc_info=True)
             if parent_for_dialog:
                 ui_utils.show_message(
-                    "error", "Fehler beim Laden", error_msg, parent=parent_for_dialog
+                    "error",
+                    "Fehler beim Laden",
+                    error_msg,
+                    parent=parent_for_dialog,
                 )
             return None
 

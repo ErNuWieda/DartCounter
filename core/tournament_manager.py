@@ -19,7 +19,10 @@ Dieses Modul enthält den TournamentManager, der die Logik für den
 Turniermodus steuert.
 """
 from .save_load_manager import SaveLoadManager
-from .tournament_strategies import SingleEliminationStrategy, DoubleEliminationStrategy
+from .tournament_strategies import (
+    SingleEliminationStrategy,
+    DoubleEliminationStrategy,
+)
 
 
 class TournamentManager:
@@ -38,7 +41,13 @@ class TournamentManager:
         "Doppel-K.o.": DoubleEliminationStrategy,
     }
 
-    def __init__(self, player_names: list[str], game_mode: str, system: str, shuffle: bool = True):
+    def __init__(
+        self,
+        player_names: list[str],
+        game_mode: str,
+        system: str,
+        shuffle: bool = True,
+    ):
         """
         Initialisiert ein neues Turnier.
 

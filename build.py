@@ -64,7 +64,13 @@ def clean_previous_builds(release_dir: pathlib.Path):
     zip_file = release_dir.with_suffix(".zip")
     spec_file = pathlib.Path(f"{APP_NAME}.spec")
 
-    for path in [release_dir, zip_file, pathlib.Path("build"), DIST_DIR, spec_file]:
+    for path in [
+        release_dir,
+        zip_file,
+        pathlib.Path("build"),
+        DIST_DIR,
+        spec_file,
+    ]:
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
         elif path.is_file():

@@ -29,7 +29,12 @@ class EditProfileDialog(tk.Toplevel):
     Trennt die UI-Erstellung klar von der Logik.
     """
 
-    def __init__(self, parent, profile_manager, profile_to_edit: PlayerProfile | None = None):
+    def __init__(
+        self,
+        parent,
+        profile_manager,
+        profile_to_edit: PlayerProfile | None = None,
+    ):
         super().__init__(parent)
         self.transient(parent)
         self.profile_manager = profile_manager
@@ -107,7 +112,11 @@ class EditProfileDialog(tk.Toplevel):
         """Erstellt die Widgets für die Avatar-Auswahl."""
         ttk.Label(parent_frame, text="Avatar:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.avatar_preview_label = ttk.Label(
-            parent_frame, text="Kein Avatar", relief="solid", width=15, anchor="center"
+            parent_frame,
+            text="Kein Avatar",
+            relief="solid",
+            width=15,
+            anchor="center",
         )
         self.avatar_preview_label.bind("<Button-1>", lambda e: self._select_avatar())
         self.avatar_preview_label.grid(row=1, column=1, pady=5, sticky="w")
@@ -119,13 +128,19 @@ class EditProfileDialog(tk.Toplevel):
         """Erstellt die Widgets für die Farbauswahl."""
         ttk.Label(parent_frame, text="Dart-Farbe:").grid(row=2, column=0, sticky=tk.W, pady=5)
         self.color_preview_label = tk.Label(
-            parent_frame, text="", bg=self.new_dart_color, width=4, relief="solid"
+            parent_frame,
+            text="",
+            bg=self.new_dart_color,
+            width=4,
+            relief="solid",
         )
         self.color_preview_label.bind("<Button-1>", lambda e: self._select_dart_color())
         self.color_preview_label.grid(row=2, column=1, pady=5, sticky="w")
-        ttk.Button(parent_frame, text="Farbe auswählen...", command=self._select_dart_color).grid(
-            row=2, column=2, pady=5, padx=5, sticky="w"
-        )
+        ttk.Button(
+            parent_frame,
+            text="Farbe auswählen...",
+            command=self._select_dart_color,
+        ).grid(row=2, column=2, pady=5, padx=5, sticky="w")
 
     def _create_player_type_widgets(self, parent_frame):
         """Erstellt die Widgets zur Auswahl des Spielertyps (Mensch/KI)."""

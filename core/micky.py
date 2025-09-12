@@ -141,7 +141,10 @@ class Micky(GameLogicBase):
                     msg_base + f"\n{remaining_darts} verbleibende Darts.",
                 )
             else:  # pragma: no cover
-                return ("invalid_target", msg_base + "\nLetzter Dart dieser Aufnahme.")
+                return (
+                    "invalid_target",
+                    msg_base + "\nLetzter Dart dieser Aufnahme.",
+                )
 
         # Gültiger Treffer: Trefferzahl aktualisieren (maximal 3)
         current_hits = player.hits.get(current_target, 0)

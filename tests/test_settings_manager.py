@@ -53,7 +53,11 @@ class TestSettingsManager:
         expected_filepath = settings_manager_mocks["expected_filepath"]
 
         mock_data = json.dumps(
-            {"theme": "dark", "sound_enabled": False, "last_player_names": ["A", "B"]}
+            {
+                "theme": "dark",
+                "sound_enabled": False,
+                "last_player_names": ["A", "B"],
+            }
         )
 
         with patch("builtins.open", mock_open(read_data=mock_data)) as m_open:  # noqa: F821

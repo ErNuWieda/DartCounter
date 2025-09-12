@@ -100,7 +100,10 @@ class SettingsManager:
         # Priorisierte Liste der Pfade, von denen geladen werden soll.
         # 1. Benutzerspezifisches Verzeichnis (hat Vorrang)
         # 2. Anwendungsverzeichnis (als Fallback oder für die Erstkonfiguration)
-        load_paths = [self.save_filepath, get_application_root_dir() / "settings.json"]
+        load_paths = [
+            self.save_filepath,
+            get_application_root_dir() / "settings.json",
+        ]
 
         # Lade die erste existierende Datei aus der Liste.
         if filepath_to_load_from := next((path for path in load_paths if path.exists()), None):

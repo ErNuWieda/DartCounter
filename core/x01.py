@@ -99,7 +99,8 @@ class X01(GameLogicBase):
         # 1. Wurf- und Score-Werte berechnen
         throw_score = self.game.get_score(ring, segment)
         if throw_score == 0:  # Miss-Wurf, nichts zu tun außer UI-Update
-            # Der Wurf ist bereits aus player.throws entfernt, also ist die Anzahl der Darts für den Vorschlag korrekt.
+            # Der Wurf ist bereits aus player.throws entfernt,
+            # also ist die Anzahl der Darts für den Vorschlag korrekt.
             preferred_double = player.profile.preferred_double if player.profile else None
             darts_remaining = 3 - len(player.throws)
             suggestion = CheckoutCalculator.get_checkout_suggestion(
@@ -228,7 +229,8 @@ class X01(GameLogicBase):
                 if r_name in ("Single", "Double", "Triple"):
                     rings_hit_on_20.add(r_name)
                 else:
-                    # Getroffenes Segment 20, aber kein S, D, oder T Ring (sollte nicht vorkommen bei korrekter Segmenterkennung)
+                    # Getroffenes Segment 20, aber kein S, D, oder T Ring
+                    # (sollte nicht vorkommen bei korrekter Segmenterkennung)
                     all_darts_on_20_segment = False
                     break
             else:
@@ -261,14 +263,9 @@ class X01(GameLogicBase):
 
     def _handle_throw(self, player: "Player", ring: str, segment: int, players: list["Player"]):
         """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
-            player (Player): Der Spieler, der den Wurf gemacht hat.
-            ring (str): Der getroffene Ring (z.B. 'Single', 'Double').
-            segment (int): Die getroffene Segmentnummer.
-            players (list[Player]): Die Liste aller Spieler im Spiel.
 
         Returns:
             tuple[str, str | None]: Ein Tupel aus Status-String und optionaler Nachricht.
-                                    Mögliche Status: 'ok', 'bust', 'win', 'invalid_open'.
         """
         score = self.game.get_score(ring, segment)
         score_before_throw = player.score
@@ -276,7 +273,10 @@ class X01(GameLogicBase):
         # --- Checkout-Möglichkeit prüfen ---
         # Wenn der Wurf den Score exakt auf 0 bringen würde, war es eine Checkout-Möglichkeit.
         # Dies wird VOR der Bust-Prüfung gezählt.
-        if score_before_throw == score and self.opt_out in ("Double", "Masters"):
+        if score_before_throw == score and self.opt_out in (
+            "Double",
+            "Masters",
+        ):
             player.stats["checkout_opportunities"] += 1
 
         # --- Handle Miss separately ---
@@ -311,7 +311,10 @@ class X01(GameLogicBase):
         if self._check_for_bust(new_score, ring):
             player.turn_is_over = True
             player.sb.update_score(player.score)
-            return ("bust", f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.")
+            return (
+                "bust",
+                f"{player.name} hat überworfen!\nBitte 'Weiter' klicken.",
+            )
 
         # Dies ist ein gültiger, nicht überworfener Wurf. Aktualisiere die Statistik.
         # Dies geschieht NACH den "Open"- und "Bust"-Prüfungen.

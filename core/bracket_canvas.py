@@ -169,7 +169,13 @@ class BracketCanvas(tk.Canvas):
 
                 # Zeichne eine finale Linie zum Sieger
                 line_start_x = final_match_x + self.BOX_WIDTH
-                self.create_line(line_start_x, winner_y, winner_x, winner_y, fill=self.LINE_COLOR)
+                self.create_line(
+                    line_start_x,
+                    winner_y,
+                    winner_x,
+                    winner_y,
+                    fill=self.LINE_COLOR,
+                )
 
                 # Zeichne den Namen des Siegers
                 self.create_text(
@@ -201,17 +207,41 @@ class BracketCanvas(tk.Canvas):
                     parent_y = match_positions.get((round_idx, next_match_idx))
                     if parent_y:
                         # Zeichne eine direkte diagonale Linie, um Überlappungen zu vermeiden.
-                        self.create_line(x_start, parent_y, x_end, child_y, fill=self.LINE_COLOR)
+                        self.create_line(
+                            x_start,
+                            parent_y,
+                            x_end,
+                            child_y,
+                            fill=self.LINE_COLOR,
+                        )
                 else:
                     # Standard-Zeichenlogik für normale Runden
                     parent1_y = match_positions.get((round_idx, next_match_idx * 2))
                     parent2_y = match_positions.get((round_idx, next_match_idx * 2 + 1))
                     if parent1_y:
-                        self.create_line(x_start, parent1_y, x_mid, parent1_y, fill=self.LINE_COLOR)
+                        self.create_line(
+                            x_start,
+                            parent1_y,
+                            x_mid,
+                            parent1_y,
+                            fill=self.LINE_COLOR,
+                        )
                     if parent2_y:
-                        self.create_line(x_start, parent2_y, x_mid, parent2_y, fill=self.LINE_COLOR)
+                        self.create_line(
+                            x_start,
+                            parent2_y,
+                            x_mid,
+                            parent2_y,
+                            fill=self.LINE_COLOR,
+                        )
                     if parent1_y and parent2_y:
-                        self.create_line(x_mid, parent1_y, x_mid, parent2_y, fill=self.LINE_COLOR)
+                        self.create_line(
+                            x_mid,
+                            parent1_y,
+                            x_mid,
+                            parent2_y,
+                            fill=self.LINE_COLOR,
+                        )
                     if parent1_y or parent2_y:
                         self.create_line(x_mid, child_y, x_end, child_y, fill=self.LINE_COLOR)
 

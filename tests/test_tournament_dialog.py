@@ -31,7 +31,10 @@ def dialog_setup(tk_root, monkeypatch):
     mock_profile_a.name = "ProfA"
     mock_profile_b = MagicMock()
     mock_profile_b.name = "ProfB"
-    mock_profile_manager.get_profiles.return_value = [mock_profile_a, mock_profile_b]
+    mock_profile_manager.get_profiles.return_value = [
+        mock_profile_a,
+        mock_profile_b,
+    ]
 
     dialog = TournamentSettingsDialog(tk_root, mock_profile_manager, mock_settings_manager)
     dialog.update()

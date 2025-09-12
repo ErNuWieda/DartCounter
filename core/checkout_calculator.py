@@ -43,7 +43,6 @@ def _load_checkout_paths():
             checkout_map[score] = value
         except (ValueError, TypeError):
             # Ignoriere Einträge, bei denen der Schlüssel keine gültige Zahl ist.
-            # logging.warning(f"Ungültiger Schlüssel '{key}' in checkout_paths.json wird ignoriert.")
             pass
     return checkout_map
 
@@ -194,7 +193,10 @@ class CheckoutCalculator:
 
     @staticmethod
     def get_checkout_suggestion(
-        score, opt_out="Double", darts_left=3, preferred_double: int | None = None
+        score,
+        opt_out="Double",
+        darts_left=3,
+        preferred_double: int | None = None,
     ):
         """
         Gibt einen Finish-Vorschlag für einen gegebenen Punktestand zurück.
@@ -247,7 +249,7 @@ class CheckoutCalculator:
 
         # --- Logik für "Double Out" / "Masters Out" ---
         if opt_out in ("Double", "Masters"):
-            # 1. Priorität: Prüfe, ob ein Standard-Pfad (aus JSON) bereits auf dem bevorzugten Double endet.
+            # 1. Priorität: Prüfe, ob ein Standard-Pfad bereits auf dem bevorzugten Double endet.
             if preferred_double:
                 possible_paths_raw = CHECKOUT_PATHS.get(score)
                 if possible_paths_raw:

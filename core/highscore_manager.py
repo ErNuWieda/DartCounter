@@ -103,7 +103,14 @@ class HighscoreManager:
             return  # User cancelled
 
         all_scores = []
-        highscore_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
+        highscore_modes = [
+            "301",
+            "501",
+            "701",
+            "Cricket",
+            "Cut Throat",
+            "Tactics",
+        ]
         for game_mode in highscore_modes:
             scores = self.db_manager.get_scores(game_mode)
             for score in scores:
@@ -169,7 +176,8 @@ class HighscoreManager:
         reset_dialog.grab_set()
         reset_dialog.geometry("350x150")
 
-        msg = f"Möchtest du die Highscores für '{current_game_mode}' oder alle Highscores zurücksetzen?"
+        msg = f"Möchtest du die Highscores für '{current_game_mode}' "
+        msg += "oder alle Highscores zurücksetzen?"
         ttk.Label(reset_dialog, text=msg, wraplength=330, justify="center").pack(pady=20)
 
         button_frame = ttk.Frame(reset_dialog)
@@ -199,9 +207,11 @@ class HighscoreManager:
             text=f"Nur '{current_game_mode}'",
             command=lambda: do_reset(current_game_mode),  # type: ignore
         ).pack(side="left", padx=5)
-        ttk.Button(button_frame, text="Alle zurücksetzen", command=lambda: do_reset(None)).pack(
-            side="left", padx=5
-        )
+        ttk.Button(
+            button_frame,
+            text="Alle zurücksetzen",
+            command=lambda: do_reset(None),
+        ).pack(side="left", padx=5)
         ttk.Button(button_frame, text="Abbrechen", command=reset_dialog.destroy).pack(
             side="left", padx=5
         )
@@ -239,7 +249,14 @@ class HighscoreManager:
         notebook = ttk.Notebook(win)
         notebook.pack(expand=True, fill="both", padx=10, pady=10)
 
-        highscore_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
+        highscore_modes = [
+            "301",
+            "501",
+            "701",
+            "Cricket",
+            "Cut Throat",
+            "Tactics",
+        ]
         for game_mode in highscore_modes:
             frame = ttk.Frame(notebook, padding="10")
             notebook.add(frame, text=f"{game_mode}")
@@ -247,7 +264,11 @@ class HighscoreManager:
             # Spaltenüberschrift dynamisch anpassen
             score_header = "MPR" if game_mode in ("Cricket", "Cut Throat", "Tactics") else "Darts"
 
-            tree = ttk.Treeview(frame, columns=("Rank", "Player", "Score", "Date"), show="headings")
+            tree = ttk.Treeview(
+                frame,
+                columns=("Rank", "Player", "Score", "Date"),
+                show="headings",
+            )
             tree.heading("Rank", text="Platz")
             tree.column("Rank", width=50, anchor="center")
             tree.heading("Player", text="Spieler")

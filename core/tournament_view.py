@@ -64,7 +64,10 @@ class TournamentView(tk.Toplevel):
 
         # Widgets für die finalen Spiele
         self.wb_final_label = ttk.Label(
-            finals_frame, text="", font=("Segoe UI", 12, "bold"), anchor="center"
+            finals_frame,
+            text="",
+            font=("Segoe UI", 12, "bold"),
+            anchor="center",
         )
         self.wb_final_label.pack(pady=(5, 0))
 
@@ -269,7 +272,10 @@ class TournamentView(tk.Toplevel):
         winners_rounds = self.manager.bracket.get("winners", [])
         wb_bracket_winner = self._get_bracket_winner(winners_rounds)
         self.winners_canvas.draw_bracket(
-            winners_rounds, next_match, wb_bracket_winner, bracket_type="winners"
+            winners_rounds,
+            next_match,
+            wb_bracket_winner,
+            bracket_type="winners",
         )
 
         if self.manager.system == "Doppel-K.o.":

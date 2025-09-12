@@ -36,7 +36,28 @@ class DartboardGeometry:
         "outer_edge": 836,
     }
     # Segmente im Uhrzeigersinn, beginnend bei der "6" oben rechts
-    SEGMENTS = [6, 13, 4, 18, 1, 20, 5, 12, 9, 14, 11, 8, 16, 7, 19, 3, 17, 2, 15, 10]
+    SEGMENTS = [
+        6,
+        13,
+        4,
+        18,
+        1,
+        20,
+        5,
+        12,
+        9,
+        14,
+        11,
+        8,
+        16,
+        7,
+        19,
+        3,
+        17,
+        2,
+        15,
+        10,
+    ]
 
     @staticmethod
     def get_segment_from_coords(x: float, y: float, size: int = 2200) -> str:

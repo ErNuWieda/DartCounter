@@ -91,7 +91,11 @@ class Shanghai(GameLogicBase):
         target_segment_for_shanghai = str(self.game.round)
 
         rings_hit_on_target = set()
-        for r, s_val, _ in player.throws:  # Check current turn's throws, ignore coords
+        for (
+            r,
+            s_val,
+            _,
+        ) in player.throws:  # Check current turn's throws, ignore coords
             if str(s_val) == target_segment_for_shanghai:
                 if r in ("Single", "Double", "Triple"):
                     rings_hit_on_target.add(r)

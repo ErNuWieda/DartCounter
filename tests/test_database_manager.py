@@ -102,7 +102,10 @@ def config_test_setup(monkeypatch):
         mock_app_data_dir = Path("/fake/appdata/dir/DartCounter")
         mock_root_dir = Path("/fake/root/dir")
         monkeypatch.setattr("core.database_manager.get_app_data_dir", lambda: mock_app_data_dir)
-        monkeypatch.setattr("core.database_manager.get_application_root_dir", lambda: mock_root_dir)
+        monkeypatch.setattr(
+            "core.database_manager.get_application_root_dir",
+            lambda: mock_root_dir,
+        )
 
         # 3. Erstelle eine flexible Factory für `pathlib.Path.exists`.
         def mock_exists_factory(user_exists=False, root_exists=False, example_exists=False):

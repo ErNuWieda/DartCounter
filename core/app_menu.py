@@ -45,7 +45,10 @@ class AppMenu:
         )
         file_menu.add_command(label="Einstellungen", command=self.controller.open_settings_dialog)
         file_menu.add_separator()
-        file_menu.add_command(label="Spielerstatistiken", command=self.controller.show_player_stats)
+        file_menu.add_command(
+            label="Spielerstatistiken",
+            command=self.controller.show_player_stats,
+        )
         file_menu.add_command(label="Highscores", command=self.controller.show_highscores)
         file_menu.add_separator()
         file_menu.add_command(label="Spiel beenden", command=self.controller.quit_game)

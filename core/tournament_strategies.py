@@ -343,7 +343,11 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
             elif gf1["winner"] == lb_champion:
                 # LB-Champion gewinnt, Bracket-Reset -> zweites Finale erstellen
                 grand_final_matches.append(
-                    {"player1": wb_champion, "player2": lb_champion, "winner": None}
+                    {
+                        "player1": wb_champion,
+                        "player2": lb_champion,
+                        "winner": None,
+                    }
                 )
 
         # 3. Prüfe den Zustand nach dem zweiten Grand Final

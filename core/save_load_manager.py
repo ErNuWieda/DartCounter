@@ -30,7 +30,10 @@ class SaveLoadManager:
     TOURNAMENT_SAVE_TYPE = "tournament"
 
     # Zentralisierte Dateitypen für Dialoge
-    GAME_FILE_TYPES = (("Spiel-Speicherstände", "*.json"), ("Alle Dateien", "*.*"))
+    GAME_FILE_TYPES = (
+        ("Spiel-Speicherstände", "*.json"),
+        ("Alle Dateien", "*.*"),
+    )
     TOURNAMENT_FILE_TYPES = (
         ("Turnier-Speicherstände", "*.tourn.json"),
         ("Alle Dateien", "*.*"),

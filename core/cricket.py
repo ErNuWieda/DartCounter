@@ -272,7 +272,6 @@ class Cricket(GameLogicBase):
                             break
 
                 if has_won:
-                    # Der Spieler, der den Wurf gemacht hat, der die Gewinnbedingung erfüllt, ist der alleinige Sieger.
                     self.game.end = True
                     self.game.winner = player
                     return_msg = ("win", f"🏆 {player.name} gewinnt!")

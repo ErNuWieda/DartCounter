@@ -27,7 +27,10 @@ def tm_4_players():
     # shuffle=False macht den Test deterministisch
     players = ["Alice", "Bob", "Charlie", "David"]
     return TournamentManager(
-        player_names=players, game_mode="501", system="Doppel-K.o.", shuffle=False
+        player_names=players,
+        game_mode="501",
+        system="Doppel-K.o.",
+        shuffle=False,
     )
 
 
@@ -79,7 +82,10 @@ def test_get_next_match_priority(tm_4_players):
     # --- WB Runde 2 (Finale) ---
     # Das nächste Match MUSS das WB-Finale sein, nicht das LB-Match.
     next_match_after_wb_r1 = tm.get_next_match()
-    assert {next_match_after_wb_r1["player1"], next_match_after_wb_r1["player2"]} == {
+    assert {
+        next_match_after_wb_r1["player1"],
+        next_match_after_wb_r1["player2"],
+    } == {
         "Alice",
         "Charlie",
     }, "Next match should be WB final"
@@ -91,7 +97,10 @@ def test_get_next_match_priority(tm_4_players):
     assert lb_match_1 is not None
     # Die Verlierer der ersten Runde (Bob, David) sollten jetzt im Losers Bracket sein
     lb_players = {lb_match_1["player1"], lb_match_1["player2"]}
-    assert lb_players == {"Bob", "David"}, "Losers bracket match has wrong players"
+    assert lb_players == {
+        "Bob",
+        "David",
+    }, "Losers bracket match has wrong players"
 
 
 def test_record_match_winner_updates_bracket(tm_4_players):
@@ -186,7 +195,10 @@ def test_full_tournament_flow_4_players(tm_4_players):
 
     # State check 3: Grand Final sollte gebildet sein
     grand_final = tm.get_next_match()
-    assert {grand_final["player1"], grand_final["player2"]} == {p[0], p[2]}  # A vs C
+    assert {grand_final["player1"], grand_final["player2"]} == {
+        p[0],
+        p[2],
+    }  # A vs C
 
     # --- Grand Final ---
     tm.record_match_winner(grand_final, p[0])  # A schlägt C

@@ -41,7 +41,13 @@ class GameOptions:
 
         # Konvertiere numerische Felder explizit zu Integers, da UI-Elemente
         # oder JSON-Ladevorgänge Strings liefern können.
-        for field in ["count_to", "lifes", "rounds", "legs_to_win", "sets_to_win"]:
+        for field in [
+            "count_to",
+            "lifes",
+            "rounds",
+            "legs_to_win",
+            "sets_to_win",
+        ]:
             if field in filtered_data:
                 try:
                     # Stellt sicher, dass der Wert zu einem Integer konvertiert wird,

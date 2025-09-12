@@ -67,7 +67,10 @@ class Elimination(GameLogicBase):
                 elimination_event = self.elimination_log.pop()
 
                 # Finde das Opfer und stelle seinen Score wieder her
-                victim = next((p for p in players if p.id == elimination_event["victim_id"]), None)
+                victim = next(
+                    (p for p in players if p.id == elimination_event["victim_id"]),
+                    None,
+                )
                 if victim:
                     victim.score = elimination_event["victim_score_before"]
                     victim.sb.set_score_value(victim.score)

@@ -92,7 +92,10 @@ class SoundManager:
         try:
             pygame.mixer.init()
         except pygame.error as e:
-            logger.error(f"Pygame mixer konnte nicht initialisiert werden: {e}", exc_info=True)
+            logger.error(
+                f"Pygame mixer konnte nicht initialisiert werden: {e}",
+                exc_info=True,
+            )
             self.sounds_enabled = False
             self.loading_errors.append(f"Pygame mixer konnte nicht initialisiert werden: {e}")
             return
@@ -104,8 +107,10 @@ class SoundManager:
             error_string = "\n- ".join(self.loading_errors)
             messagebox.showwarning(
                 title="Sound-Fehler",
-                message=f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\n"
-                "Sounds sind ggf. deaktiviert.",
+                message=(
+                    f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\n"
+                    "Sounds sind ggf. deaktiviert."
+                ),
                 parent=self.root,
             )
 
@@ -128,7 +133,11 @@ class SoundManager:
         }
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
         for attr_name, filename in sound_definitions.items():
-            setattr(self, f"{attr_name}_sound", self._load_sound(assets_dir / filename))
+            setattr(
+                self,
+                f"{attr_name}_sound",
+                self._load_sound(assets_dir / filename),
+            )
 
     def _load_sound(self, path):
         """

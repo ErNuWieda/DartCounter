@@ -279,7 +279,10 @@ def test_quit_game_confirmed(app_with_mocks):
     app.quit_game()
 
     mock_ask_question.assert_called_once_with(
-        "yesno", "Programm beenden", "DartCounter wirklich beenden?", parent=app.root
+        "yesno",
+        "Programm beenden",
+        "DartCounter wirklich beenden?",
+        parent=app.root,
     )
     app.settings_manager.save_settings.assert_called_once()
     app.db_manager.close_connection.assert_called_once()

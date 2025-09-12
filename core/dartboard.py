@@ -78,7 +78,8 @@ class DartBoard:
         self.canvas = None  # Wird in _create_board gesetzt
         self.root = tk.Toplevel()
         if len(self.spiel.options.name) == 3:  # = x01-Spiele
-            title = f"{self.spiel.options.name} - {self.spiel.options.opt_in}-in, {self.spiel.options.opt_out}-out"
+            title = f"{self.spiel.options.name} - {self.spiel.options.opt_in}-in, "
+            title += f"{self.spiel.options.opt_out}-out"
         elif self.spiel.options.name == "Around the Clock":
             title = f"{self.spiel.options.name} - {self.spiel.options.opt_atc}"
         else:
@@ -88,14 +89,13 @@ class DartBoard:
         self.root.resizable(False, False)
         self._create_board()
 
-        self._dart_photo_image = None  # Wird später mit dem gefärbten Dart-Bild gefüllt
-        self.dart_image_ids_on_canvas = []  # Speichert Canvas-IDs der Darts des aktuellen Zugs
+        self._dart_photo_image = None  # Will be filled with the colored dart image later
+        self.dart_image_ids_on_canvas = []  # Stores canvas IDs of darts for the current turn
         try:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")
-            dart_display_size = 75
             self.resized_dart_mask_pil = self.original_dart_mask_pil.resize(
-                (dart_display_size, dart_display_size), Image.Resampling.LANCZOS
+                (75, 75), Image.Resampling.LANCZOS
             )
             self.update_dart_image("#ff0000")
         except FileNotFoundError:  # pragma: no cover
