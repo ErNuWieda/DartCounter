@@ -52,11 +52,9 @@ class Killer(GameLogicBase):
             return (
                 "info",
                 "Lebensfeld ermitteln",
-                (
-                    f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                    "Wirf mit deiner NICHT-dominanten Hand.\n"
-                    "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
-                ),
+                f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
+                "Wirf mit deiner NICHT-dominanten Hand.\n"
+                "Das Double des getroffenen Segments wird dein Lebensfeld.\n",
             )
 
         if not player.state.get("can_kill"):
@@ -68,10 +66,8 @@ class Killer(GameLogicBase):
             return (
                 "info",
                 "Zum Killer werden",
-                (
-                    f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
-                    "um Killer-Status zu erlangen."
-                ),
+                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
+                "um Killer-Status zu erlangen.",
             )
 
         return None  # In der Killer-Phase gibt es keine spezielle Nachricht.

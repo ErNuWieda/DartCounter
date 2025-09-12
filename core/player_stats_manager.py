@@ -487,7 +487,7 @@ class PlayerStatsManager:
         if not all_coords:
             messagebox.showinfo(
                 "Keine Daten",
-                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap " "gefunden.",
+                (f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap " "gefunden."),
                 parent=parent,
             )
             return

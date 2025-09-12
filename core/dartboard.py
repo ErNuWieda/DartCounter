@@ -88,15 +88,14 @@ class DartBoard:
         self.root.resizable(False, False)
         self._create_board()
 
-        self._dart_photo_image = None
-        self.dart_image_ids_on_canvas = []
+        self._dart_photo_image = None  # Wird später mit dem gefärbten Dart-Bild gefüllt
+        self.dart_image_ids_on_canvas = []  # Speichert Canvas-IDs der Darts des aktuellen Zugs
         try:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")
-            dart_display_width = 75
-            dart_display_height = dart_display_width
+            dart_display_size = 75
             self.resized_dart_mask_pil = self.original_dart_mask_pil.resize(
-                (dart_display_width, dart_display_height), Image.Resampling.LANCZOS
+                (dart_display_size, dart_display_size), Image.Resampling.LANCZOS
             )
             self.update_dart_image("#ff0000")
         except FileNotFoundError:  # pragma: no cover

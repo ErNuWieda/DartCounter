@@ -247,8 +247,7 @@ class X01(GameLogicBase):
         player.stats.setdefault("successful_finishes", []).append(score_before_throw)
         player.stats["checkouts_successful"] += 1
         player.stats["highest_finish"] = max(
-            player.stats.get("highest_finish", 0),
-            score_before_throw,
+            player.stats.get("highest_finish", 0), score_before_throw
         )
 
         self.game.shanghai_finish = self._is_shanghai_finish(player)
@@ -261,9 +260,7 @@ class X01(GameLogicBase):
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
     def _handle_throw(self, player: "Player", ring: str, segment: int, players: list["Player"]):
-        """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel. # noqa
-
-        Args:
+        """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
             player (Player): Der Spieler, der den Wurf gemacht hat.
             ring (str): Der getroffene Ring (z.B. 'Single', 'Double').
             segment (int): Die getroffene Segmentnummer.
