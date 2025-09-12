@@ -62,17 +62,18 @@ class Killer(GameLogicBase):
                 "Bull"
                 if player.state["life_segment"] == "Bull"
                 else f"Double {player.state['life_segment']}"
-            )  # noqa: E501
+            )
             return (
                 "info",
                 "Zum Killer werden",
-                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen um Killer-Status zu erlangen.",
+                f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
+                "um Killer-Status zu erlangen.",
             )
 
         return None  # In der Killer-Phase gibt es keine spezielle Nachricht.
 
     def _get_active_players(self):
-        return [p for p in self.players if p.score > 0]  # noqa: E501
+        return [p for p in self.players if p.score > 0]
 
     def _check_and_handle_win_condition(self):
         active_players = self._get_active_players()
@@ -212,15 +213,16 @@ class Killer(GameLogicBase):
                 opp_name = victim.name
 
             if victim.score > 0:
-                return (  # noqa: E501
+                return (
                     "info",
-                    f"{player.name} nimmt {opp_name} ein Leben!\n{victim.name} hat noch {victim.score} Leben.",
+                    f"{player.name} nimmt {opp_name} ein Leben!\n"
+                    f"{victim.name} hat noch {victim.score} Leben.",
                 )
             else:
                 win_result = self._check_and_handle_win_condition()
                 if win_result:
                     return win_result
-                return ("info", f"{player.name} hat {opp_name} eliminiert!")  # noqa: E501
+                return ("info", f"{player.name} hat {opp_name} eliminiert!")
 
         player.sb.update_score(player.score)
         return ("ok", None)

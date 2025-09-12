@@ -361,8 +361,8 @@ class DatabaseManager:
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
-                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen"
-                logger.warning(f"{log_msg} '{name}' zu erstellen.")
+                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen "
+                logger.warning(f"{log_msg}'{name}' zu erstellen.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
