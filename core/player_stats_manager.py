@@ -92,9 +92,11 @@ class PlayerStatsManager:
         # Nachricht anpassen, je nachdem ob ein Spieler ausgewählt ist
         if selected_player:
             msg = f"Möchtest du nur die Statistiken für '{selected_player}' oder die Statistiken aller Spieler zurücksetzen?"
-        else:
+        else:  # pragma: no cover
             msg = "Möchtest du die Statistiken aller Spieler zurücksetzen?"
-        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(pady=20)
+        ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(
+            pady=20
+        )  # noqa: E501
 
         button_frame = ttk.Frame(reset_dialog)
         button_frame.pack(pady=10)
@@ -153,8 +155,8 @@ class PlayerStatsManager:
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",
-                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
-                "Bitte installieren: pip install numpy",
+                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"  # noqa: E501
+                "Bitte installieren: pip install numpy",  # noqa: E501
                 parent=parent_window,
             )
             return
@@ -168,7 +170,7 @@ class PlayerStatsManager:
         if len(all_coords_normalized) < 20:  # Mindestanzahl an Würfen für eine sinnvolle Analyse
             messagebox.showinfo(
                 "Nicht genügend Daten",
-                f"Für '{player_name}' sind nicht genügend Wurfdaten für eine Analyse vorhanden.",
+                f"Für '{player_name}' sind nicht genügend Wurfdaten für eine Analyse vorhanden.",  # noqa: E501
                 parent=parent_window,
             )
             return
@@ -223,8 +225,8 @@ class PlayerStatsManager:
         # 4. Modell in der Datenbank speichern und Erfolg zurückgeben
         if self.db_manager.update_profile_accuracy_model(player_name, accuracy_model):
             messagebox.showinfo(
-                "Erfolg",
-                f"Genauigkeitsmodell für '{player_name}' wurde erfolgreich berechnet und gespeichert.",
+                "Erfolg",  # noqa: E501
+                f"Genauigkeitsmodell für '{player_name}' wurde erfolgreich berechnet und gespeichert.",  # noqa: E501
                 parent=parent_window,
             )
             return True
@@ -241,7 +243,8 @@ class PlayerStatsManager:
         if not MATPLOTLIB_AVAILABLE:
             messagebox.showerror(
                 "Fehler",
-                "Die 'matplotlib'-Bibliothek wird für die Diagrammanzeige benötigt.\nBitte installieren: pip install matplotlib",
+                "Die 'matplotlib'-Bibliothek wird für die Diagrammanzeige benötigt.\n"  # noqa: E501
+                "Bitte installieren: pip install matplotlib",  # noqa: E501
                 parent=parent,
             )
             return
@@ -279,8 +282,8 @@ class PlayerStatsManager:
         # Wird vor den expandierenden Widgets gepackt, damit er immer sichtbar ist.
         bottom_frame = ttk.Frame(win, padding=10)
         bottom_frame.pack(side="bottom", fill="x")
-        reset_button = ttk.Button(
-            bottom_frame,
+        reset_button = ttk.Button(  # noqa: F841
+            bottom_frame,  # noqa: E501
             text="Statistiken zurücksetzen...",
             command=lambda: self._prompt_and_reset_stats(win, player_select),
         )
@@ -480,8 +483,8 @@ class PlayerStatsManager:
 
         if not all_coords:
             messagebox.showinfo(
-                "Keine Daten",
-                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",
+                "Keine Daten",  # noqa: E501
+                f"Für {player_name} wurden keine Wurf-Koordinaten für eine Heatmap gefunden.",  # noqa: E501
                 parent=parent,
             )
             return

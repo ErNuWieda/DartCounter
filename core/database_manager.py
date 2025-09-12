@@ -101,9 +101,9 @@ class DatabaseManager:
             if example_config_path.exists():
                 try:
                     shutil.copy(example_config_path, user_config_path)
-                    log_msg = f"Keine 'config.ini' gefunden. Eine Standard-Konfiguration wurde hier erstellt: {user_config_path}"  # noqa: E501
+                    log_msg = f"Keine 'config.ini' gefunden. Standard-Konfig wurde erstellt: {user_config_path}"  # noqa: E501
                     logger.info(log_msg)
-                    logger.info(
+                    logger.info(  # noqa: E501
                         "Bitte passen Sie diese Datei bei Bedarf an, um die Datenbankverbindung zu ermöglichen."
                     )
                     # Lese die gerade kopierte Konfigurationsdatei direkt
@@ -143,7 +143,10 @@ class DatabaseManager:
                 return
 
             # SQLAlchemy Verbindungs-URL im Format: dialect+driver://user:password@host/dbname
-            db_url = f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}@{db_config['host']}/{db_config['database']}"
+            db_url = (
+                f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"  # noqa: E501
+                f"@{db_config['host']}/{db_config['database']}"
+            )
             self.engine = create_engine(db_url)
 
             # Teste die Verbindung, bevor wir fortfahren
@@ -361,12 +364,14 @@ class DatabaseManager:
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
                 session.rollback()
-                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen "
+                log_msg = "Versuch, ein Profil mit dem bereits existierenden Namen "  # noqa: E501
                 logger.warning(f"{log_msg}'{name}' zu erstellen.")
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
-                logger.error(f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True)
+                logger.error(
+                    f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True
+                )  # noqa: E501
                 return False
 
     def update_profile(  # noqa: E501

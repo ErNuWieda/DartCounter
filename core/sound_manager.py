@@ -103,9 +103,9 @@ class SoundManager:
         if self.loading_errors:
             error_string = "\n- ".join(self.loading_errors)
             messagebox.showwarning(
-                title="Sound-Fehler",
-                message=f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\nDie Soundeffekte sind für diese Sitzung teilweise oder ganz deaktiviert.",  # noqa: E501
-                parent=self.root,
+                title="Sound-Fehler",  # noqa: E501
+                message=f"Einige Sound-Dateien konnten nicht geladen werden:\n- {error_string}\n\nSounds sind ggf. deaktiviert.",  # noqa: E501
+                parent=self.root,  # noqa: E501
             )
 
     def _load_all_sounds(self):
