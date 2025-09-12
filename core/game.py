@@ -505,8 +505,8 @@ class Game:
         # Rufe den Callback auf, um das UI-Feedback zu verarbeiten
         self.on_throw_processed(result, player)
 
-        # Bei einem Sieg werden die Statistiken finalisiert. Für X01-Matches mit
-        # Legs/Sets wird dies durch _handle_leg_win() gesteuert. # noqa
+        # Bei einem Sieg werden die Statistiken finalisiert. Für X01-Matches
+        # mit Legs/Sets wird dies durch _handle_leg_win() gesteuert.
         if result.status == "win" and self.winner and not self.is_leg_set_match:
             # Die X01-Logik ruft _handle_leg_win, was wiederum _finalize_and_record_stats aufruft.
             self._finalize_and_record_stats(self.winner)

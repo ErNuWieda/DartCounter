@@ -58,7 +58,7 @@ CHECKOUT_PATHS = _load_checkout_paths()
 # (z.B. T20 für 60). Höhere Priorität überschreibt niedrigere.
 _SINGLE_DART_FINISH_MAP = {}
 # Bullseye (höchste Priorität)
-_SINGLE_DART_FINISH_MAP[50] = "BE"  # Bullseye
+_SINGLE_DART_FINISH_MAP[50] = "BE"
 # Doubles (zweithöchste Priorität, da sie Finish-Felder sind)
 for i in range(20, 0, -1):  # Absteigend, um höhere Doubles zu bevorzugen
     _SINGLE_DART_FINISH_MAP[i * 2] = f"D{i}"

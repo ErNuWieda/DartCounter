@@ -92,7 +92,7 @@ class PlayerStatsManager:
         # Nachricht anpassen, je nachdem ob ein Spieler ausgewählt ist
         if selected_player:
             msg = f"Möchtest du nur die Statistiken für '{selected_player}' oder die Statistiken aller Spieler zurücksetzen?"
-        else:  # pragma: no cover
+        else:
             msg = "Möchtest du die Statistiken aller Spieler zurücksetzen?"
         ttk.Label(reset_dialog, text=msg, wraplength=380, justify="center").pack(pady=20)
 
@@ -153,8 +153,10 @@ class PlayerStatsManager:
         if not NUMPY_AVAILABLE:
             messagebox.showerror(
                 "Abhängigkeit fehlt",
-                "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
-                "Bitte installieren: pip install numpy",
+                (
+                    "Die 'numpy'-Bibliothek wird für die Analyse benötigt.\n"
+                    "Bitte installieren: pip install numpy"
+                ),
                 parent=parent_window,
             )
             return

@@ -244,11 +244,11 @@ class X01(GameLogicBase):
 
     def _handle_win_condition(self, player: "Player", score_before_throw):
         """Behandelt die Logik, wenn ein Spieler das Spiel gewinnt (Score erreicht 0)."""
-        # --- Checkout-Statistik bei Gewinn aktualisieren ---
-        finishes = player.stats.setdefault("successful_finishes", [])
+        player.stats.setdefault("successful_finishes", []).append(score_before_throw)
         player.stats["checkouts_successful"] += 1
         player.stats["highest_finish"] = max(
-            player.stats.get("highest_finish", 0), score_before_throw
+            player.stats.get("highest_finish", 0),
+            score_before_throw,
         )
 
         self.game.shanghai_finish = self._is_shanghai_finish(player)
@@ -258,12 +258,10 @@ class X01(GameLogicBase):
         total_darts = player.get_total_darts_in_game()
 
         # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
-        return (
-            f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"  # noqa
-        )
+        return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
     def _handle_throw(self, player: "Player", ring: str, segment: int, players: list["Player"]):
-        """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
+        """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel. # noqa
 
         Args:
             player (Player): Der Spieler, der den Wurf gemacht hat.

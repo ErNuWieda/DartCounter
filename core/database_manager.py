@@ -373,9 +373,7 @@ class DatabaseManager:
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
-                logger.error(
-                    f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True
-                )  # noqa: E501
+                logger.error(f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True)
                 return False
 
     def update_profile(  # noqa: E501
@@ -385,7 +383,7 @@ class DatabaseManager:
         new_avatar_path,
         new_dart_color,
         is_ai,
-        difficulty,  # noqa: E501
+        difficulty,
         preferred_double,
         accuracy_model=None,
     ):
