@@ -53,9 +53,9 @@ class Killer(GameLogicBase):
                 "info",
                 "Lebensfeld ermitteln",
                 (
-                    f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"
-                    "Wirf mit deiner NICHT-dominanten Hand.\n"
-                    "Das Double des getroffenen Segments wird dein Lebensfeld.\n"
+                    f"{player.name}, du musst nun dein Lebensfeld bestimmen.\n"  # noqa: E501
+                    "Wirf mit deiner NICHT-dominanten Hand.\n"  # noqa: E501
+                    "Das Double des getroffenen Segments wird dein Lebensfeld.\n"  # noqa: E501
                 ),
             )
 
@@ -69,8 +69,8 @@ class Killer(GameLogicBase):
                 "info",
                 "Zum Killer werden",
                 (
-                    f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "
-                    "um Killer-Status zu erlangen."
+                    f"{player.name}, jetzt musst du dein Lebensfeld ({segment_str}) treffen, "  # noqa: E501
+                    "um Killer-Status zu erlangen."  # noqa: E501
                 ),
             )
 
@@ -170,7 +170,9 @@ class Killer(GameLogicBase):
         player.turn_is_over = True
         return (
             "info",
-            (f"{player.name} hat Lebensfeld: {determined_display}\nBitte 'Weiter' klicken."),
+            (
+                f"{player.name} hat Lebensfeld: {determined_display}\nBitte 'Weiter' klicken."
+            ),  # noqa: E501
         )
 
     def _handle_become_killer_phase(self, player, ring, segment):

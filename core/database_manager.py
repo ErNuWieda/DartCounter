@@ -101,11 +101,13 @@ class DatabaseManager:
             if example_config_path.exists():
                 try:
                     shutil.copy(example_config_path, user_config_path)
-                    log_msg = f"Keine 'config.ini' gefunden. Standard-Konfig wurde erstellt: {user_config_path}"
+                    log_msg = (
+                        f"Keine 'config.ini' gefunden. Standard-Konfig erstellt: {user_config_path}"
+                    )
                     logger.info(log_msg)
                     logger.info(
-                        "Bitte passen Sie diese Datei bei Bedarf an, "
-                        "um die Datenbankverbindung zu ermöglichen."
+                        "Bitte passen Sie diese Datei bei Bedarf an, um die "
+                        "Datenbankverbindung zu ermöglichen."
                     )
                     # Lese die gerade kopierte Konfigurationsdatei direkt
                     config.read(user_config_path)
@@ -364,14 +366,16 @@ class DatabaseManager:
                 session.commit()
                 return True
             except IntegrityError:  # Wird bei UNIQUE-Verletzung (doppelter Name) ausgelöst
-                session.rollback()  # noqa: E501
+                session.rollback()
                 logger.warning(
                     f"Versuch, ein Profil mit dem bereits existierenden Namen '{name}' zu erstellen."
                 )
                 return False
             except SQLAlchemyError as e:
                 session.rollback()
-                logger.error(f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True)
+                logger.error(
+                    f"Fehler beim Hinzufügen des Profils '{name}': {e}", exc_info=True
+                )  # noqa: E501
                 return False
 
     def update_profile(  # noqa: E501
@@ -381,7 +385,7 @@ class DatabaseManager:
         new_avatar_path,
         new_dart_color,
         is_ai,
-        difficulty,
+        difficulty,  # noqa: E501
         preferred_double,
         accuracy_model=None,
     ):

@@ -176,9 +176,7 @@ class X01(GameLogicBase):
 
         # Ungültiger Versuch, Wurf protokollieren und Fehlermeldung anzeigen
         player.sb.update_score(player.score)  # Update display for throw history (now in Game.throw)
-        option_text = (
-            "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
-        )  # noqa
+        option_text = "Double" if self.opt_in == "Double" else "Double, Triple oder Bullseye"
         msg_base = f"{player.name} braucht ein {option_text} zum Start!"
         remaining_darts = 3 - len(player.throws)
         if len(player.throws) == 3:
@@ -265,10 +263,8 @@ class X01(GameLogicBase):
         # wenn self.game.shanghai_finish True ist.
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
-    def _handle_throw(
-        self, player: "Player", ring: str, segment: int, players: list["Player"]
-    ):  # noqa
-        """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
+    def _handle_throw(self, player: "Player", ring: str, segment: int, players: list["Player"]):
+        """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel. # noqa
         Dies ist die Kernmethode, die alle Spielregeln auf einen Wurf anwendet.
 
         Args:
@@ -351,4 +347,4 @@ class X01(GameLogicBase):
             # Turn ends, user clicks "Weiter"
             return ("ok", None)
 
-        return ("ok", None)
+        return ("ok", None)  # type: ignore
