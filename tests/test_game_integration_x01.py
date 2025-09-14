@@ -195,8 +195,8 @@ class TestGameWithX01:
     def test_stat_recording_on_win(self, x01_game: Game):
         """Testet, ob Statistiken bei einem Sieg korrekt erfasst werden."""
         game = x01_game  # Use a local variable
-        mock_player_stats_manager = game.player_stats_manager # type: ignore
-        game.game.is_leg_set_match = False # Ensure it's not a leg/set match for this test
+        mock_player_stats_manager = game.player_stats_manager  # type: ignore
+        game.game.is_leg_set_match = False  # Ensure it's not a leg/set match for this test
         winner = game.current_player()
         winner.score = 40  # Setup für einen Gewinnwurf
 
@@ -238,7 +238,7 @@ class TestGameWithX01:
         """Testet, ob das Rückgängigmachen eines Gewinnwurfs den Spielzustand (end, winner) zurücksetzt."""
         game = x01_game  # Use a local variable
         # Setup: Alice hat 40 Punkte # type: ignore
-        game.game.is_leg_set_match = False # Ensure it's not a leg/set match for this test
+        game.game.is_leg_set_match = False  # Ensure it's not a leg/set match for this test
         alice = game.players[0]
         alice.score = 40
 
@@ -318,15 +318,19 @@ class TestGameWithX01:
         game.throw("Double", 20)  # P1 wins the leg
 
         assert game.current_player() == p2, "P2 should start the next leg"
-        assert game.game.leg_start_player_index == 1, "Leg start index should be updated in X01 logic"
+        assert (
+            game.game.leg_start_player_index == 1
+        ), "Leg start index should be updated in X01 logic"
 
         game.leave(p1)  # P1 leaves
 
         assert game.current_player().name == "P2", "Current player should not change"
-        assert game.game.leg_start_player_index == 1, "Leg start index should NOT be affected by a player leaving"
+        assert (
+            game.game.leg_start_player_index == 1
+        ), "Leg start index should NOT be affected by a player leaving"
 
     def test_leg_stats_reset_after_win(self, leg_set_game: Game):
-        """ # noqa
+        """# noqa
         Tests that leg-specific stats are reset after a leg win, while match stats are preserved.
         """
         game = leg_set_game  # Use a local variable

@@ -224,7 +224,9 @@ def test_apply_strategic_offset(ai_player_with_mocks):
     new_coords_beginner = ai_player._apply_strategic_offset(center_coords_d11, "Double")
 
     # Erwartung: Zielpunkt wird nach links verschoben (Richtung Board-Mitte)
-    assert new_coords_beginner[0] < center_coords_d11[0], "X-Koordinate sollte für D11 nach links verschoben werden"
+    assert (
+        new_coords_beginner[0] < center_coords_d11[0]
+    ), "X-Koordinate sollte für D11 nach links verschoben werden"
     assert new_coords_beginner[1] == 250, "Y-Koordinate sollte für D11 unverändert bleiben"
 
     # --- Szenario 3: Kein Offset für Single-Würfe ---
@@ -238,7 +240,7 @@ def test_get_strategic_target_for_cricket_opening(cricket_ai_player):
 
     # KI hat noch nichts getroffen
     ai_player.state["hits"] = {}
-    ai_player.difficulty = "Profi" # Profi zielt auf Triple
+    ai_player.difficulty = "Profi"  # Profi zielt auf Triple
     target = ai_player.strategy.get_target(throw_number=1)
     assert target == ("Triple", 20)
 
@@ -276,7 +278,7 @@ def test_get_strategic_target_for_cricket_scoring(cricket_ai_player):
     # Die KI sollte nun versuchen, auf dem offenen Ziel '19' des Gegners zu punkten
     ai_player.difficulty = "Profi"  # Profi zielt auf Triple zum Punkten
     target = ai_player.strategy.get_target(throw_number=1)
-    assert target == ( # Profi zielt auf Triple
+    assert target == (  # Profi zielt auf Triple
         "Triple",
         19,
     ), "KI sollte auf das höchste offene Ziel des Gegners punkten."
@@ -318,7 +320,7 @@ def test_get_strategic_target_for_cricket_defensive_move(cricket_ai_player):
     # dass der Gegner weiter punktet.
     ai_player.difficulty = "Profi"  # Profi zielt auf Triple zum Schließen
     target = ai_player.strategy.get_target(throw_number=1)
-    assert target == ( # Profi zielt auf Triple
+    assert target == (  # Profi zielt auf Triple
         "Triple",
         20,
     ), "KI sollte das gefährlichste offene Ziel des Gegners schließen."

@@ -190,7 +190,9 @@ class ProfileManagerDialog(tk.Toplevel):
 
         # Die Profil-ID wird direkt aus der Item-ID (iid) des Treeviews gelesen.
         profile_id = int(selected_item)
-        profile_to_edit = next((p for p in self.profile_manager.get_profiles() if p.id == profile_id), None)
+        profile_to_edit = next(
+            (p for p in self.profile_manager.get_profiles() if p.id == profile_id), None
+        )
 
         if profile_to_edit:
             dialog = EditProfileDialog(self, self.profile_manager, profile_to_edit=profile_to_edit)
@@ -214,7 +216,8 @@ class ProfileManagerDialog(tk.Toplevel):
         if not item_data.get("values"):
             return
 
-        # Die ID wird direkt aus dem Treeview-Item gelesen, der Name nur für die Bestätigungsnachricht.
+        # Die ID wird direkt aus dem Treeview-Item gelesen,
+        # der Name nur für die Bestätigungsnachricht.
         profile_id = int(selected_item)
         profile_name = self.tree.item(selected_item)["values"][0]
 

@@ -85,8 +85,8 @@ class TestGameWithCricket:
     def test_win_condition(self, cricket_game):
         """Testet die Gewinnbedingung (alle Ziele zu, höchste Punktzahl)."""
         game = cricket_game
-        mock_highscore_manager = game.highscore_manager # type: ignore
-        game.is_leg_set_match = False # Mock this attribute for the test
+        mock_highscore_manager = game.highscore_manager  # type: ignore
+        game.is_leg_set_match = False  # Mock this attribute for the test
         alice, bob = game.players
 
         # Simuliere, dass Alice alle Ziele bis auf die 15 geschlossen hat und führt.

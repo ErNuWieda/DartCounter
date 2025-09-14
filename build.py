@@ -34,6 +34,7 @@ SPEC_FILE = pathlib.Path(f"{APP_NAME}.spec")
 
 FILES_TO_COPY_TO_RELEASE = ["README.md", "config.ini.example"]
 
+
 def run_tests():
     """Führt die Test-Suite aus und bricht bei Fehlern ab."""
     print("\n>>> Schritt 0.5: Führe Test-Suite aus...")

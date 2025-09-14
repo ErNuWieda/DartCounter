@@ -50,7 +50,7 @@ def slm_setup(monkeypatch):
         sets_to_win=1,
     )
     mock_game.is_leg_set_match = False  # Wichtig für den Restore-Test
-    mock_game.game = MagicMock() # Hinzufügen der gemockten Spiellogik-Instanz
+    mock_game.game = MagicMock()  # Hinzufügen der gemockten Spiellogik-Instanz
 
     mock_player1 = MagicMock(spec=Player)
     mock_player1.name = "P1"

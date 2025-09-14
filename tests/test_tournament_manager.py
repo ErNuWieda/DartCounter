@@ -363,7 +363,7 @@ def test_serialization_to_and_from_dict(tm_4_players):
         player_names=state_dict["player_names"],
         game_mode=state_dict["game_mode"],
         system=state_dict["system"],
-        shuffle=False
+        shuffle=False,
     )
     tm_rehydrated.restore_state(state_dict)
 

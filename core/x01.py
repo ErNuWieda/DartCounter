@@ -189,8 +189,12 @@ class X01(GameLogicBase):
     def restore_from_dict(self, data: dict):
         """Stellt den Leg/Set-Zustand aus geladenen Daten wieder her."""
         if self.is_leg_set_match:
-            self.player_leg_scores = {int(k): v for k, v in data.get("player_leg_scores", {}).items()}
-            self.player_set_scores = {int(k): v for k, v in data.get("player_set_scores", {}).items()}
+            self.player_leg_scores = {
+                int(k): v for k, v in data.get("player_leg_scores", {}).items()
+            }
+            self.player_set_scores = {
+                int(k): v for k, v in data.get("player_set_scores", {}).items()
+            }
             self.leg_start_player_index = data.get("leg_start_player_index", 0)
 
     def _validate_opt_in(self, player, ring, segment):
@@ -351,7 +355,10 @@ class X01(GameLogicBase):
             self.player_leg_scores = {p.id: 0 for p in self.game.players}
             self._update_leg_set_displays()
             ui_utils.show_message(
-                "info", "Satzgewinn", f"{winner.name} gewinnt den Satz!", parent=self.game.dartboard.root
+                "info",
+                "Satzgewinn",
+                f"{winner.name} gewinnt den Satz!",
+                parent=self.game.dartboard.root,
             )
 
             if self.player_set_scores[winner.id] >= self.sets_to_win:
@@ -362,7 +369,10 @@ class X01(GameLogicBase):
                 self._start_next_leg()
         else:
             ui_utils.show_message(
-                "info", "Leg-Gewinn", f"{winner.name} gewinnt das Leg!", parent=self.game.dartboard.root
+                "info",
+                "Leg-Gewinn",
+                f"{winner.name} gewinnt das Leg!",
+                parent=self.game.dartboard.root,
             )
             self.game.end = False
             self.game.winner = None

@@ -137,9 +137,13 @@ class DatabaseManager:
         try:
             db_config = config["postgresql"]
         except KeyError:
-            # Dieser Fall tritt ein, wenn die config.ini existiert, aber keinen [postgresql]-Abschnitt hat.
+            # Dieser Fall tritt ein, wenn die config.ini existiert,
+            # aber keinen [postgresql]-Abschnitt hat.
             # Wir loggen eine Info, da dies ein valider Zustand ist (DB-Funktionen sind optional).
-            logger.info("Kein [postgresql]-Abschnitt in der config.ini gefunden. Datenbankfunktionen sind deaktiviert.")
+            logger.info(
+                "Kein [postgresql]-Abschnitt in der config.ini gefunden."
+                + " Datenbankfunktionen sind deaktiviert."
+            )
             return
 
         required_keys = ["host", "database", "user", "password"]

@@ -115,10 +115,9 @@ class X01AIStrategy(AIStrategy):
             # Erstelle eine vollständige und korrekt sortierte Liste aller möglichen Würfe,
             # priorisiert nach dem höchsten Score (T20, T19, ..., S20, S19, ...).
             # Dies behebt den Fehler, bei dem die KI auf unerwartete Single-Felder zielte.
-            all_possible_throws = (
-                [("Triple", s) for s in range(20, 0, -1)]
-                + [("Single", s) for s in range(20, 0, -1)]
-            )
+            all_possible_throws = [("Triple", s) for s in range(20, 0, -1)] + [
+                ("Single", s) for s in range(20, 0, -1)
+            ]
 
             for ring, segment in all_possible_throws:
                 throw_value = self.game.get_score(ring, segment)
@@ -198,7 +197,11 @@ class CricketAIStrategy(AIStrategy):
                 return "Bullseye", 50
             # Starke Spieler zielen auf das Triple, um schnell zu schließen.
             # Schwächere Spieler zielen auf das sichere Single-Feld.
-            ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+            ring = (
+                "Triple"
+                if self.ai_player.difficulty in ("Profi", "Champion", "Amateur")
+                else "Single"
+            )
             return ring, int(target_segment)
 
         # 2. Offensive: Eigene Ziele schließen
@@ -206,7 +209,11 @@ class CricketAIStrategy(AIStrategy):
             if self.ai_player.hits.get(target, 0) < 3:
                 if target == "Bull":
                     return "Bullseye", 50
-                ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+                ring = (
+                    "Triple"
+                    if self.ai_player.difficulty in ("Profi", "Champion", "Amateur")
+                    else "Single"
+                )
                 return ring, int(target)
 
         # 3. Punkte-Phase: Auf offenen Zielen punkten
@@ -214,7 +221,11 @@ class CricketAIStrategy(AIStrategy):
             if any(opp.hits.get(target, 0) < 3 for opp in opponents):
                 if target == "Bull":
                     return "Bullseye", 50
-                ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+                ring = (
+                    "Triple"
+                    if self.ai_player.difficulty in ("Profi", "Champion", "Amateur")
+                    else "Single"
+                )
                 return ring, int(target)
 
         return "Bullseye", 50  # Fallback

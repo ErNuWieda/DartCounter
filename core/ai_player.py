@@ -118,7 +118,7 @@ class AIPlayer(Player):
             "Anfänger": 0.1,
         }.get(self.difficulty, 0.1)
         offset_distance = ring_height * offset_percentage
-        
+
         # Um den Zielpunkt in Richtung Board-Mitte zu verschieben, subtrahieren wir
         # einen Teil des Vektors, der vom Zentrum zum Ziel zeigt.
         return int(target_x - (vec_x / length) * offset_distance), int(

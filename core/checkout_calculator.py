@@ -149,7 +149,8 @@ def _get_two_dart_setup(score: int) -> tuple[str, str] | None:
     if not possible_setups:
         return None
 
-    # Sortiere nach: 1. Qualität des zweiten Wurfs (absteigend), 2. Score des ersten Wurfs (absteigend)
+    # Sortiere nach: 1. Qualität des zweiten Wurfs (absteigend),
+    #                2. Score des ersten Wurfs (absteigend)
     # Dies bevorzugt Wege, die auf einem guten Feld (D, T) enden.
     possible_setups.sort(key=lambda x: (x[0], x[3]), reverse=True)
 

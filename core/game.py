@@ -502,7 +502,11 @@ class Game:
 
         # On a win, stats are finalized. For X01 matches with legs/sets,
         # this is controlled by _handle_leg_win().
-        if result.status == "win" and self.winner and not getattr(self.game, 'is_leg_set_match', False):
+        if (
+            result.status == "win"
+            and self.winner
+            and not getattr(self.game, "is_leg_set_match", False)
+        ):
             # Die X01-Logik ruft _handle_leg_win, was wiederum _finalize_and_record_stats aufruft.
             self._finalize_and_record_stats(self.winner)
 

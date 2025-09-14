@@ -374,7 +374,12 @@ def test_load_tournament_successful(mock_check_close, app_with_mocks):
 
     mock_check_close.assert_called_once()
     mock_load_data.assert_called_once_with(app.root)
-    MockTournamentManager.assert_called_once_with(player_names=mock_data["player_names"], game_mode=mock_data["game_mode"], system=ANY, shuffle=False)
+    MockTournamentManager.assert_called_once_with(
+        player_names=mock_data["player_names"],
+        game_mode=mock_data["game_mode"],
+        system=ANY,
+        shuffle=False,
+    )
     mock_tm_instance.restore_state.assert_called_once_with(mock_data)
     assert app.tournament_manager == mock_tm_instance
     mock_view_class.assert_called_once_with(

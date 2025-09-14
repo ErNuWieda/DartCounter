@@ -20,8 +20,12 @@ class TestPlayerProfileManager:
     def test_init_loads_profiles_from_db(self, mock_db_manager):
         """Testet, dass get_profiles() die Profile aus der DB lädt und konvertiert."""
         # Erstelle Mock ORM-Objekte, die von der DB zurückgegeben werden
-        mock_orm_profile1 = PlayerProfileORM(id=1, name="Alice", avatar_path="a.png", dart_color="#ff0000", is_ai=False)
-        mock_orm_profile2 = PlayerProfileORM(id=2, name="Bob", avatar_path=None, dart_color="#00ff00", is_ai=False)
+        mock_orm_profile1 = PlayerProfileORM(
+            id=1, name="Alice", avatar_path="a.png", dart_color="#ff0000", is_ai=False
+        )
+        mock_orm_profile2 = PlayerProfileORM(
+            id=2, name="Bob", avatar_path=None, dart_color="#00ff00", is_ai=False
+        )
         mock_db_manager.get_all_profiles.return_value = [mock_orm_profile1, mock_orm_profile2]
 
         manager = PlayerProfileManager(mock_db_manager)
@@ -63,16 +67,20 @@ class TestPlayerProfileManager:
         result = manager.add_profile("Charlie", "c.png", "#ffffff")
 
         assert not result
-        mock_db_manager.add_profile.assert_called_once() # noqa
+        mock_db_manager.add_profile.assert_called_once()  # noqa
 
     def test_update_profile_success(self, mock_db_manager):
         """Testet das erfolgreiche Aktualisieren eines Profils."""
         # Erstelle ein Mock ORM-Objekt für den get_profile_by_name Aufruf
-        mock_orm_profile = PlayerProfileORM(id=1, name="AliceV2", avatar_path="a_v2.png", dart_color="#0000ff", is_ai=False)
+        mock_orm_profile = PlayerProfileORM(
+            id=1, name="AliceV2", avatar_path="a_v2.png", dart_color="#0000ff", is_ai=False
+        )
 
         # Konfiguriere die Mocks
         mock_db_manager.update_profile.return_value = True
-        mock_db_manager.get_all_profiles.return_value = [mock_orm_profile] # Für get_profile_by_name
+        mock_db_manager.get_all_profiles.return_value = [
+            mock_orm_profile
+        ]  # Für get_profile_by_name
 
         manager = PlayerProfileManager(mock_db_manager)
 
@@ -106,6 +114,7 @@ class TestPlayerProfileManager:
             if mock_db_manager.delete_profile_by_id.called:
                 return []
             return [PlayerProfileORM(id=1, name="Alice")]
+
         mock_db_manager.get_all_profiles.side_effect = get_profiles_side_effect
 
         result = manager.delete_profile_by_id(1)
