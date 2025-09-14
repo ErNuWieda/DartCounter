@@ -358,6 +358,13 @@ def test_serialization_to_and_from_dict(tm_4_players):
     tm_original.record_match_winner(match1, winner_name)
 
     state_dict = tm_original.to_dict()
-    tm_rehydrated = TournamentManager.from_dict(state_dict)
+    # Simuliere den neuen Ladevorgang: erst erstellen, dann wiederherstellen
+    tm_rehydrated = TournamentManager(
+        player_names=state_dict["player_names"],
+        game_mode=state_dict["game_mode"],
+        system=state_dict["system"],
+        shuffle=False
+    )
+    tm_rehydrated.restore_state(state_dict)
 
     assert tm_rehydrated.to_dict() == tm_original.to_dict()

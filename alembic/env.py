@@ -71,12 +71,11 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Lese die Konfiguration aus dem 'postgresql'-Abschnitt, der von unserem DatabaseManager gesetzt wird
-    db_config = config.get_section("postgresql")
-    db_url = (
-        f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"  # noqa: E501
-        f"@{db_config['host']}/{db_config['database']}"
-    )
+    # Nutze die 'sqlalchemy.url', die vom DatabaseManager gesetzt wird.
+    # Dies ist der robusteste Weg, um die Konfiguration zu übergeben.
+    db_url = config.get_main_option("sqlalchemy.url")
+    if db_url is None:
+        raise ValueError("Die Datenbank-URL wurde nicht in der Alembic-Konfiguration gesetzt.")
     connectable = create_engine(db_url)
 
     with connectable.connect() as connection:

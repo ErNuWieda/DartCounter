@@ -32,6 +32,7 @@ ASSETS_DIR = pathlib.Path("assets")
 BUILD_DIR = pathlib.Path("build")
 SPEC_FILE = pathlib.Path(f"{APP_NAME}.spec")
 
+FILES_TO_COPY_TO_RELEASE = ["README.md", "config.ini.example"]
 
 def run_tests():
     """Führt die Test-Suite aus und bricht bei Fehlern ab."""
@@ -46,7 +47,7 @@ def run_tests():
             "-sv",  # -s: print() ausgeben, -v: verbose. Gut für Build-Logs.
         ]
         subprocess.run(test_command, check=True)
-        print(">>> Alle Tests erfolgreich bestanden.")
+        print(">>> ✅ Alle Tests erfolgreich bestanden.")
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         print("\n" + "=" * 50)
@@ -164,12 +165,12 @@ def main():
     print(">>> PyInstaller erfolgreich abgeschlossen.")
 
     # --- Schritt 3: Release-Verzeichnis erstellen und Dateien kopieren ---
-    print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen und Dateien kopieren...")
+    print(f"\n>>> Schritt 3: Release-Verzeichnis '{release_dir}' erstellen...")
     release_dir.mkdir(exist_ok=True)
 
     # Haupt-Artefakt verschieben (plattformunabhängige Logik)
     # Auf macOS ist das Artefakt ein Ordner (.app), auf anderen Systemen eine Datei.
-    if system == "Darwin":
+    if system == "Darwin":  # macOS
         source_artifact = DIST_DIR / f"{APP_NAME}.app"
         dest_artifact = release_dir / f"{APP_NAME}.app"
     else:
@@ -177,15 +178,14 @@ def main():
         dest_artifact = release_dir / (f"{APP_NAME}.exe" if system == "Windows" else APP_NAME)
 
     if source_artifact.exists():
-        print(f"  -> Verschiebe Artefakt: '{source_artifact}' -> '{dest_artifact}'")
+        print(f"  -> Verschiebe Artefakt: '{source_artifact.name}' -> '{dest_artifact.name}'")
         shutil.move(str(source_artifact), str(dest_artifact))
     else:
         print(f"FEHLER: Build-Artefakt '{source_artifact}' wurde nicht gefunden!")
         sys.exit(1)
 
     # 3.2: Zusätzliche, für den Benutzer nützliche Dateien kopieren
-    files_to_copy = ["README.md", "config.ini.example"]
-    for filename in files_to_copy:
+    for filename in FILES_TO_COPY_TO_RELEASE:
         src = pathlib.Path(filename)
         if src.exists():
             print(f"  -> Kopiere '{src}' nach '{release_dir}'")

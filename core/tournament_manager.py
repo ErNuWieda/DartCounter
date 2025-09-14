@@ -118,16 +118,14 @@ class TournamentManager:
             "save_type": SaveLoadManager.TOURNAMENT_SAVE_TYPE,
         }
 
-    @classmethod
-    def from_dict(cls, data: dict):
+    def restore_state(self, data: dict):
         """
-        Erstellt eine TournamentManager-Instanz aus einem Dictionary (für das Laden).
+        Stellt den Zustand des TournamentManagers aus einem geladenen Dictionary wieder her.
+        Diese Methode wird auf einer bereits initialisierten Instanz aufgerufen.
         """
-        instance = cls(
-            player_names=data["player_names"],
-            game_mode=data["game_mode"],
-            system=data.get("system", "Doppel-K.o."),  # Fallback für alte Speicherstände
+        # Delegiere die Wiederherstellung des Turnierbaums und des Gewinners
+        # an die zuständige Strategie-Instanz.
+        self.strategy.restore_state(
+            bracket_data=data["bracket"],
+            winner_data=data.get("winner"),
         )
-        instance.strategy.bracket = data["bracket"]
-        instance.strategy.winner = data.get("winner")
-        return instance

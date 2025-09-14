@@ -38,9 +38,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from alembic.config import Config
 from alembic import command
-
 from .settings_manager import get_app_data_dir, get_application_root_dir
-from .db_models import Highscore, PlayerProfile, GameRecord
+from .db_models import Highscore, PlayerProfileORM, GameRecord
 
 logger = logging.getLogger(__name__)
 
@@ -134,36 +133,44 @@ class DatabaseManager:
         if not config:
             return
 
+        # Schritt 1: Konfiguration sicher auslesen
         try:
             db_config = config["postgresql"]
-            required_keys = ["host", "database", "user", "password"]
-            if not all(key in db_config for key in required_keys):
-                log_msg = (
-                    "'config.ini' ist unvollständig. Es fehlen Schlüssel im [postgresql] "
-                    "Abschnitt. Datenbankfunktionen sind deaktiviert."
-                )
-                logger.error(log_msg)
-                return
+        except KeyError:
+            # Dieser Fall tritt ein, wenn die config.ini existiert, aber keinen [postgresql]-Abschnitt hat.
+            # Wir loggen eine Info, da dies ein valider Zustand ist (DB-Funktionen sind optional).
+            logger.info("Kein [postgresql]-Abschnitt in der config.ini gefunden. Datenbankfunktionen sind deaktiviert.")
+            return
 
+        required_keys = ["host", "database", "user", "password"]
+        # Schritt 2: Prüfen, ob alle Schlüssel vorhanden UND deren Werte nicht leer sind.
+        if not all(db_config.get(key) for key in required_keys):  # Korrigierte Prüfung
+            log_msg = (
+                "'config.ini' ist unvollständig. Es fehlen Schlüssel oder Werte im "
+                "[postgresql]-Abschnitt. Datenbankfunktionen sind deaktiviert."
+            )
+            logger.error(log_msg)
+            return
+
+        # Schritt 3: Versuchen, die Verbindung aufzubauen. Nur hier fangen wir SQLAlchemy-Fehler.
+        try:
             # SQLAlchemy Verbindungs-URL im Format: dialect+driver://user:password@host/dbname
             db_url = (
                 f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"  # noqa: E501
                 f"@{db_config['host']}/{db_config['database']}"
             )
             self.engine = create_engine(db_url)
-
-            # Teste die Verbindung, bevor wir fortfahren
-            self.engine.connect()
+            # Teste die Verbindung, indem du eine Verbindung aus dem Pool holst und
+            # sie sofort wieder freigibst. Der `with`-Block stellt sicher, dass
+            # die Verbindung korrekt geschlossen wird, was den Pool gesund hält.
+            with self.engine.connect():
+                pass  # Verbindung erfolgreich, wenn hier keine Exception auftritt
 
             self.Session = sessionmaker(bind=self.engine)
             self.is_connected = True
-        except (
-            configparser.NoSectionError,
-            KeyError,
-            SQLAlchemyError,
-        ) as error:
+        except SQLAlchemyError as error:
             logger.error(
-                f"Fehler bei der Verbindung zur PostgreSQL-Datenbank: {error}",
+                f"Fehler beim Verbindungsaufbau zur PostgreSQL-Datenbank: {error}",
                 exc_info=True,
             )
             self.is_connected = False
@@ -183,6 +190,11 @@ class DatabaseManager:
 
             # Erstelle eine Alembic-Konfiguration und setze den Pfad zur .ini-Datei
             alembic_cfg = Config(str(alembic_ini_path))
+
+            # --- WICHTIG: Übergib die aktuelle Datenbank-URL an die Alembic-Konfiguration ---
+            # Dies stellt sicher, dass env.py die richtige Datenbank verwendet, anstatt
+            # zu versuchen, die Konfiguration selbst aus einer .ini-Datei zu lesen.
+            alembic_cfg.set_main_option("sqlalchemy.url", str(self.engine.url))
 
             # Führe den 'upgrade head'-Befehl aus
             command.upgrade(alembic_cfg, "head")
@@ -334,13 +346,13 @@ class DatabaseManager:
 
     # --- CRUD für Player Profiles ---
 
-    def get_all_profiles(self):
+    def get_all_profiles(self) -> list[PlayerProfileORM]:
         """Ruft alle Spielerprofile aus der Datenbank ab."""
         if not self.Session:
             return []
         with self.Session() as session:
-            results = session.query(PlayerProfile).order_by(PlayerProfile.name).all()
-            return [self._model_to_dict(r) for r in results]
+            results = session.query(PlayerProfileORM).order_by(PlayerProfileORM.name).all()
+            return results
 
     def add_profile(
         self,
@@ -358,7 +370,7 @@ class DatabaseManager:
             return False
         with self.Session() as session:
             try:
-                new_profile = PlayerProfile(
+                new_profile = PlayerProfileORM(
                     name=name,
                     avatar_path=avatar_path,
                     dart_color=dart_color,
@@ -399,7 +411,7 @@ class DatabaseManager:
             return False
         with self.Session() as session:
             try:
-                profile = session.query(PlayerProfile).filter_by(id=profile_id).one_or_none()
+                profile = session.query(PlayerProfileORM).filter_by(id=profile_id).one_or_none()
                 if profile:
                     profile.name = new_name
                     profile.avatar_path = new_avatar_path
@@ -430,7 +442,7 @@ class DatabaseManager:
             return False
         with self.Session() as session:
             try:
-                profile = session.query(PlayerProfile).filter_by(name=player_name).one_or_none()
+                profile = session.query(PlayerProfileORM).filter_by(name=player_name).one_or_none()
                 if profile:
                     profile.accuracy_model = model
                     session.commit()
@@ -446,12 +458,24 @@ class DatabaseManager:
                 )
                 return False
 
+    def delete_profile_by_id(self, profile_id: int) -> bool:
+        """Löscht ein Spielerprofil aus der Datenbank anhand seiner ID."""
+        if not self.Session:
+            return False
+        with self.Session() as session:
+            profile = session.query(PlayerProfileORM).filter_by(id=profile_id).one_or_none()
+            if profile:
+                session.delete(profile)
+                session.commit()
+                return True
+            return False
+
     def delete_profile(self, profile_name):
         """Löscht ein Spielerprofil aus der Datenbank anhand seines Namens."""
         if not self.Session:
             return False
         with self.Session() as session:
-            profile = session.query(PlayerProfile).filter_by(name=profile_name).one_or_none()
+            profile = session.query(PlayerProfileORM).filter_by(name=profile_name).one_or_none()
             if profile:
                 session.delete(profile)
                 session.commit()

@@ -40,6 +40,7 @@ class EditProfileDialog(tk.Toplevel):
         self.profile_manager = profile_manager
         self.profile_to_edit = profile_to_edit
 
+        self.saved_successfully = False  # Flag für das Ergebnis
         # Initialwerte setzen
         self.new_avatar_path = profile_to_edit.avatar_path if profile_to_edit else None
         self.new_dart_color = profile_to_edit.dart_color if profile_to_edit else "#ff0000"
@@ -374,6 +375,7 @@ class EditProfileDialog(tk.Toplevel):
             )
 
         if success:
+            self.saved_successfully = True
             self.destroy()
         else:
             title = "Fehler"

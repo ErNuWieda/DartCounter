@@ -1,0 +1,128 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Löst den Workflow aus, wenn ein Tag wie v1.2.3 gepusht wird
+
+jobs:
+  build-release:
+    name: Build for ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: 1. Checkout code
+        uses: actions/checkout@v4
+
+      - name: 2. Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 3. Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk python3-pil.imagetk
+
+      - name: 4. Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: 5. Run Build Script
+        # Das build.py Skript führt Tests aus, baut die App und erstellt das ZIP-Archiv
+        run: python build.py
+
+      - name: 6. Install Inno Setup (Windows only)
+        if: runner.os == 'Windows'
+        uses: ammaraskar/setup-inno-setup@v3
+
+      - name: 7. Prepare Installer Script (Windows only)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Extrahiere die Version aus dem Git-Tag (z.B. v1.3.1 -> 1.3.1)
+          $version = "${{ github.ref_name }}".Substring(1)
+          # Definiere den Pfad zum Build-Verzeichnis, das von build.py erstellt wurde
+          $sourceDir = "DartCounter_Windows_${{ github.ref_name }}"
+          # Lese das Inno Setup Skript
+          $issFile = "installer/create_installer.iss"
+          $issContent = Get-Content $issFile -Raw
+          # Ersetze die Platzhalter
+          $issContent = $issContent.Replace("__APP_VERSION__", $version)
+          $issContent = $issContent.Replace("__SOURCE_DIR__", $sourceDir)
+          # Schreibe die Änderungen zurück in die Datei
+          Set-Content -Path $issFile -Value $issContent
+          echo "Installer script for v$version prepared."
+
+      - name: 8. Compile Installer (Windows only)
+        if: runner.os == 'Windows'
+        run: iscc "installer/create_installer.iss"
+
+      - name: 9. Upload Release Assets
+        uses: actions/upload-artifact@v4
+        with:
+          # Der Name ist eindeutig pro OS, um Konflikte zu vermeiden
+          name: release-asset-${{ matrix.os }}
+          # Lade das ZIP-Archiv für alle OS hoch.
+          # Für Windows laden wir zusätzlich die erstellte setup.exe hoch.
+          path: |
+            DartCounter_*.zip
+            installer/Output/setup.exe
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-release # Dieser Job wartet, bis alle Builds erfolgreich sind
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Notwendig, um ein Release erstellen zu können
+
+    steps:
+      - name: 1. Checkout code
+        # Wir brauchen den Code hier, um auf die CHANGELOG.md zuzugreifen
+        uses: actions/checkout@v4
+
+      - name: 2. Download all release assets
+        uses: actions/download-artifact@v4
+        with:
+          # Lädt alle Artefakte in den 'release-assets' Ordner herunter
+          path: release-assets
+
+      - name: 3. Extract Release Notes from CHANGELOG.md
+        id: extract_release_notes
+        run: |
+          # Extrahiert den Text zwischen dem neuen Versions-Header und dem nächsten '---'
+          # GITHUB_OUTPUT ist der moderne Weg, um Variablen zwischen Steps zu übergeben
+          VERSION_TAG=${{ github.ref_name }}
+          NOTES=$(awk -v tag="## [${VERSION_TAG#v}]" '
+            $0 ~ tag {f=1; next}
+            f && /^---/ {exit}
+            f {print}
+          ' CHANGELOG.md)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 4. Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # Der Name des Releases wird der Tag sein (z.B. "v1.3.0")
+          name: Release ${{ github.ref_name }}
+          # Der Body des Releases wird der extrahierte Text aus der CHANGELOG.md sein
+          body: ${{ steps.extract_release_notes.outputs.notes }}
+          # Entwürfe werden nicht automatisch veröffentlicht
+          draft: false
+          # Markiert das Release nicht als "pre-release"
+          prerelease: false
+          # Hängt alle heruntergeladenen ZIP-Dateien an das Release an
+          # Das '**'-Muster durchsucht rekursiv alle Unterverzeichnisse nach ZIP-Dateien.
+          files: release-assets/**/*.*
+
+```

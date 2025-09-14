@@ -17,50 +17,36 @@
 """
 Dieses Modul enthält die PlayerProfile-Klasse, die persistente Spielerdaten verwaltet.
 """
+from dataclasses import dataclass, field
+from typing import Optional
 
 
+@dataclass
 class PlayerProfile:
     """
     Repräsentiert ein persistentes Spielerprofil mit Namen und Avatar.
+    Verwendet dataclass für eine saubere und typsichere Attributdefinition.
     """
 
-    def __init__(
-        self,
-        name: str,
-        avatar_path: str = None,
-        dart_color: str = "#ff0000",
-        is_ai: bool = False,
-        difficulty: str = None,
-        profile_id: int = None,
-        preferred_double: int = None,
-        accuracy_model: dict | None = None,
-    ):
-        """
-        Initialisiert ein neues Spielerprofil.
+    name: str
+    profile_id: Optional[int] = None
+    avatar_path: Optional[str] = None
+    dart_color: str = "#ff0000"
+    is_ai: bool = False
+    difficulty: Optional[str] = None
+    preferred_double: Optional[int] = None
+    accuracy_model: Optional[dict] = field(default=None, repr=False)
 
-        Args:
-            name (str): Der eindeutige Name des Spielers.
-            avatar_path (str, optional): Der Dateipfad zum Avatarbild. Defaults to None.
-            dart_color (str, optional): Die Hex-Farbe für die Dart-Grafik. Defaults to "#ff0000" (rot).
-            is_ai (bool, optional): Gibt an, ob das Profil für eine KI ist. # noqa
-            difficulty (str, optional): Die Schwierigkeitsstufe der KI. Defaults to None.
-            profile_id (int, optional): Die ID aus der Datenbank. Defaults to None.
-            preferred_double (int, optional): Das bevorzugte Double-Out-Feld (1-20 oder 25 für Bull). # noqa
-            accuracy_model (dict, optional): Das statistische Wurfmodell. Defaults to None. # noqa
-        """
-        self.name = name
-        self.avatar_path = avatar_path
-        self.dart_color = dart_color
-        self.is_ai = is_ai
-        self.difficulty = difficulty
-        self.id = profile_id
-        self.preferred_double = preferred_double
-        self.accuracy_model = accuracy_model
+    # Das 'id'-Attribut wird als Property hinzugefügt, um die Abwärtskompatibilität
+    # mit Teilen des Codes zu gewährleisten, die möglicherweise noch `profile.id` verwenden.
+    @property
+    def id(self):
+        return self.profile_id
 
     def to_dict(self) -> dict:
         """Serialisiert das Profil in ein Dictionary."""
         return {
-            "id": self.id,
+            "id": self.profile_id,
             "name": self.name,
             "avatar_path": self.avatar_path,
             "dart_color": self.dart_color,
@@ -74,7 +60,7 @@ class PlayerProfile:
     def from_dict(cls, data: dict):
         """Erstellt ein Profil aus einem Dictionary."""
         return cls(
-            profile_id=data.get("id"),
+            profile_id=data.get("id"),  # Behält 'id' für Abwärtskompatibilität beim Laden
             name=data["name"],
             avatar_path=data.get("avatar_path"),
             dart_color=data.get("dart_color", "#ff0000"),  # Fallback für alte Profile
@@ -82,4 +68,27 @@ class PlayerProfile:
             difficulty=data.get("difficulty", None),
             preferred_double=data.get("preferred_double", None),
             accuracy_model=data.get("accuracy_model", None),
+        )
+
+    @classmethod
+    def from_orm(cls, orm_profile):
+        """
+        Erstellt eine PlayerProfile-Datenklasse aus einem SQLAlchemy ORM-Objekt.
+        Dies entkoppelt die Anwendungslogik von der Datenbankschicht.
+
+        Args:
+            orm_profile: Eine Instanz des SQLAlchemy-Modells `db_models.PlayerProfileORM`.
+
+        Returns:
+            Eine Instanz der `core.player_profile.PlayerProfile`-Datenklasse.
+        """
+        return cls(
+            profile_id=orm_profile.id,
+            name=orm_profile.name,
+            avatar_path=orm_profile.avatar_path,
+            dart_color=orm_profile.dart_color,
+            is_ai=orm_profile.is_ai,
+            difficulty=orm_profile.difficulty,
+            preferred_double=orm_profile.preferred_double,
+            accuracy_model=orm_profile.accuracy_model,
         )

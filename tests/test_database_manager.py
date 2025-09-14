@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import configparser
 from pathlib import Path
 from core.database_manager import DatabaseManager
-from core.db_models import Highscore, PlayerProfile
+from core.db_models import Highscore, PlayerProfileORM
 
 """
 Testet den DatabaseManager mit SQLAlchemy.
@@ -289,7 +289,7 @@ def test_delete_profile_returns_true_on_success(db_manager_setup):
     mock_session.reset_mock()
 
     # Simuliere, dass ein Profil gefunden wird
-    mock_profile = PlayerProfile(name="Existing Player")
+    mock_profile = PlayerProfileORM(name="Existing Player")
     mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = mock_profile
 
     result = db_manager.delete_profile("Existing Player")

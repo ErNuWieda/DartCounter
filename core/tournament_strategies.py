@@ -45,6 +45,14 @@ class TournamentStrategyBase:
         match_to_update["winner"] = winner_name
         self._update_bracket_state()
 
+    def restore_state(self, bracket_data: dict, winner_data: str | None):
+        """
+        Stellt den Zustand der Strategie aus geladenen Daten wieder her.
+        Überschreibt den initial erstellten Turnierbaum.
+        """
+        self.bracket = bracket_data
+        self.winner = winner_data
+
     def _get_match_loser(self, match: dict) -> str | None:
         """Hilfsmethode, um den Verlierer eines beendeten Matches zu ermitteln."""
         winner = match.get("winner")

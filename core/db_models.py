@@ -37,7 +37,12 @@ class Highscore(Base):
     date = Column(Date, nullable=False, default=datetime.utcnow)
 
 
-class PlayerProfile(Base):
+class PlayerProfileORM(Base):
+    """
+    SQLAlchemy ORM-Modell für die Tabelle 'player_profiles'.
+    Der Suffix 'ORM' wird verwendet, um Namenskollisionen mit der
+    Anwendungs-Datenklasse 'PlayerProfile' zu vermeiden.
+    """
     __tablename__ = "player_profiles"
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)

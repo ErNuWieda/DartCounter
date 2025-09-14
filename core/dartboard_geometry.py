@@ -114,9 +114,12 @@ class DartboardGeometry:
         except (ValueError, IndexError):
             return None  # Ungültiges Format oder Segment nicht gefunden
 
-        # Winkel zur Mitte des Segments berechnen
-        # Start bei 9 Grad (Mitte der 6) und Subtraktion von 18 Grad pro Segment
-        angle_deg = 9 - (segment_index * 18)
+        # Winkel zur Mitte des Segments berechnen.
+        # Die SEGMENTS-Liste ist im Uhrzeigersinn definiert. Mathematische Winkel
+        # (und atan2) verlaufen jedoch gegen den Uhrzeigersinn. Um dies zu korrigieren,
+        # muss der Winkel-Offset addiert statt subtrahiert werden.
+        # Dies ist der entscheidende Fix, der das Zielen in die falsche Boardhälfte behebt.
+        angle_deg = 9 + (segment_index * 18)
 
         # Datengesteuerte Radienberechnung
         radius_keys_map = {

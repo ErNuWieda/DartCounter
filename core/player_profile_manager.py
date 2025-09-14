@@ -25,28 +25,32 @@ class PlayerProfileManager:
     """
 
     def __init__(self, db_manager: DatabaseManager):
+        """Initialisiert den Manager mit einer Referenz auf den DatabaseManager."""
         self.db_manager = db_manager
-        self.profiles = self._load_profiles_from_db()
-
-    def reload_profiles(self):
-        """Erzwingt ein Neuladen aller Profile aus der Datenbank."""
-        self.profiles = self._load_profiles_from_db()
 
     def _load_profiles_from_db(self) -> list[PlayerProfile]:
         """Lädt die Profile aus der Datenbank."""
-        if not self.db_manager.is_connected:
-            return []
-
-        profiles_data = self.db_manager.get_all_profiles()
-        return [PlayerProfile.from_dict(p_data) for p_data in profiles_data]
+        # Die Prüfung auf `is_connected` wurde entfernt. Der DatabaseManager selbst
+        # ist so konzipiert, dass er bei fehlender Verbindung sicher eine leere Liste
+        # zurückgibt. Dies macht den Manager robuster gegenüber initialen Verbindungsfehlern.
+        # Lade die ORM-Objekte aus der Datenbank.
+        orm_profiles = self.db_manager.get_all_profiles()
+        # Konvertiere jedes ORM-Objekt in eine PlayerProfile-Datenklasse.
+        # Dies entkoppelt die Anwendungslogik von der Datenbankschicht.
+        return [PlayerProfile.from_orm(p) for p in orm_profiles]
 
     def get_profiles(self) -> list[PlayerProfile]:
         """Gibt eine Liste aller geladenen Profile zurück."""
-        return self.profiles
+        # Lädt die Profile bei jedem Aufruf frisch aus der Datenbank.
+        # Dies stellt sicher, dass die Daten immer aktuell sind und vermeidet
+        # Initialisierungsprobleme.
+        return self._load_profiles_from_db()
 
     def get_profile_by_name(self, name: str) -> PlayerProfile | None:
         """Sucht und gibt ein Profil anhand seines Namens zurück."""
-        return next((p for p in self.profiles if p.name == name), None)
+        # Nutzt get_profiles(), um auf die aktuellen Daten zuzugreifen.
+        profiles = self.get_profiles()
+        return next((p for p in profiles if p.name == name), None)
 
     def add_profile(
         self,
@@ -73,8 +77,6 @@ class PlayerProfileManager:
             preferred_double,
             accuracy_model,
         )
-        if success:
-            self.profiles = self._load_profiles_from_db()  # Liste neu laden
         return success
 
     def update_profile(
@@ -110,18 +112,17 @@ class PlayerProfileManager:
             preferred_double,
             accuracy_model,
         )
-        if success:
-            # Finde das Profil in der lokalen Liste und aktualisiere es
-            profile_to_update = next((p for p in self.profiles if p.id == profile_id), None)
-            if profile_to_update:
-                profile_to_update.name = new_name
-                profile_to_update.avatar_path = new_avatar_path
-                profile_to_update.dart_color = new_dart_color
-                profile_to_update.is_ai = is_ai
-                profile_to_update.difficulty = difficulty
-                profile_to_update.preferred_double = preferred_double
-                profile_to_update.accuracy_model = accuracy_model
 
+        return success
+
+    def delete_profile_by_id(self, profile_id: int) -> bool:
+        """
+        Löscht ein Profil anhand seiner ID.
+
+        Returns:
+            bool: True bei Erfolg, False wenn kein Profil mit der ID gefunden wurde.
+        """
+        success = self.db_manager.delete_profile_by_id(profile_id)
         return success
 
     def delete_profile(self, profile_name: str) -> bool:
@@ -132,6 +133,4 @@ class PlayerProfileManager:
             bool: True bei Erfolg, False wenn kein Profil mit dem Namen gefunden wurde.
         """
         success = self.db_manager.delete_profile(profile_name)
-        if success:
-            self.profiles = [p for p in self.profiles if p.name != profile_name]
         return success

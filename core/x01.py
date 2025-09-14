@@ -21,6 +21,7 @@ Punktestände und Regeln verwaltet.
 """
 from .player import Player
 from .game_logic_base import GameLogicBase
+from . import ui_utils
 from .checkout_calculator import CheckoutCalculator
 
 
@@ -46,7 +47,29 @@ class X01(GameLogicBase):
         super().__init__(game)
         self.opt_in = game.options.opt_in
         self.opt_out = game.options.opt_out
-        # self.targets bleibt None aus der Basisklasse
+
+        # --- Legs & Sets Konfiguration ---
+        self.legs_to_win = self.game.options.legs_to_win
+        self.sets_to_win = self.game.options.sets_to_win
+        self.is_leg_set_match = self.legs_to_win > 1 or self.sets_to_win > 1
+
+        # Die Initialisierung der spielerabhängigen Scores wird in `set_players` verschoben,
+        # um zirkuläre Abhängigkeiten bei der Game-Initialisierung zu vermeiden.
+        self.player_leg_scores = {}
+        self.player_set_scores = {}
+        self.leg_start_player_index = 0
+
+    def set_players(self, players: list[Player]):
+        """
+        Initialisiert den Zustand, der von der Spielerliste abhängt (z.B. Leg/Set-Scores).
+        Wird von der Game-Klasse aufgerufen, nachdem die Spieler erstellt wurden.
+        """
+        if self.is_leg_set_match:
+            self.player_leg_scores = {p.id: 0 for p in players}
+            self.player_set_scores = {p.id: 0 for p in players}
+            # Der Startspieler für das erste Leg wird in der Game-Klasse gesetzt.
+            # Hier übernehmen wir den initialen Wert.
+            self.game.current = self.leg_start_player_index
 
     def get_targets(self):
         """
@@ -152,6 +175,23 @@ class X01(GameLogicBase):
         )
         player.sb.update_checkout_suggestion(suggestion)
         player.sb.update_score(player.score)
+
+    def to_dict(self) -> dict:
+        """Serialisiert den Leg/Set-Zustand für das Speichern."""
+        if not self.is_leg_set_match:
+            return {}
+        return {
+            "player_leg_scores": self.player_leg_scores,
+            "player_set_scores": self.player_set_scores,
+            "leg_start_player_index": self.leg_start_player_index,
+        }
+
+    def restore_from_dict(self, data: dict):
+        """Stellt den Leg/Set-Zustand aus geladenen Daten wieder her."""
+        if self.is_leg_set_match:
+            self.player_leg_scores = {int(k): v for k, v in data.get("player_leg_scores", {}).items()}
+            self.player_set_scores = {int(k): v for k, v in data.get("player_set_scores", {}).items()}
+            self.leg_start_player_index = data.get("leg_start_player_index", 0)
 
     def _validate_opt_in(self, player, ring, segment):
         """# noqa: E501
@@ -261,6 +301,73 @@ class X01(GameLogicBase):
         # Die Nachricht im DartBoard wird "SHANGHAI-FINISH!" voranstellen,
         return f"🏆 {player.name} gewinnt in Runde {self.game.round} mit {total_darts} Darts!"
 
+    def _start_next_leg(self):
+        """Setzt den Zustand für das nächste Leg zurück."""
+        # Setze den Zustand für alle Spieler zurück
+        for player in self.game.players:
+            player.reset_leg_stats()
+            player.reset_turn()
+            self.initialize_player_state(player)
+
+        # Wer beginnt das nächste Leg? (abwechselnd)
+        self.leg_start_player_index = (self.leg_start_player_index + 1) % len(self.game.players)
+        self.game.current = self.leg_start_player_index
+
+        # WICHTIG: Setze den globalen Spielzustand zurück, damit das neue Leg/Set starten kann.
+        self.game.end = False
+        self.game.winner = None
+
+        # UI für alle Scoreboards aktualisieren
+        for p in self.game.players:
+            if p.sb:
+                p.sb.update_score(p.score)
+
+        self.game.announce_current_player_turn()
+
+    def _update_leg_set_displays(self):
+        """Weist alle Scoreboards an, ihre Leg/Set-Anzeige zu aktualisieren."""
+        if not self.is_leg_set_match:
+            return
+        for p in self.game.players:
+            if p.sb and hasattr(p.sb, "update_leg_set_scores"):
+                leg_score = self.player_leg_scores.get(p.id, 0)
+                set_score = self.player_set_scores.get(p.id, 0)
+                p.sb.update_leg_set_scores(leg_score, set_score)
+
+    def _handle_leg_win(self, winner: Player):
+        """Steuert den Ablauf von Legs und Sets, wenn ein Leg gewonnen wurde."""
+        # Rufe die Methode der Game-Klasse auf, um Statistiken zu finalisieren,
+        # falls es sich um ein einfaches Spiel handelt.
+        self.game._handle_leg_win(winner)
+
+        if not self.is_leg_set_match:
+            return
+
+        self.player_leg_scores[winner.id] += 1
+        self._update_leg_set_displays()
+
+        if self.player_leg_scores[winner.id] >= self.legs_to_win:
+            self.player_set_scores[winner.id] += 1
+            self.player_leg_scores = {p.id: 0 for p in self.game.players}
+            self._update_leg_set_displays()
+            ui_utils.show_message(
+                "info", "Satzgewinn", f"{winner.name} gewinnt den Satz!", parent=self.game.dartboard.root
+            )
+
+            if self.player_set_scores[winner.id] >= self.sets_to_win:
+                # Finaler Gewinn des Matches. Die Game-Klasse wird die Statistiken speichern.
+                self.game._finalize_and_record_stats(winner)
+                return
+            else:
+                self._start_next_leg()
+        else:
+            ui_utils.show_message(
+                "info", "Leg-Gewinn", f"{winner.name} gewinnt das Leg!", parent=self.game.dartboard.root
+            )
+            self.game.end = False
+            self.game.winner = None
+            self._start_next_leg()
+
     def _handle_throw(self, player: "Player", ring: str, segment: int, players: list["Player"]):
         """Verarbeitet einen einzelnen Wurf für einen Spieler in einem X01-Spiel.
 
@@ -335,7 +442,7 @@ class X01(GameLogicBase):
 
         if player.score == 0:  # Gilt nur für x01
             win_message = self._handle_win_condition(player, score_before_throw)
-            self.game._handle_leg_win(player)
+            self._handle_leg_win(player)
             return ("win", win_message)
 
         if len(player.throws) == 3:

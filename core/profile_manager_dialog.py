@@ -141,12 +141,15 @@ class ProfileManagerDialog(tk.Toplevel):
 
         # 4. Sortierte Profile in den Treeview einfügen
         for profile in sorted_profiles:
-            self._insert_profile_item("", profile)
+            # Die profile.id (welche auf profile.profile_id verweist) wird als
+            # eindeutige Item-ID (iid) im Treeview verwendet. Dies ermöglicht
+            # einen direkten und zuverlässigen Zugriff auf das Profil.
+            self._insert_profile_item(profile)
 
-    def _insert_profile_item(self, parent_id: str, profile: PlayerProfile):
+    def _insert_profile_item(self, profile: PlayerProfile):
         """
         Fügt ein einzelnes Profil-Item in den Treeview unter einem bestimmten Parent ein.
-        Diese Hilfsmethode vermeidet Code-Duplizierung.
+        Verwendet die Profil-ID als eindeutige Kennung für den Treeview-Eintrag.
         """
         # Erstelle ein kleines, farbiges Bild für die Vorschau
         img = Image.new("RGB", (16, 16), profile.dart_color)
@@ -156,16 +159,19 @@ class ProfileManagerDialog(tk.Toplevel):
         player_type = "KI" if profile.is_ai else "Mensch"
         difficulty = profile.difficulty if profile.is_ai else "-"
         self.tree.insert(
-            parent_id,
+            "",
             "end",
             image=photo_img,
+            iid=profile.id,  # Setze die Profil-ID als eindeutige Item-ID
             values=(profile.name, player_type, difficulty),
         )
 
     def _add_new_profile(self):
         dialog = EditProfileDialog(self, self.profile_manager)
         self.wait_window(dialog)
-        self._populate_profile_list()
+        # Lade die Liste nur neu, wenn tatsächlich gespeichert wurde.
+        if dialog.saved_successfully:
+            self._populate_profile_list()
 
     def _edit_selected_profile(self):
         selected_item = self.tree.focus()
@@ -182,12 +188,16 @@ class ProfileManagerDialog(tk.Toplevel):
         if not item_data.get("values"):
             return
 
-        profile_name = self.tree.item(selected_item)["values"][0]
-        profile_to_edit = self.profile_manager.get_profile_by_name(profile_name)
+        # Die Profil-ID wird direkt aus der Item-ID (iid) des Treeviews gelesen.
+        profile_id = int(selected_item)
+        profile_to_edit = next((p for p in self.profile_manager.get_profiles() if p.id == profile_id), None)
+
         if profile_to_edit:
             dialog = EditProfileDialog(self, self.profile_manager, profile_to_edit=profile_to_edit)
             self.wait_window(dialog)
-            self._populate_profile_list()
+            # Lade die Liste nur neu, wenn tatsächlich gespeichert wurde.
+            if dialog.saved_successfully:
+                self._populate_profile_list()
 
     def _delete_selected_profile(self):
         selected_item = self.tree.focus()
@@ -204,13 +214,16 @@ class ProfileManagerDialog(tk.Toplevel):
         if not item_data.get("values"):
             return
 
+        # Die ID wird direkt aus dem Treeview-Item gelesen, der Name nur für die Bestätigungsnachricht.
+        profile_id = int(selected_item)
         profile_name = self.tree.item(selected_item)["values"][0]
+
         if messagebox.askyesno(
             "Profil löschen",
             f"Möchten Sie das Profil '{profile_name}' wirklich löschen?",
             parent=self,
         ):
-            if self.profile_manager.delete_profile(profile_name):
+            if self.profile_manager.delete_profile_by_id(profile_id):
                 self._populate_profile_list()
 
     def _recalculate_accuracy(self):
@@ -258,7 +271,5 @@ class ProfileManagerDialog(tk.Toplevel):
                 profile_name, parent_window=self
             )
             if success:
-                # Erzwinge, dass der Manager seine interne Liste aus der DB neu lädt
-                self.profile_manager.reload_profiles()
                 # Aktualisiere die Treeview-Anzeige in diesem Dialog
                 self._populate_profile_list()

@@ -56,9 +56,10 @@ class AIStrategy:
 class X01AIStrategy(AIStrategy):
     """Strategie für X01-Spiele."""
 
-    # Bogey-Nummern: Scores, die nicht mit 3 Darts gefinished werden können,
-    # plus die "2", da D1 ein sehr ungünstiges Finish ist.
-    BOGEY_NUMBERS = {169, 168, 166, 165, 163, 162, 159, 2}
+    # Bogey-Nummern: Scores, die nicht mit 3 Darts gefinished werden können.
+    # Die "2" wurde entfernt, da D1 ein valides, wenn auch schwieriges, Finish ist
+    # und die KI in der Lage sein muss, es zu versuchen.
+    BOGEY_NUMBERS = {169, 168, 166, 165, 163, 162, 159}
 
     def get_target(self, throw_number: int) -> tuple[str, int]:
         score = self.ai_player.score
@@ -66,10 +67,36 @@ class X01AIStrategy(AIStrategy):
         preferred_double = (
             self.ai_player.profile.preferred_double if self.ai_player.profile else None
         )
+
+        # --- Neue, priorisierte Regeln für starke KI (Profi/Champion) ---
+        is_high_skill = self.ai_player.difficulty in ("Profi", "Champion")
+        if is_high_skill and self.game.options.opt_out == "Double":
+            # Regel 1: Aggressives 1-Dart-Finish bei geradem Score <= 40
+            # Ein Profi versucht immer, direkt auszumachen, anstatt ein Setup zu spielen.
+            if score <= 40 and score % 2 == 0 and score != 2:
+                target_double = score // 2
+                return "Double", target_double
+
+            # Regel 2: Vermeide es, ein Finish auf D1 zu stellen.
+            # Wenn der einzige vorgeschlagene Weg auf D1 endet, ist ein strategischer
+            # Bust die bessere Option, um den Score für die nächste Runde zu behalten.
+            if score == 3 and darts_left > 1:
+                return "Single", 20  # Zielt auf S20 für einen sicheren Bust
+
+        # --- Sonderregel: D1 (Score 2) vermeiden, wenn möglich ---
+        # Wenn der Score 2 ist und mehr als ein Dart übrig ist, ist es strategisch
+        # klüger, den Wurf zu "verwerfen" (Bust), als auf D1 zu zielen.
+        if score == 2 and darts_left > 1 and self.game.options.opt_out == "Double":
+            return "Single", 2  # Zielt auf S2, was zu einem Bust führt
         # --- Phase 1: Power-Scoring (wenn Score zu hoch für ein Finish ist) ---
         # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet
         # maximal, um in den Finish-Bereich zu kommen.
         if score > 170:
+            # Passe das Ziel an die Spielstärke an:
+            # Anfänger/Fortgeschrittene zielen auf das sichere Single-Feld.
+            # Stärkere Spieler zielen auf das Triple.
+            if self.ai_player.difficulty in ("Anfänger", "Fortgeschritten"):
+                return "Single", 20
             return "Triple", 20
         # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist)
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
@@ -85,15 +112,13 @@ class X01AIStrategy(AIStrategy):
         # --- Phase 3: Intelligentes Setup (wenn kein direkter Checkout möglich ist) ---
         # Fall A: Setup für DIESE Runde (wenn noch mehr als 1 Dart übrig ist)
         if darts_left > 1:
-            all_possible_throws = [
-                ("Triple", 20),
-                ("Triple", 19),
-                ("Bullseye", 50),
-                ("Triple", 18),
-                ("Triple", 16),
-                ("Triple", 15),
-                ("Triple", 17),
-            ] + [("Single", s) for s in range(20, 0, -1)]
+            # Erstelle eine vollständige und korrekt sortierte Liste aller möglichen Würfe,
+            # priorisiert nach dem höchsten Score (T20, T19, ..., S20, S19, ...).
+            # Dies behebt den Fehler, bei dem die KI auf unerwartete Single-Felder zielte.
+            all_possible_throws = (
+                [("Triple", s) for s in range(20, 0, -1)]
+                + [("Single", s) for s in range(20, 0, -1)]
+            )
 
             for ring, segment in all_possible_throws:
                 throw_value = self.game.get_score(ring, segment)
@@ -168,18 +193,29 @@ class CricketAIStrategy(AIStrategy):
             and any(opp.hits.get(t, 0) >= 3 for opp in opponents)
         ]
         if dangerous_targets:
-            target = dangerous_targets[0]
-            return ("Bullseye", 50) if target == "Bull" else ("Triple", int(target))
+            target_segment = dangerous_targets[0]
+            if target_segment == "Bull":
+                return "Bullseye", 50
+            # Starke Spieler zielen auf das Triple, um schnell zu schließen.
+            # Schwächere Spieler zielen auf das sichere Single-Feld.
+            ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+            return ring, int(target_segment)
 
         # 2. Offensive: Eigene Ziele schließen
         for target in targets:
             if self.ai_player.hits.get(target, 0) < 3:
-                return ("Bullseye", 50) if target == "Bull" else ("Triple", int(target))
+                if target == "Bull":
+                    return "Bullseye", 50
+                ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+                return ring, int(target)
 
         # 3. Punkte-Phase: Auf offenen Zielen punkten
         for target in targets:
             if any(opp.hits.get(target, 0) < 3 for opp in opponents):
-                return ("Bullseye", 50) if target == "Bull" else ("Triple", int(target))
+                if target == "Bull":
+                    return "Bullseye", 50
+                ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+                return ring, int(target)
 
         return "Bullseye", 50  # Fallback
 
@@ -200,18 +236,26 @@ class KillerAIStrategy(AIStrategy):
             preferred = [str(i) for i in range(20, 14, -1)] + ["Bull"]
             for target in preferred:
                 if target not in taken:
-                    return ("Single", 25) if target == "Bull" else ("Single", int(target))
+                    # Korrektur: Um die Chance zu maximieren, das Bull-Segment zu treffen,
+                    # sollte auf das Bullseye gezielt werden.
+                    return ("Bullseye", 50) if target == "Bull" else ("Single", int(target))
             return "Single", 1  # Fallback
 
         # Phase 2: Killer werden
         if not player_state.get("can_kill"):
             my_segment = player_state["life_segment"]
+            # Korrektur: Wenn das Lebensfeld "Bull" ist, ziele auf das größere Bullseye,
+            # da sowohl Bull als auch Bullseye als Treffer zählen.
             return ("Bullseye", 50) if my_segment == "Bull" else ("Double", int(my_segment))
 
         # Phase 3: Als Killer agieren
         opponents = [p for p in self.game.players if p != self.ai_player and p.score > 0]
         if not opponents:
             return "Bullseye", 50  # Keine Gegner mehr
+
+        # Wenn keine Gegner mehr übrig sind, hat die KI gewonnen.
+        if not opponents:
+            return "Bullseye", 50  # Kein Ziel mehr nötig, Spiel ist vorbei.
 
         # Priorisiere Gegner, die ebenfalls Killer sind.
         killer_opponents = [p for p in opponents if p.state.get("can_kill")]
@@ -228,6 +272,8 @@ class KillerAIStrategy(AIStrategy):
             # Fallback, falls ein Gegner aus irgendeinem Grund kein Lebensfeld hat
             return "Bullseye", 50
 
+        # Korrektur: Wenn das Ziel "Bull" ist, ziele auf das größere Bullseye,
+        # da sowohl Bull als auch Bullseye als Treffer zählen.
         return ("Bullseye", 50) if victim_segment == "Bull" else ("Double", int(victim_segment))
 
 

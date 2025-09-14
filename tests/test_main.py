@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 import pathlib
 
 # Wichtig: Wir müssen die zu testenden Klassen und Funktionen importieren.
@@ -69,7 +69,7 @@ def app_with_mocks():
         "app_settings_dialog": patch("main.AppSettingsDialog"),
         "tournament_view": patch("main.TournamentView"),
         "db_manager": patch("main.DatabaseManager"),
-        "tournament_manager_from_dict": patch("main.TournamentManager.from_dict"),
+        "tournament_manager": patch("main.TournamentManager"),
     }
 
     mocks = {name: p.start() for name, p in patches.items()}
@@ -360,19 +360,22 @@ def test_load_tournament_successful(mock_check_close, app_with_mocks):
     """Testet den erfolgreichen Ladevorgang eines Turniers."""
     app, mocks = app_with_mocks
     mock_load_data = mocks["save_load_manager"].load_tournament_data
-    mock_from_dict = mocks["tournament_manager_from_dict"]
+    MockTournamentManager = mocks["tournament_manager"]
     mock_view_class = mocks["tournament_view"]
 
     mock_data = {"player_names": ["A", "B"], "game_mode": "501", "bracket": {}}
     mock_load_data.return_value = mock_data
+
+    # Erstelle eine Mock-Instanz, die der Konstruktor zurückgeben wird
     mock_tm_instance = MagicMock(spec=TournamentManager)
-    mock_from_dict.return_value = mock_tm_instance
+    MockTournamentManager.return_value = mock_tm_instance
 
     app.load_tournament()
 
     mock_check_close.assert_called_once()
     mock_load_data.assert_called_once_with(app.root)
-    mock_from_dict.assert_called_once_with(mock_data)
+    MockTournamentManager.assert_called_once_with(player_names=mock_data["player_names"], game_mode=mock_data["game_mode"], system=ANY, shuffle=False)
+    mock_tm_instance.restore_state.assert_called_once_with(mock_data)
     assert app.tournament_manager == mock_tm_instance
     mock_view_class.assert_called_once_with(
         app.root, mock_tm_instance, app.start_next_tournament_match

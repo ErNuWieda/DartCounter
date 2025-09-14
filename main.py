@@ -344,7 +344,15 @@ class App:
 
         data = SaveLoadManager.load_tournament_data(self.root)
         if data:
-            tournament_manager = TournamentManager.from_dict(data)
+            # Erstelle eine neue, leere Turnierinstanz mit den Metadaten aus der Speicherdatei.
+            tournament_manager = TournamentManager(
+                player_names=data["player_names"],
+                game_mode=data["game_mode"],
+                system=data.get("system", "Doppel-K.o."),
+                shuffle=False,  # Wichtig: Beim Laden nicht erneut mischen!
+            )
+            # Stelle den detaillierten Zustand (Turnierbaum, Gewinner) wieder her.
+            tournament_manager.restore_state(data)
             self._start_tournament_workflow(tournament_manager)
 
     def save_tournament(self):
