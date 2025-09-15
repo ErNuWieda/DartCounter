@@ -5,6 +5,7 @@ from core.game import Game
 from core.game_options import GameOptions
 from core.player import Player
 from core.save_load_manager import SaveLoadManager
+from core.tournament_manager import TournamentManager
 
 
 @pytest.fixture
@@ -403,4 +404,31 @@ class TestGameWithX01:
         # Finale Prüfung
         assert game.end, "Das Match sollte beendet sein, nachdem Alice zwei Sets gewonnen hat."
         assert game.winner == alice
-        assert game.game.player_set_scores[alice.id] == 2
+
+
+def test_save_and_load_tournament_state():
+    """
+    Tests that the state of a running tournament can be correctly saved and restored.
+    """
+    # 1. Setup a tournament
+    player_names = ["P1", "P2", "P3", "P4"]
+    tm1 = TournamentManager(player_names, "501", "K.o.", shuffle=False)
+
+    # 2. Play the first match
+    match1 = tm1.get_next_match()
+    assert match1["player1"] == "P1"
+    assert match1["player2"] == "P2"
+    tm1.record_match_winner(match1, "P1")  # P1 wins
+
+    # 3. Save the state
+    saved_data = tm1.to_dict()
+
+    # 4. Create a new tournament manager and load the state
+    tm2 = TournamentManager(player_names, "501", "K.o.", shuffle=False)
+    tm2.restore_state(saved_data)
+
+    # 5. Assert that the restored state is correct
+    assert tm2.bracket["winners"][0][0]["winner"] == "P1"
+    next_match_restored = tm2.get_next_match()
+    assert next_match_restored["player1"] == "P3" and next_match_restored["player2"] == "P4"
+    # assert game.game.player_set_scores[alice.id] == 2

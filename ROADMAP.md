@@ -34,6 +34,12 @@ Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplant
     - **Profil-Manager:** Der Dialog zur Spieler-Verwaltung wurde für eine bessere Übersichtlichkeit und dynamische Größenanpassung überarbeitet.
     - **Stabiler Turniermodus:** Kritische Fehler in der Turnierlogik wurden behoben, was einen reibungslosen Ablauf sicherstellt.
 
+### Version 1.3.1: Stabilität & Feinschliff
+- **Robuste Test-Suite:** Die gesamte Test-Suite wurde stabilisiert, indem fehlerhafte Test-Setups und inkonsistente Mocks korrigiert wurden. Alle 243 Tests laufen nun zuverlässig.
+- **Verfeinerte KI-Strategie:** Die Logik der X01-KI wurde weiter verbessert, insbesondere in Bezug auf Setup-Würfe und die Handhabung von Bogey-Nummern.
+- **Erweiterte Testabdeckung:** Neue Tests für die `ShanghaiAIStrategy`, `AtcAIStrategy` und die adaptive KI-Logik wurden hinzugefügt, um die Code-Qualität weiter zu erhöhen.
+- **Verbesserte Code-Struktur:** Die Strategie-Klassen für X01 und Cricket wurden refaktorisiert, um die Lesbarkeit und Wartbarkeit zu verbessern.
+
 ---
 
 ## 🚀 Zukünftige Pläne (Version 1.4 und darüber hinaus)

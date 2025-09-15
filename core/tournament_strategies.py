@@ -174,7 +174,7 @@ class SingleEliminationStrategy(TournamentStrategyBase):
                     if loser2:
                         third_place_match["player2"] = loser2
 
-        # Turniersieger feststellen
+        # --- Turnier-Endzustand prüfen ---
         final_match = wb_rounds[-1][0]
         final_match_finished = final_match.get("winner") is not None
 
@@ -185,6 +185,9 @@ class SingleEliminationStrategy(TournamentStrategyBase):
             not third_place_match.get("player1") or third_place_match.get("winner") is not None
         )
 
+        # Der Sieger des Finales ist immer der Turniersieger.
+        # Das Turnier als Ganzes ist jedoch erst beendet, wenn auch das Spiel um Platz 3
+        # abgeschlossen ist, damit die Podiumsanzeige korrekt ist.
         if final_match_finished and third_place_finished:
             self.winner = final_match["winner"]
 

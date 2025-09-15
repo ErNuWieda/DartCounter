@@ -61,64 +61,62 @@ class X01AIStrategy(AIStrategy):
     # und die KI in der Lage sein muss, es zu versuchen.
     BOGEY_NUMBERS = {169, 168, 166, 165, 163, 162, 159}
 
-    def get_target(self, throw_number: int) -> tuple[str, int]:
-        score = self.ai_player.score
-        darts_left = 4 - throw_number
-        preferred_double = (
-            self.ai_player.profile.preferred_double if self.ai_player.profile else None
-        )
-
-        # --- Neue, priorisierte Regeln für starke KI (Profi/Champion) ---
+    def _get_high_skill_target(self, score: int, darts_left: int) -> tuple[str, int] | None:
+        """
+        Prüft und wendet priorisierte Regeln für starke KI-Spieler an.
+        Gibt ein Ziel zurück, wenn eine Regel zutrifft, sonst None.
+        """
         is_high_skill = self.ai_player.difficulty in ("Profi", "Champion")
-        if is_high_skill and self.game.options.opt_out == "Double":
-            # Regel 1: Aggressives 1-Dart-Finish bei geradem Score <= 40
-            # Ein Profi versucht immer, direkt auszumachen, anstatt ein Setup zu spielen.
-            if score <= 40 and score % 2 == 0 and score != 2:
-                target_double = score // 2
-                return "Double", target_double
+        if not (is_high_skill and self.game.game.opt_out == "Double"):
+            return None
 
-            # Regel 2: Vermeide es, ein Finish auf D1 zu stellen.
-            # Wenn der einzige vorgeschlagene Weg auf D1 endet, ist ein strategischer
-            # Bust die bessere Option, um den Score für die nächste Runde zu behalten.
-            if score == 3 and darts_left > 1:
-                return "Single", 20  # Zielt auf S20 für einen sicheren Bust
+        # Regel 1: Aggressives 1-Dart-Finish bei geradem Score <= 40
+        if score <= 40 and score % 2 == 0 and score != 2:
+            return "Double", score // 2
 
-        # --- Sonderregel: D1 (Score 2) vermeiden, wenn möglich ---
-        # Wenn der Score 2 ist und mehr als ein Dart übrig ist, ist es strategisch
-        # klüger, den Wurf zu "verwerfen" (Bust), als auf D1 zu zielen.
-        if score == 2 and darts_left > 1 and self.game.options.opt_out == "Double":
-            return "Single", 2  # Zielt auf S2, was zu einem Bust führt
-        # --- Phase 1: Power-Scoring (wenn Score zu hoch für ein Finish ist) ---
-        # Ein Profi versucht nicht, von 300 ein Finish aufzubauen, sondern punktet
-        # maximal, um in den Finish-Bereich zu kommen.
-        if score > 170:
-            # Passe das Ziel an die Spielstärke an:
-            # Anfänger/Fortgeschrittene zielen auf das sichere Single-Feld.
-            # Stärkere Spieler zielen auf das Triple.
+        # Regel 2: Strategischer Bust, um ein Finish auf D1 zu vermeiden
+        if score == 3 and darts_left > 1:
+            return "Single", 20  # Wurf auf S20 führt zum Bust
+        if score == 2 and darts_left > 1:
+            return "Single", 2  # Wurf auf S2 führt zum Bust
+
+        return None
+
+    def _get_power_scoring_target(self, score: int, darts_left: int) -> tuple[str, int] | None:
+        """
+        Wählt ein Power-Scoring-Ziel, wenn der Score zu hoch für ein Finish ist.
+        Gibt ein Ziel zurück, wenn Power-Scoring sinnvoll ist, sonst None.
+        """
+        if darts_left == 3 and score > 170:
             if self.ai_player.difficulty in ("Anfänger", "Fortgeschritten"):
                 return "Single", 20
             return "Triple", 20
-        # --- Phase 2: Direkter Checkout (wenn ein Finish mit den verbleibenden Darts möglich ist)
+        return None
+
+    def _get_direct_checkout_target(
+        self, score: int, darts_left: int, preferred_double: int | None
+    ) -> tuple[str, int] | None:
+        """
+        Versucht, einen direkten Checkout-Pfad zu finden.
+        Gibt das erste Ziel des Pfades zurück oder None, wenn kein Pfad existiert.
+        """
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
-            score,
-            self.game.options.opt_out,
-            darts_left,
-            preferred_double=preferred_double,
+            score, self.game.game.opt_out, darts_left, preferred_double=preferred_double
         )
         if checkout_path_str and checkout_path_str != "-":
-            targets = checkout_path_str.split(", ")
-            target = self._parse_target_string(targets[0])
-            return target
-        # --- Phase 3: Intelligentes Setup (wenn kein direkter Checkout möglich ist) ---
+            first_target_str = checkout_path_str.split(", ")[0]
+            return self._parse_target_string(first_target_str)
+        return None
+
+    def _get_setup_target(self, score: int, darts_left: int) -> tuple[str, int]:
+        """
+        Bestimmt ein intelligentes Setup-Ziel, wenn kein direkter Checkout möglich ist.
+        """
         # Fall A: Setup für DIESE Runde (wenn noch mehr als 1 Dart übrig ist)
         if darts_left > 1:
-            # Erstelle eine vollständige und korrekt sortierte Liste aller möglichen Würfe,
-            # priorisiert nach dem höchsten Score (T20, T19, ..., S20, S19, ...).
-            # Dies behebt den Fehler, bei dem die KI auf unerwartete Single-Felder zielte.
             all_possible_throws = [("Triple", s) for s in range(20, 0, -1)] + [
                 ("Single", s) for s in range(20, 0, -1)
             ]
-
             for ring, segment in all_possible_throws:
                 throw_value = self.game.get_score(ring, segment)
                 if score - throw_value < 2:
@@ -127,48 +125,30 @@ class X01AIStrategy(AIStrategy):
                 remainder = score - throw_value
                 if (
                     CheckoutCalculator.get_checkout_suggestion(
-                        remainder, self.game.options.opt_out, darts_left - 1
+                        remainder, self.game.game.opt_out, darts_left - 1
                     )
                     != "-"
                 ):
+                    # Vermeide es, D1 zu hinterlassen, wenn es nicht der letzte Dart ist
                     if (
                         (darts_left - 1) > 0
                         and remainder == 2
-                        and self.game.options.opt_out == "Double"
+                        and self.game.game.opt_out == "Double"
                     ):
-                        # Vermeide es, D1 zu hinterlassen, wenn es nicht der letzte Dart ist
                         continue
                     return ring, segment
-        # Fall B: Setup für die NÄCHSTE Runde (letzter Dart oder kein Setup gefunden)
+
+        # Fall B: Setup für die NÄCHSTE Runde (letzter Dart or kein Setup in dieser Runde gefunden)
         # Ziel: Eine "gute" gerade Zahl hinterlassen. Geworfen wird auf sichere Single-Felder.
-        safe_targets = [
-            20,
-            19,
-            18,
-            17,
-            16,
-            15,
-            14,
-            13,
-            12,
-            11,
-            10,
-            9,
-            8,
-            7,
-            6,
-            5,
-            4,
-            3,
-            2,
-            1,
-        ]
+        safe_targets = list(range(20, 0, -1))
 
+        # Priorisiere Würfe, die einen geraden Rest hinterlassen.
         for segment_value in safe_targets:
-            if score - segment_value >= 2:
-                if (score - segment_value) % 2 == 0:
-                    return "Single", segment_value
+            if score - segment_value >= 2 and (score - segment_value) % 2 == 0:
+                return "Single", segment_value
 
+        # Fallback: Wenn kein Wurf einen geraden Rest hinterlässt,
+        # nimm den höchsten möglichen Single-Wurf.
         for segment_value in safe_targets:
             if score - segment_value >= 2:
                 return "Single", segment_value
@@ -176,35 +156,64 @@ class X01AIStrategy(AIStrategy):
         # Absoluter Notfall-Fallback (sollte nie passieren, wenn score >= 2 ist)
         return "Single", 1
 
+    def get_target(self, throw_number: int) -> tuple[str, int]:
+        """
+        Bestimmt das strategische Ziel für einen Wurf in einem X01-Spiel.
+        Diese Methode durchläuft mehrere Phasen, um das optimale Ziel zu finden.
+        """
+        score = self.ai_player.score
+        darts_left = 4 - throw_number
+        preferred_double = (
+            self.ai_player.profile.preferred_double if self.ai_player.profile else None
+        )
+
+        # Phase 0: Priorisierte Regeln für starke KI-Spieler
+        if target := self._get_high_skill_target(score, darts_left):
+            return target
+
+        # Phase 1: Power-Scoring bei sehr hohem Punktestand
+        if target := self._get_power_scoring_target(score, darts_left):
+            return target
+
+        # Phase 2: Versuch eines direkten Checkouts
+        if target := self._get_direct_checkout_target(score, darts_left, preferred_double):
+            return target
+
+        # Phase 3: Intelligentes Setup, wenn kein direkter Checkout möglich ist
+        return self._get_setup_target(score, darts_left)
+
 
 class CricketAIStrategy(AIStrategy):
     """Strategie für Cricket-Spiele."""
 
-    def get_target(self, throw_number: int) -> tuple[str, int]:
-        targets = self.game.game.get_targets()
-        opponents = [p for p in self.game.players if p != self.ai_player]
-
-        # 1. Defensive: Gegnerische Punkt-Ziele schließen
+    def _get_defensive_target(self, targets: list[str], opponents: list) -> tuple[str, int] | None:
+        """
+        Sucht ein defensives Ziel: Schließe ein Ziel, auf dem ein Gegner punktet.
+        Gibt das Ziel zurück oder None, wenn keine defensive Aktion nötig ist.
+        """
         dangerous_targets = [
             t
             for t in targets
             if self.ai_player.hits.get(t, 0) < 3
             and any(opp.hits.get(t, 0) >= 3 for opp in opponents)
         ]
-        if dangerous_targets:
-            target_segment = dangerous_targets[0]
-            if target_segment == "Bull":
-                return "Bullseye", 50
-            # Starke Spieler zielen auf das Triple, um schnell zu schließen.
-            # Schwächere Spieler zielen auf das sichere Single-Feld.
-            ring = (
-                "Triple"
-                if self.ai_player.difficulty in ("Profi", "Champion", "Amateur")
-                else "Single"
-            )
-            return ring, int(target_segment)
+        if not dangerous_targets:
+            return None
 
-        # 2. Offensive: Eigene Ziele schließen
+        target_segment = dangerous_targets[0]
+        if target_segment == "Bull":
+            return "Bullseye", 50
+
+        ring = (
+            "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
+        )
+        return ring, int(target_segment)
+
+    def _get_offensive_target(self, targets: list[str]) -> tuple[str, int] | None:
+        """
+        Sucht ein offensives Ziel: Schließe das nächste eigene offene Ziel.
+        Gibt das Ziel zurück oder None, wenn alle eigenen Ziele geschlossen sind.
+        """
         for target in targets:
             if self.ai_player.hits.get(target, 0) < 3:
                 if target == "Bull":
@@ -215,8 +224,13 @@ class CricketAIStrategy(AIStrategy):
                     else "Single"
                 )
                 return ring, int(target)
+        return None
 
-        # 3. Punkte-Phase: Auf offenen Zielen punkten
+    def _get_scoring_target(self, targets: list[str], opponents: list) -> tuple[str, int] | None:
+        """
+        Sucht ein Ziel zum Punkten: Wirf auf ein eigenes geschlossenes Ziel,
+        das bei einem Gegner noch offen ist.
+        """
         for target in targets:
             if any(opp.hits.get(target, 0) < 3 for opp in opponents):
                 if target == "Bull":
@@ -227,6 +241,24 @@ class CricketAIStrategy(AIStrategy):
                     else "Single"
                 )
                 return ring, int(target)
+        return None
+
+    def get_target(self, throw_number: int) -> tuple[str, int]:
+        """Bestimmt das strategische Ziel für Cricket basierend auf einer Phasenlogik."""
+        targets = self.game.game.get_targets()
+        opponents = [p for p in self.game.players if p != self.ai_player]
+
+        # Phase 1: Defensive - Verhindere, dass Gegner punkten.
+        if target := self._get_defensive_target(targets, opponents):
+            return target
+
+        # Phase 2: Offensive - Schließe eigene Ziele.
+        if target := self._get_offensive_target(targets):
+            return target
+
+        # Phase 3: Scoring - Erziele Punkte auf offenen Zielen.
+        if target := self._get_scoring_target(targets, opponents):
+            return target
 
         return "Bullseye", 50  # Fallback
 
@@ -302,6 +334,32 @@ class ShanghaiAIStrategy(AIStrategy):
 
         # Fallback, falls die Runde außerhalb des normalen Bereichs liegt (sollte nicht passieren)
         return "Bullseye", 50
+
+
+class AtcAIStrategy(AIStrategy):
+    """Strategie für Around the Clock."""
+
+    def get_target(self, throw_number: int) -> tuple[str, int]:
+        """
+        Zielt immer auf das nächste erforderliche Segment in der Sequenz.
+        Der erforderliche Ring (Single, Double, Triple) wird aus den Spieloptionen
+        übernommen.
+        """
+        target_segment_str = self.ai_player.next_target
+        if not target_segment_str:
+            # Fallback, falls kein Ziel gesetzt ist (sollte nicht passieren)
+            return "Bullseye", 50
+
+        if target_segment_str == "Bull":
+            return "Bullseye", 50
+
+        try:
+            target_segment = int(target_segment_str)
+            required_ring = self.game.options.opt_atc
+            return required_ring, target_segment
+        except (ValueError, AttributeError):
+            # Fallback bei unerwarteten Daten
+            return "Bullseye", 50
 
 
 class DefaultAIStrategy(AIStrategy):

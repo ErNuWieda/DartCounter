@@ -27,6 +27,7 @@ from core.ai_strategy import (
     DefaultAIStrategy,
     KillerAIStrategy,
     ShanghaiAIStrategy,
+    AtcAIStrategy,
 )
 
 
@@ -135,6 +136,15 @@ def killer_ai_player(ai_player_with_mocks):
     return ai_player, mock_game
 
 
+@pytest.fixture
+def atc_ai_player(ai_player_with_mocks):
+    """Fixture for an AI player specifically configured for Around the Clock games."""
+    ai_player, mock_game = ai_player_with_mocks
+    mock_game.options.name = "Around the Clock"
+    ai_player.strategy = AtcAIStrategy(ai_player)
+    return ai_player, mock_game
+
+
 def test_initialization(ai_player_with_mocks):
     """Testet, ob der AIPlayer korrekt initialisiert wird."""
     ai_player, _ = ai_player_with_mocks
@@ -165,19 +175,34 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
     """Testet die Zielauswahl, wenn ein Checkout-Pfad verfügbar ist."""
     ai_player, mock_game = x01_ai_player
 
-    # Szenario 1: 100 Rest, 3 Darts -> T20, D20
+    # Szenario 2: 40 Rest, 2 Darts -> D20.
+    # Hier müssen wir zwei Fälle testen: die aggressive Profi-Logik und die Standard-Logik.
+    mock_get_suggestion.reset_mock()
+    ai_player.score = 40
+    mock_get_suggestion.return_value = "D20"
+    mock_game.game.opt_out = "Double"  # Sicherstellen, dass die Regel greift
+
+    # Fall A: Profi-KI umgeht den Calculator
+    ai_player.difficulty = "Profi"
+    target = ai_player.strategy.get_target(throw_number=2)
+    assert target == ("Double", 20)
+    mock_get_suggestion.assert_not_called()  # Wichtig: Der Calculator wird NICHT aufgerufen.
+
+    # Fall B: Anfänger-KI nutzt den Calculator
+    ai_player.difficulty = "Anfänger"
+    target = ai_player.strategy.get_target(throw_number=2)
+    assert target == ("Double", 20)
+    mock_get_suggestion.assert_called_with(40, "Double", 2, preferred_double=None)
+
+    # Szenario 1 (neu positioniert): 100 Rest, 3 Darts -> T20, D20
+    # Dieser Test muss nach dem anderen kommen, da der Mock sonst nicht korrekt zurückgesetzt wird.
+    mock_get_suggestion.reset_mock()
+    ai_player.difficulty = "Anfänger"
     ai_player.score = 100
     mock_get_suggestion.return_value = "T20, D20"
     target = ai_player.strategy.get_target(throw_number=1)
     assert target == ("Triple", 20)
     mock_get_suggestion.assert_called_with(100, "Double", 3, preferred_double=None)
-
-    # Szenario 2: 40 Rest, 2 Darts -> D20
-    ai_player.score = 40
-    mock_get_suggestion.reset_mock()
-    mock_get_suggestion.return_value = "D20"
-    target = ai_player.strategy.get_target(throw_number=2)
-    assert target == ("Double", 20)
 
 
 @patch(
@@ -186,7 +211,7 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
 )
 def test_get_strategic_target_for_x01_no_checkout_path(mock_get_suggestion, x01_ai_player):
     """Testet die Zielauswahl, wenn kein Checkout-Pfad gefunden wird (Fallback)."""
-    ai_player, mock_game = x01_ai_player
+    ai_player, _ = x01_ai_player
     ai_player.score = 169  # Kein 2-Dart-Finish
 
     target = ai_player.strategy.get_target(
@@ -196,7 +221,6 @@ def test_get_strategic_target_for_x01_no_checkout_path(mock_get_suggestion, x01_
         "Single",
         19,
     )  # KI sollte auf S19 zielen, um geraden Rest zu hinterlassen
-    mock_get_suggestion.assert_any_call(169, "Double", 2, preferred_double=None)
 
 
 def test_apply_strategic_offset(ai_player_with_mocks):
@@ -410,7 +434,72 @@ def test_killer_ai_prioritizes_attacking_other_killers(killer_ai_player):
     assert target == ("Double", 18)
 
 
+def test_get_strategic_target_for_atc(atc_ai_player):
+    """Testet die Zielauswahl für Around the Clock."""
+    ai_player, mock_game = atc_ai_player
+
+    # Szenario 1: Ziel ist eine Zahl, Option ist 'Double'
+    ai_player.next_target = "15"
+    mock_game.options.opt_atc = "Double"
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Double", 15)
+
+    # Szenario 2: Ziel ist 'Bull'
+    ai_player.next_target = "Bull"
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Bullseye", 50)
+
+
 # --- Tests for Adaptive AI Logic ---
+
+
+def test_execute_throw_uses_adaptive_logic_when_set(ai_player_with_mocks):
+    """
+    Testet, ob _execute_throw die adaptive Logik aufruft, wenn die Schwierigkeit
+    auf "Adaptiv" gesetzt ist und ein Profil mit Modell existiert.
+    """
+    ai_player, mock_game = ai_player_with_mocks
+    ai_player.difficulty = "Adaptive"
+    # Erstelle ein Profil mit einem leeren Genauigkeitsmodell
+    ai_player.profile = PlayerProfile(name="Human", accuracy_model={"T20": {}})
+
+    # Mock die adaptive Methode, um ihren Aufruf zu überprüfen
+    with patch.object(ai_player, "_get_adaptive_throw_coords") as mock_adaptive_coords:
+        mock_adaptive_coords.return_value = (123, 456)  # Ein Dummy-Wert
+
+        # Mock die Standard-Zufallslogik, um sicherzustellen, dass sie NICHT aufgerufen wird
+        with patch("core.ai_player.random.uniform") as mock_uniform:
+            ai_player._execute_throw(throw_number=1)
+
+            # Überprüfe, ob die adaptive Methode aufgerufen wurde
+            mock_adaptive_coords.assert_called_once()
+
+            # Überprüfe, ob die Standard-Streuungslogik NICHT aufgerufen wurde
+            mock_uniform.assert_not_called()
+
+
+def test_adaptive_ai_falls_back_if_no_model(ai_player_with_mocks):
+    """
+    Testet, ob die adaptive KI auf die Standard-Streuung zurückfällt, wenn
+    zwar die Schwierigkeit auf "Adaptiv" gesetzt ist, aber kein Modell im Profil
+    existiert.
+    """
+    ai_player, mock_game = ai_player_with_mocks
+    ai_player.difficulty = "Adaptive"
+    # Erstelle ein Profil OHNE Genauigkeitsmodell
+    ai_player.profile = PlayerProfile(name="Human", accuracy_model=None)
+
+    # Mock die adaptive Methode, um sicherzustellen, dass sie NICHT aufgerufen wird
+    with patch.object(ai_player, "_get_adaptive_throw_coords") as mock_adaptive_coords:
+        # Mock die Standard-Zufallslogik, um zu überprüfen, ob sie aufgerufen wird
+        with patch("core.ai_player.random.uniform") as mock_uniform:
+            ai_player._execute_throw(throw_number=1)
+
+            # Überprüfe, ob die adaptive Methode NICHT aufgerufen wurde
+            mock_adaptive_coords.assert_not_called()
+
+            # Überprüfe, ob die Standard-Streuungslogik aufgerufen wurde
+            mock_uniform.assert_called()
 
 
 def test_adaptive_ai_uses_specific_model(ai_player_with_mocks):

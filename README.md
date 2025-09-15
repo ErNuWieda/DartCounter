@@ -48,7 +48,7 @@ Die Anwendung wird kontinuierlich auf den neuesten Versionen von Windows, Ubuntu
    *   **Wichtiger Hinweis für Debian/Ubuntu:** Für die Bildanzeige in Tkinter wird zusätzlich das Paket `python3-pil.imagetk` benötigt. Installieren Sie es mit:
        `sudo apt install python3-pil.imagetk`
        Dies stellt sicher, dass die von `pip` installierte `Pillow`-Bibliothek korrekt mit der System-Tkinter-Bibliothek zusammenarbeiten kann.
-*   **PostgreSQL-Server:** (Optional) Wird nur benötigt, wenn Sie die Highscore-Funktion nutzen möchten.
+*   **PostgreSQL-Server:** (Optional) Wird für alle persistenten Daten benötigt. Wenn Sie Spielerprofile, detaillierte Spielstatistiken und Highscores speichern möchten, ist eine Datenbankverbindung erforderlich.
 
 ## Installation & Nutzung
 

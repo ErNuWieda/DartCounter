@@ -26,6 +26,7 @@ from .ai_strategy import (
     CricketAIStrategy,
     KillerAIStrategy,
     ShanghaiAIStrategy,
+    AtcAIStrategy,
     DefaultAIStrategy,
 )
 
@@ -58,6 +59,7 @@ class AIPlayer(Player):
         "Tactics": CricketAIStrategy,
         "Killer": KillerAIStrategy,
         "Shanghai": ShanghaiAIStrategy,
+        "Around the Clock": AtcAIStrategy,
     }
 
     def __init__(self, name, game, profile=None):

@@ -156,8 +156,8 @@ class X01ScoreBoard(BaseScoreBoard):
     def _create_extra_widgets(self, parent):
         """Fügt die X01-spezifischen Statistik-Widgets in den übergebenen Parent-Frame ein."""
         # --- Leg/Set-Anzeige für X01-Matches ---
-        # Wird nur angezeigt, wenn es sich um ein Leg/Set-Match handelt.
-        if self.game.is_leg_set_match:
+        # Wird nur angezeigt, wenn es sich um ein Leg/Set-Match handelt (Logik in der X01-Klasse).
+        if self.game.game.is_leg_set_match:
             leg_set_frame = ttk.Frame(parent)
             leg_set_frame.pack(pady=(0, 5), fill="x")
             # Zentriert die beiden inneren Frames (Sätze, Legs)
@@ -231,7 +231,7 @@ class X01ScoreBoard(BaseScoreBoard):
         self.hf_var.set(str(self.player.stats["highest_finish"]))
         self.co_var.set(f"{self.player.get_checkout_percentage():.1f}%")
         # Initialisiert oder aktualisiert die Leg/Set-Anzeige, falls zutreffend.
-        if self.game.is_leg_set_match:
+        if self.game.game.is_leg_set_match:
             leg_score = self.game.player_leg_scores.get(self.player_id, 0)
             set_score = self.game.player_set_scores.get(self.player_id, 0)
             self.update_leg_set_scores(leg_score, set_score)

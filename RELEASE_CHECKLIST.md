@@ -60,6 +60,8 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
     - [ ] Ein **Doppel-K.o.-Turnier** starten, mehrere Matches spielen und den Turnierbaum (Winners & Losers Bracket) überprüfen.
     - [ ] Ein 501-Spiel im **"Legs & Sets"-Modus** starten (z.B. Best of 3 Legs, Best of 3 Sets) und den korrekten Ablauf prüfen.
     - [ ] Highscore-Fenster und Spielerstatistiken-Fenster testen (erfordert erfolgreiche DB-Initialisierung).
+    - [ ] **Profil-Manager testen:** Ein neues Profil erstellen, ein bestehendes bearbeiten und eines löschen.
+    - [ ] **Adaptive KI-Erstellung testen:** Für einen menschlichen Spieler das Genauigkeitsmodell berechnen und anschließend einen adaptiven KI-Klon erstellen.
     - [ ] Die Wurf-Heatmap im Statistik-Fenster prüfen.
     - [ ] Ein Spiel gegen eine adaptive KI ('KI-Klon') starten und ihr Verhalten beobachten.
     - [ ] Ein Cricket-Spiel gegen die KI starten und ihre **taktische Zielauswahl** (Punkten vs. Schließen) beobachten.
