@@ -147,7 +147,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Notwendig, um Assets zu einem Release hinzuzufügen
-    runs-on: ubuntu-latest
 
     steps:
       - name: Download all artifacts
