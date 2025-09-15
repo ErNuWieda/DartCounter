@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from core.ai_player import AIPlayer
@@ -39,8 +40,16 @@ def ai_player_with_mocks():
     """
     mock_game = Mock(spec=Game)
     mock_game.dartboard = Mock()
-    mock_game.dartboard.root = Mock()
-    mock_game.dartboard.root.winfo_exists.return_value = True  # Wichtig für .after()
+
+    # In CI-Umgebungen mocken wir das root-Fenster, um GUI-Fehler zu vermeiden.
+    if os.getenv("CI") == "true":
+        mock_root = MagicMock()
+        # Simuliere, dass die after-Methode den Callback sofort ausführt
+        mock_root.after.side_effect = lambda delay, func, *args: func(*args)
+        mock_game.dartboard.root = mock_root
+    else:
+        mock_game.dartboard.root = tk.Toplevel() # Lokale Tests verwenden ein echtes Fenster
+
     mock_game.dartboard.skaliert = {
         "triple_outer": 520,
         "triple_inner": 470,
