@@ -225,6 +225,8 @@ An alle Kaffeetassen, die während der Entwicklung geleert wurden.
 
 Ein besonderer Dank geht an **Gemini Code Assist**. Die Unterstützung durch diesen KI-Coding-Assistenten war bei der Entwicklung, Fehlersuche, Code-Strukturierung und der Erstellung der Dokumentation von unschätzbarem Wert. Zahlreiche Implementierungen und Verbesserungen konnten durch die Vorschläge und Hilfestellungen von Gemini maßgeblich beschleunigt und qualitativ aufgewertet werden.
 
+Ein zwinkernder Dank geht auch an das **'Secret Squirrel'**. Seine unermüdlichen und kreativen Sabotageversuche haben uns gezwungen, jede Zeile Code zu hinterfragen und die Anwendung robuster zu machen, als wir es je für möglich gehalten hätten. Chapeau, kleiner Nager!
+
 ## Lizenz
 
 Dieses Projekt steht unter der GNU General Public License v3.0. Details finden Sie in der Datei `LICENSE`.
