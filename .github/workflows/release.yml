@@ -31,50 +31,28 @@ jobs:
 
       - name: 4. Install Python Dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip wheel
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          pip install pyinstaller
 
       - name: 5. Run Build Script
         # Das build.py Skript führt Tests aus, baut die App und erstellt das ZIP-Archiv
         run: python build.py
 
-      - name: 6. Install Inno Setup (Windows only)
-        if: runner.os == 'Windows'
-        uses: ammaraskar/setup-inno-setup@v3
-
-      - name: 7. Prepare Installer Script (Windows only)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # Extrahiere die Version aus dem Git-Tag (z.B. v1.3.1 -> 1.3.1)
-          $version = "${{ github.ref_name }}".Substring(1)
-          # Definiere den Pfad zum Build-Verzeichnis, das von build.py erstellt wurde
-          $sourceDir = "DartCounter_Windows_${{ github.ref_name }}"
-          # Lese das Inno Setup Skript
-          $issFile = "installer/create_installer.iss"
-          $issContent = Get-Content $issFile -Raw
-          # Ersetze die Platzhalter
-          $issContent = $issContent.Replace("__APP_VERSION__", $version)
-          $issContent = $issContent.Replace("__SOURCE_DIR__", $sourceDir)
-          # Schreibe die Änderungen zurück in die Datei
-          Set-Content -Path $issFile -Value $issContent
-          echo "Installer script for v$version prepared."
-
-      - name: 8. Compile Installer (Windows only)
-        if: runner.os == 'Windows'
-        run: iscc "installer/create_installer.iss"
-
-      - name: 9. Upload Release Assets
+      - name: 6. Upload Release Assets
         uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
         with:
-          # Der Name ist eindeutig pro OS, um Konflikte zu vermeiden
-          name: release-asset-${{ matrix.os }}
-          # Lade das ZIP-Archiv für alle OS hoch.
-          # Für Windows laden wir zusätzlich die erstellte setup.exe hoch.
+          name: release-asset-windows-installer
           path: |
             DartCounter_*.zip
-            installer/Output/setup.exe
+
+      - name: 6. Upload Release Assets (Linux/macOS)
+        uses: actions/upload-artifact@v4
+        if: runner.os != 'Windows'
+        with:
+          name: release-asset-${{ matrix.os }}
+          path: DartCounter_*.zip
 
   create-release:
     name: Create GitHub Release
@@ -86,13 +64,11 @@ jobs:
 
     steps:
       - name: 1. Checkout code
-        # Wir brauchen den Code hier, um auf die CHANGELOG.md zuzugreifen
         uses: actions/checkout@v4
 
       - name: 2. Download all release assets
         uses: actions/download-artifact@v4
         with:
-          # Lädt alle Artefakte in den 'release-assets' Ordner herunter
           path: release-assets
 
       - name: 3. Extract Release Notes from CHANGELOG.md
@@ -118,11 +94,71 @@ jobs:
           # Der Body des Releases wird der extrahierte Text aus der CHANGELOG.md sein
           body: ${{ steps.extract_release_notes.outputs.notes }}
           # Entwürfe werden nicht automatisch veröffentlicht
-          draft: false
+          draft: true
           # Markiert das Release nicht als "pre-release"
           prerelease: false
           # Hängt alle heruntergeladenen ZIP-Dateien an das Release an
           # Das '**'-Muster durchsucht rekursiv alle Unterverzeichnisse nach ZIP-Dateien.
-          files: release-assets/**/*.*
+          files: release-assets/**/*.zip
+
+  build-installer:
+    name: Build Windows Installer
+    needs: create-release # Startet erst, wenn die Assets hochgeladen sind
+    runs-on: windows-latest
+
+    steps:
+      - name: 1. Checkout code
+        uses: actions/checkout@v4
+
+      - name: 2. Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-asset-windows-installer
+          path: release
+
+      - name: 3. Unzip build artifact
+        run: |
+          Expand-Archive -Path release/DartCounter_*.zip -DestinationPath .
+
+      - name: 4. Set up Inno Setup
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+
+      - name: 5. Prepare Installer Script
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".Substring(1)
+          $sourceDir = "DartCounter_Windows_v" + $version
+          $issFile = "installer/create_installer.iss"
+          (Get-Content $issFile -Raw) -replace '__APP_VERSION__', $version -replace '__SOURCE_DIR__', $sourceDir | Set-Content -Path $issFile
+          echo "Installer script for v$version prepared."
+
+      - name: 6. Compile Windows Installer
+        run: iscc.exe installer/create_installer.iss
+
+      - name: 7. Upload Installer as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installer/Output/DartCounter_Setup.exe
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [create-release, build-installer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-asset-ubuntu-latest/DartCounter_*.zip
+            release-asset-macos-latest/DartCounter_*.zip
+            windows-installer/DartCounter_Setup.exe
+          draft: false # Veröffentlicht den zuvor erstellten Entwurf
 
 ```
