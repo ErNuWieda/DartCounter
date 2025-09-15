@@ -144,25 +144,27 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [create-release, build-installer]
+    permissions:
+      contents: write # Notwendig, um Assets zu einem Release hinzuzufügen
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Grant permissions
-        uses: actions/github-script@v7
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-
-      - name: Publish Release
-        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release-asset-ubuntu-latest/DartCounter_*.zip
-            release-asset-macos-latest/DartCounter_*.zip
-            windows-installer/DartCounter_Setup.exe
-          draft: false # Veröffentlicht den zuvor erstellten Entwurf
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+          path: release-assets
+
+      - name: Upload Release Assets and Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Lade die einzelnen Artefakte hoch
+          gh release upload ${{ github.ref_name }} release-assets/release-asset-ubuntu-latest/DartCounter_*.zip
+          gh release upload ${{ github.ref_name }} release-assets/release-asset-macos-latest/DartCounter_*.zip
+          gh release upload ${{ github.ref_name }} release-assets/windows-installer/DartCounter_Setup.exe
+
+          # Veröffentliche das Release (Entwurf entfernen)
+          gh release edit ${{ github.ref_name }} --draft=false
 
 
 ```
