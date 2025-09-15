@@ -286,6 +286,30 @@ class TargetBasedScoreBoard(BaseScoreBoard):
                 else:
                     var.set(False)
 
+class SplitScoreBoard(BaseScoreBoard):
+    """Ein spezialisiertes Scoreboard für das Trainingsspiel Split Score."""
+
+    def __init__(self, root, player, pos_x=None, pos_y=None, width=300, height=None):
+        super().__init__(root, player, pos_x, pos_y, width, height)
+        self.update_score(self.player.score)
+
+    def _create_extra_widgets(self, main_frame):
+        """Erstellt eine Anzeige für das aktuelle Rundenziel."""
+        target_frame = ttk.LabelFrame(main_frame, text="Rundenziel")
+        target_frame.pack(pady=10, fill="x", padx=5)
+        self.target_var = tk.StringVar(value="-")
+        ttk.Label(
+            target_frame,
+            textvariable=self.target_var,
+            font=("Arial", 14, "bold"),
+            justify="center",
+        ).pack(pady=5)
+
+    def update_target_display(self, target: tuple[str, int]):
+        """Aktualisiert die Anzeige für das Rundenziel."""
+        ring, segment = target
+        self.target_var.set(f"{ring} {segment}")
+
 
 class ScoreBoard(BaseScoreBoard):
     """
@@ -351,6 +375,8 @@ def setup_scoreboards(game_controller):
                 "Shanghai",
             ):
                 scoreboard_class = TargetBasedScoreBoard
+            elif game_name == "Split Score":
+                scoreboard_class = SplitScoreBoard
             else:
                 # Fallback für Spiele ohne spezielle UI (z.B. Killer, Elimination)
                 scoreboard_class = ScoreBoard

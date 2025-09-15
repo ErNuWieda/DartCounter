@@ -52,5 +52,12 @@
             "rounds": "7"
         }
     },
-    "Tactics": {}
-}
+    "Tactics": {},
+    "Split Score": {
+        "frame": "split_score_options",
+        "min_players": 1,
+        "defaults": {
+            "opt_split_score_target": "60"
+        }
+    }
+}    

@@ -64,6 +64,7 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
     - [ ] **Adaptive KI-Erstellung testen:** Für einen menschlichen Spieler das Genauigkeitsmodell berechnen und anschließend einen adaptiven KI-Klon erstellen.
     - [ ] Die Wurf-Heatmap im Statistik-Fenster prüfen.
     - [ ] Ein Spiel gegen eine adaptive KI ('KI-Klon') starten und ihr Verhalten beobachten.
+    - [ ] Das neue Trainingsspiel **"Split Score"** starten und den korrekten Ablauf (S, D, T) prüfen.
     - [ ] Ein Cricket-Spiel gegen die KI starten und ihre **taktische Zielauswahl** (Punkten vs. Schließen) beobachten.
     - [ ] Soundeffekte (an/aus) und Theme-Wechsel (hell/dunkel) testen.
 - [ ] **Asset-Laden prüfen:** Sicherstellen, dass das Dartboard und alle anderen Bilder korrekt angezeigt werden.

@@ -27,6 +27,7 @@ from core.ai_strategy import (
     DefaultAIStrategy,
     KillerAIStrategy,
     ShanghaiAIStrategy,
+    SplitScoreAIStrategy,
     AtcAIStrategy,
 )
 
@@ -137,11 +138,39 @@ def killer_ai_player(ai_player_with_mocks):
 
 
 @pytest.fixture
+def shanghai_ai_player(ai_player_with_mocks):
+    """Fixture for an AI player specifically configured for Shanghai games."""
+    ai_player, mock_game = ai_player_with_mocks
+    mock_game.options.name = "Shanghai"
+    ai_player.strategy = ShanghaiAIStrategy(ai_player)
+    return ai_player, mock_game
+
+
+@pytest.fixture
 def atc_ai_player(ai_player_with_mocks):
     """Fixture for an AI player specifically configured for Around the Clock games."""
     ai_player, mock_game = ai_player_with_mocks
     mock_game.options.name = "Around the Clock"
     ai_player.strategy = AtcAIStrategy(ai_player)
+    return ai_player, mock_game
+
+
+@pytest.fixture
+def split_score_ai_player(ai_player_with_mocks):
+    """Fixture for an AI player specifically configured for Split Score games."""
+    ai_player, mock_game = ai_player_with_mocks
+    mock_game.options.name = "Split Score"
+    # Simuliere die Zielsequenz, die von der echten Spiellogik bereitgestellt wird
+    mock_game.game.targets = [
+        ("Single", 15),
+        ("Single", 16),
+        ("Double", 17),
+        ("Double", 18),
+        ("Triple", 19),
+        ("Triple", 20),
+        ("Bullseye", 50),
+    ]
+    ai_player.strategy = SplitScoreAIStrategy(ai_player)
     return ai_player, mock_game
 
 
@@ -446,6 +475,46 @@ def test_get_strategic_target_for_atc(atc_ai_player):
 
     # Szenario 2: Ziel ist 'Bull'
     ai_player.next_target = "Bull"
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Bullseye", 50)
+
+
+def test_get_strategic_target_for_shanghai(shanghai_ai_player):
+    """Testet die Zielauswahl für Shanghai."""
+    ai_player, mock_game = shanghai_ai_player
+
+    # Szenario 1: Runde 7, KI sollte auf T7 zielen
+    mock_game.round = 7
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Triple", 7)
+
+    # Szenario 2: Runde 20, KI sollte auf T20 zielen
+    mock_game.round = 20
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Triple", 20)
+
+    # Szenario 3: Ungültige Runde (Fallback)
+    mock_game.round = 21
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Bullseye", 50)
+
+
+def test_get_strategic_target_for_split_score(split_score_ai_player):
+    """Testet die Zielauswahl für das Spiel Split Score."""
+    ai_player, mock_game = split_score_ai_player
+
+    # Szenario 1: Runde 1 -> Ziel ist S15
+    mock_game.round = 1
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Single", 15)
+
+    # Szenario 2: Runde 4 -> Ziel ist D18
+    mock_game.round = 4
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Double", 18)
+
+    # Szenario 3: Runde 7 -> Ziel ist Bullseye
+    mock_game.round = 7
     target = ai_player.strategy.get_target(throw_number=1)
     assert target == ("Bullseye", 50)
 

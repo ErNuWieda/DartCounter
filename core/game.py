@@ -1,19 +1,3 @@
-# Dartcounter Deluxe
-# Copyright (C) 2025 Martin Hehl (airnooweeda)
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 """
 Dieses Modul definiert die Hauptlogik für verschiedene Dartspiele.
 Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
@@ -21,6 +5,7 @@ Es enthält die Game-Klasse, die den Spielablauf und die Spieler verwaltet.
 import logging
 import tkinter as tk
 from . import ui_utils
+from .game_logic import GameLogic
 from .game_options import GameOptions
 from .player import Player
 from .ai_player import AIPlayer
@@ -33,6 +18,7 @@ from .elimination import Elimination
 from .micky import Micky
 from .killer import Killer
 from .shanghai import Shanghai
+from .split_score import SplitScore
 from .dartboard import DartBoard
 from .scoreboard import setup_scoreboards
 
@@ -51,6 +37,7 @@ GAME_LOGIC_MAP = {
     "Micky Mouse": Micky,
     "Killer": Killer,
     "Shanghai": Shanghai,
+    "Split Score": SplitScore,
 }
 
 logger = logging.getLogger(__name__)
@@ -116,14 +103,7 @@ class Game:
         self.end = False
         self.winner = None
 
-        # FIX: Die Spiellogik und die Ziele müssen VOR den Spielern
-        # initialisiert werden, da der Player-Konstruktor auf `game.targets` zugreift.
-        self.game = self.get_game_logic()
-        self.targets = self.game.get_targets()
-
-        # FIX: Die Spielerliste muss VOR der Spiellogik-Instanz (`self.game`)
-        # initialisiert werden, da die Logik (z.B. X01 für Legs/Sets) beim
-        # eigenen Initialisieren bereits auf die Spielerliste zugreifen muss.
+        # Schritt 1: Spielerliste erstellen.
         self.players = []  # Spieler-Instanzen erstellen und Profile zuweisen
         for name in player_names:
             profile = (
@@ -133,6 +113,10 @@ class Game:
                 self.players.append(AIPlayer(name, self, profile=profile))
             else:
                 self.players.append(Player(name, self, profile=profile))
+
+        # Schritt 2: Spiellogik und Ziele initialisieren, nachdem die Spieler existieren.
+        self.game = self.get_game_logic()
+        self.targets = self.game.get_targets()
 
         # Spielspezifischen Zustand für jeden Spieler initialisieren,
         # indem die Logik an die jeweilige Spielklasse delegiert wird.
@@ -275,6 +259,11 @@ class Game:
                 is_active = p.id == player.id
                 p.sb.set_active(is_active)
                 if is_active and p.sb.score_window.winfo_exists():
+                    # Speziell für Split Score: Aktualisiere das Rundenziel auf dem Scoreboard
+                    if self.options.name == "Split Score" and hasattr(p.sb, "update_target_display"):
+                        round_index = self.round - 1
+                        if 0 <= round_index < len(self.game.targets):
+                            p.sb.update_target_display(self.game.targets[round_index])
                     p.sb.score_window.lift()
                     p.sb.score_window.focus_force()
 
@@ -328,6 +317,10 @@ class Game:
 
         current_p = self.current_player()
         if current_p:
+            # Hook für Spiellogiken, die am Ende einer Runde ausgeführt werden müssen (z.B. Split Score)
+            if hasattr(self.game, "handle_end_of_turn"):
+                self.game.handle_end_of_turn(current_p)
+
             current_p.reset_turn()  # Reset throws for the player whose turn just ended
 
         self.current = (self.current + 1) % len(self.players)

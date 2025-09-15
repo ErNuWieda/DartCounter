@@ -78,9 +78,7 @@ class Player:
         self.name = name  # type: ignore
         self.game_name = game.options.name
         self.profile = profile
-        self.score = 0
         self.game = game
-        self.targets = self.game.targets  # type: ignore
 
         # State- und Statistik-Dictionaries aus den Klassenvorlagen initialisieren
         self.state = self.INITIAL_STATE.copy()

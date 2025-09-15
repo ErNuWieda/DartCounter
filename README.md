@@ -18,6 +18,7 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
         *   Opt-Out: Single, Double, Masters
     *   **Cricket-Varianten:** Standard Cricket, Cut Throat und Tactics.
     *   **Strategie- & Partyspiele:** Around the Clock (ATC), Micky Maus, Killer, Elimination und Shanghai.
+    *   **Trainingsspiele:** **Split Score** (Treffe S, D, T eines wählbaren Ziels).
 *   **Intelligente KI-Gegner:**
     *   Spiele gegen KI-Gegner mit einstellbaren Schwierigkeitsgraden (von Anfänger bis Champion).
     *   Die KI verfolgt eine menschliche Wurfstrategie, inklusive Power-Scoring und cleveren Setup-Würfen im Finish-Bereich.

@@ -26,6 +26,7 @@ from .ai_strategy import (
     CricketAIStrategy,
     KillerAIStrategy,
     ShanghaiAIStrategy,
+    SplitScoreAIStrategy,
     AtcAIStrategy,
     DefaultAIStrategy,
 )
@@ -59,6 +60,7 @@ class AIPlayer(Player):
         "Tactics": CricketAIStrategy,
         "Killer": KillerAIStrategy,
         "Shanghai": ShanghaiAIStrategy,
+        "Split Score": SplitScoreAIStrategy,
         "Around the Clock": AtcAIStrategy,
     }
 

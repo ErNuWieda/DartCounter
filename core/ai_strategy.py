@@ -362,6 +362,23 @@ class AtcAIStrategy(AIStrategy):
             return "Bullseye", 50
 
 
+class SplitScoreAIStrategy(AIStrategy):
+    """Strategie für das Trainingsspiel Split Score."""
+
+    def get_target(self, throw_number: int) -> tuple[str, int]:
+        """
+        Ermittelt das korrekte Ziel für die aktuelle Runde basierend auf der
+        festgelegten Sequenz des Spiels.
+        """
+        round_index = self.game.round - 1
+        targets = self.game.game.targets
+
+        if 0 <= round_index < len(targets):
+            return targets[round_index]
+
+        return "Bullseye", 50  # Fallback
+
+
 class DefaultAIStrategy(AIStrategy):
     """Fallback-Strategie, die immer auf das Bullseye zielt."""
 

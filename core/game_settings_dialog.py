@@ -27,37 +27,33 @@ logger = logging.getLogger(__name__)
 
 def _load_game_config():
     """
-    Lädt die Spielkonfigurationen. Sucht zuerst im Benutzerverzeichnis.
-    Wenn dort keine Konfiguration existiert, wird die Standardkonfiguration
-    aus dem Anwendungsverzeichnis dorthin kopiert.
+    Lädt die Spielkonfigurationen auf eine robuste Weise.
+    1. Lädt die Standardkonfiguration aus dem Anwendungsverzeichnis als Basis.
+    2. Lädt eine benutzerspezifische Konfiguration, falls vorhanden.
+    3. Führt beide zusammen, wobei benutzerspezifische Einstellungen Vorrang haben,
+       aber neue Spiele aus der Standardkonfiguration immer hinzugefügt werden.
     """
     user_config_path = get_app_data_dir() / "game_config.json"
     default_config_path = get_application_root_dir() / "game_config.json"
 
-    # Schritt 1: Sicherstellen, dass eine Konfigurationsdatei im Benutzerverzeichnis existiert.
-    if not user_config_path.exists():
-        if default_config_path.exists():
-            try:
-                # Kopiere die Standardkonfiguration in das Benutzerverzeichnis
-                shutil.copy(default_config_path, user_config_path)
-                log_msg = f"Keine 'game_config.json' im Benutzerverzeichnis gefunden. Standardkonfiguration wurde kopiert nach: {user_config_path}"
-                logger.info(log_msg)
-            except (IOError, shutil.Error) as e:
-                logger.error(
-                    f"Konnte die Standard-Spielkonfiguration nicht kopieren: {e}",
-                    exc_info=True,
-                )
-                # Als Fallback versuchen wir, direkt die Standardkonfiguration zu laden
-                config = JsonIOHandler.read_json(default_config_path)
-                return config if config else {}
-        else:
-            # Weder Benutzer- noch Standardkonfiguration gefunden
-            logger.warning("Keine 'game_config.json' gefunden. Spieloptionen sind nicht verfügbar.")
-            return {}
+    # Schritt 1: Lade die Standardkonfiguration. Dies ist die "Wahrheit" über alle verfügbaren Spiele.
+    default_config = JsonIOHandler.read_json(default_config_path)
+    if not default_config:
+        logger.error("Standard-Spielkonfiguration 'game_config.json' konnte nicht geladen werden!")
+        return {}
 
-    # Schritt 2: Lade die Konfiguration aus dem Benutzerverzeichnis.
-    config = JsonIOHandler.read_json(user_config_path)
-    return config if config else {}
+    # Schritt 2: Lade die Benutzerkonfiguration, falls sie existiert.
+    user_config = {}
+    if user_config_path.exists():
+        user_config = JsonIOHandler.read_json(user_config_path)
+
+    # Schritt 3: Führe die Konfigurationen zusammen.
+    # Neue Spiele aus der default_config werden hinzugefügt.
+    # Bestehende Einträge in user_config überschreiben die Standardwerte.
+    merged_config = default_config.copy()
+    merged_config.update(user_config)
+
+    return merged_config
 
 
 # Die Spielkonfiguration wird nur einmal beim Import des Moduls geladen.
@@ -82,6 +78,7 @@ class GameSettingsDialog(tk.Toplevel):
         self.lifes_var = tk.StringVar(value="3")
         self.legs_to_win_var = tk.StringVar(value="1")  # Neu für Legs
         self.sets_to_win_var = tk.StringVar(value="1")  # Neu für Sets
+        self.opt_split_score_target_var = tk.StringVar()
         self.rounds_var = tk.StringVar(value="7")
         self.player_count_var = tk.StringVar(value="1")
 
@@ -96,6 +93,7 @@ class GameSettingsDialog(tk.Toplevel):
             "rounds": self.rounds_var,
             "legs_to_win": self.legs_to_win_var,
             "sets_to_win": self.sets_to_win_var,
+            "opt_split_score_target": self.opt_split_score_target_var,
         }
         # --- Konfiguration für die dynamisch erstellten Options-Frames ---
         # Zentralisiert die UI-Definition für Spieloptionen, um die Wartbarkeit zu verbessern.
@@ -155,6 +153,13 @@ class GameSettingsDialog(tk.Toplevel):
                     "variable": self.rounds_var,
                 },
             ],
+            "split_score_options": [
+                {
+                    "label": "Start-Score",
+                    "values": ["40", "60", "100"],
+                    "variable": self.opt_split_score_target_var,
+                },
+            ],
         }
 
         self.max_players = 4
@@ -187,6 +192,9 @@ class GameSettingsDialog(tk.Toplevel):
 
         # Initialen Zustand der Optionen setzen
         self._update_available_profiles()
+        # Rufe dies einmal manuell auf, um sicherzustellen, dass die Optionen
+        # für das standardmäßig ausgewählte Spiel (z.B. 301) korrekt angezeigt
+        # und die Variablen initialisiert werden.
         self._on_game_selected()
 
     def _on_start(self):
@@ -396,7 +404,7 @@ class GameSettingsDialog(tk.Toplevel):
         self.game_select = ttk.Combobox(
             self.game_selection_frame,
             textvariable=self.game_var,
-            values=list(GAME_CONFIG.keys()),
+            values=sorted(list(GAME_CONFIG.keys())),
             state="readonly",
         )
         self.game_select.grid(row=0, column=1, sticky="ew", pady=5, padx=5)

@@ -30,6 +30,7 @@ class GameOptions:
     rounds: int
     legs_to_win: int
     sets_to_win: int
+    opt_split_score_target: int = 60
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -47,6 +48,7 @@ class GameOptions:
             "rounds",
             "legs_to_win",
             "sets_to_win",
+            "opt_split_score_target",
         ]:
             if field in filtered_data:
                 try:
@@ -66,6 +68,10 @@ class GameOptions:
                         filtered_data[field] = 1
                     if field == "sets_to_win":
                         filtered_data[field] = 1
+                    if field == "opt_split_score_target":
+                        filtered_data[field] = 60
+                    if field == "opt_split_score_target":
+                        filtered_data[field] = 60
 
         return cls(**filtered_data)
 
