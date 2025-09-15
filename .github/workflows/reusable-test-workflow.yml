@@ -46,7 +46,8 @@ jobs:
       - name: 4. Install System Dependencies (for macOS runner)
         if: runner.os == 'macOS'
         run: |
-          brew install --cask xquartz # XQuartz wird für Tkinter auf macOS empfohlen
+          brew install tcl-tk
+          brew install --cask xquartz
 
       - name: 5. Install Python Dependencies
         run: |
