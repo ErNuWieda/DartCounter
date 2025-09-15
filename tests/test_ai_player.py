@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from core.ai_player import AIPlayer
@@ -41,14 +40,14 @@ def ai_player_with_mocks():
     mock_game = Mock(spec=Game)
     mock_game.dartboard = Mock()
 
-    # In CI-Umgebungen mocken wir das root-Fenster, um GUI-Fehler zu vermeiden.
-    if os.getenv("CI") == "true":
-        mock_root = MagicMock()
-        # Simuliere, dass die after-Methode den Callback sofort ausführt
-        mock_root.after.side_effect = lambda delay, func, *args: func(*args)
-        mock_game.dartboard.root = mock_root
-    else:
-        mock_game.dartboard.root = tk.Toplevel() # Lokale Tests verwenden ein echtes Fenster
+    # Erstelle einen Mock für das Tkinter-Root-Fenster.
+    # Dies ist entscheidend, um GUI-Interaktionen in den Tests zu simulieren.
+    mock_root = MagicMock()
+    # Die `after`-Methode wird gemockt, aber der Callback wird NICHT automatisch ausgeführt.
+    # Dies verhindert unerwünschte Rekursion in den Tests und ermöglicht eine präzise
+    # Überprüfung, ob die Methode korrekt aufgerufen wurde.
+    mock_root.after = MagicMock()
+    mock_game.dartboard.root = mock_root
 
     mock_game.dartboard.skaliert = {
         "triple_outer": 520,
@@ -64,7 +63,7 @@ def ai_player_with_mocks():
     mock_game.settings_manager = MagicMock(get=MagicMock(return_value=1000))
 
     mock_game.targets = []  # Fehlendes Attribut hinzufügen
-
+    
     # Mock die get_score Methode, da die Strategie sie verwendet
     def mock_get_score(ring, segment):
         if ring == "Triple":
