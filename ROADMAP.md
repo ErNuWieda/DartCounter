@@ -34,9 +34,6 @@ Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplant
     - **Profil-Manager:** Der Dialog zur Spieler-Verwaltung wurde für eine bessere Übersichtlichkeit und dynamische Größenanpassung überarbeitet.
     - **Stabiler Turniermodus:** Kritische Fehler in der Turnierlogik wurden behoben, was einen reibungslosen Ablauf sicherstellt.
 
-### Version 1.3.2 (In Entwicklung)
-- **Neues Trainingsspiel "Split Score":** Ein neues Spiel wurde hinzugefügt, um das gezielte Treffen von Single-, Double- und Triple-Feldern eines Segments zu üben, inklusive einer dedizierten KI-Strategie.
-
 ### Version 1.3.1: Stabilität & Feinschliff
 - **Robuste Test-Suite:** Die gesamte Test-Suite wurde stabilisiert, indem fehlerhafte Test-Setups und inkonsistente Mocks korrigiert wurden. Alle 243 Tests laufen nun zuverlässig.
 - **Verfeinerte KI-Strategie:** Die Logik der X01-KI wurde weiter verbessert, insbesondere in Bezug auf Setup-Würfe und die Handhabung von Bogey-Nummern.
@@ -44,6 +41,10 @@ Dieses Dokument skizziert den bisherigen Entwicklungsfortschritt und die geplant
 - **Verbesserte Code-Struktur:** Die Strategie-Klassen für X01 und Cricket wurden refaktorisiert, um die Lesbarkeit und Wartbarkeit zu verbessern.
 
 ---
+
+### Version 1.3.2: Neues Trainingsspiel & Stabilität
+- **Neues Trainingsspiel "Split Score":** Ein neues Spiel wurde implementiert, bei dem Spieler eine feste Zielsequenz treffen müssen, um ihren Punktestand nicht zu halbieren. Inklusive konfigurierbarem Start-Score, dedizierter KI und angepasstem Scoreboard.
+- **Strukturverbesserung:** Die `GameLogic`-Basisklasse wurde in ein eigenes Modul ausgelagert, um die Architektur zu verbessern und zirkuläre Abhängigkeiten zu beheben.
 
 ## 🚀 Zukünftige Pläne (Version 1.4 und darüber hinaus)
 

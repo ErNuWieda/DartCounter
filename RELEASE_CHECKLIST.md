@@ -1,4 +1,4 @@
- # Release Checklist für Dartcounter v1.3.1
+ # Release Checklist für Dartcounter v1.4.0
 
 Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-Prozess sicher.
 
@@ -63,8 +63,8 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
     - [ ] **Profil-Manager testen:** Ein neues Profil erstellen, ein bestehendes bearbeiten und eines löschen.
     - [ ] **Adaptive KI-Erstellung testen:** Für einen menschlichen Spieler das Genauigkeitsmodell berechnen und anschließend einen adaptiven KI-Klon erstellen.
     - [ ] Die Wurf-Heatmap im Statistik-Fenster prüfen.
-    - [ ] Ein Spiel gegen eine adaptive KI ('KI-Klon') starten und ihr Verhalten beobachten.
-    - [ ] Das neue Trainingsspiel **"Split Score"** starten und den korrekten Ablauf (S, D, T) prüfen.
+    - [ ] Ein Spiel gegen eine adaptive KI ("KI-Klon") starten und ihr Verhalten beobachten.
+    - [ ] Das neue Trainingsspiel **"Split Score"** starten und den korrekten Ablauf (feste Zielsequenz, Halbierung bei Fehltreffer) prüfen.
     - [ ] Ein Cricket-Spiel gegen die KI starten und ihre **taktische Zielauswahl** (Punkten vs. Schließen) beobachten.
     - [ ] Soundeffekte (an/aus) und Theme-Wechsel (hell/dunkel) testen.
 - [ ] **Asset-Laden prüfen:** Sicherstellen, dass das Dartboard und alle anderen Bilder korrekt angezeigt werden.

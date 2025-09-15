@@ -14,6 +14,14 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.2] - 2025-09-15
+
+### ✨ Features & Verbesserungen
+
+### 🐛 Bugfixes & Stabilität
+
+---
+
 ## [1.3.1] - 2025-08-28
 
 ### 🐛 Bugfixes & Stabilität
