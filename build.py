@@ -47,6 +47,11 @@ def run_tests():
             "pytest",
             "-sv",  # -s: print() ausgeben, -v: verbose. Gut für Build-Logs.
         ]
+
+        # Auf Linux-Systemen (wie in der CI) müssen GUI-Tests in einer virtuellen Anzeige laufen.
+        if platform.system() == "Linux":
+            test_command.insert(0, "xvfb-run")
+
         subprocess.run(test_command, check=True)
         print(">>> ✅ Alle Tests erfolgreich bestanden.")
         return True

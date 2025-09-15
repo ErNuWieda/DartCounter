@@ -27,7 +27,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk python3-pil.imagetk
+          sudo apt-get install -y python3-tk python3-pil.imagetk xvfb
 
       - name: 4. Install Python Dependencies
         run: |
@@ -144,6 +144,7 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [create-release, build-installer]
+    runs-on: ubuntu-latest
     permissions:
       contents: write # Notwendig, um Assets zu einem Release hinzuzufügen
     runs-on: ubuntu-latest
@@ -153,6 +154,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+          path: . # Lädt alle Artefakte in das Hauptverzeichnis des Workflows
 
       - name: Upload Release Assets and Publish
         env:
@@ -162,6 +164,10 @@ jobs:
           gh release upload ${{ github.ref_name }} release-assets/release-asset-ubuntu-latest/DartCounter_*.zip
           gh release upload ${{ github.ref_name }} release-assets/release-asset-macos-latest/DartCounter_*.zip
           gh release upload ${{ github.ref_name }} release-assets/windows-installer/DartCounter_Setup.exe
+          # Lade alle Artefakte aus den Unterverzeichnissen hoch
+          gh release upload ${{ github.ref_name }} release-asset-ubuntu-latest/DartCounter_*.zip
+          gh release upload ${{ github.ref_name }} release-asset-macos-latest/DartCounter_*.zip
+          gh release upload ${{ github.ref_name }} windows-installer/DartCounter_Setup.exe
 
           # Veröffentliche das Release (Entwurf entfernen)
           gh release edit ${{ github.ref_name }} --draft=false
