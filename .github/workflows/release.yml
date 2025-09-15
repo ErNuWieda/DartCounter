@@ -144,11 +144,11 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [create-release, build-installer]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
+      - name: Grant permissions
+        uses: actions/github-script@v7
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
@@ -160,5 +160,9 @@ jobs:
             release-asset-macos-latest/DartCounter_*.zip
             windows-installer/DartCounter_Setup.exe
           draft: false # Veröffentlicht den zuvor erstellten Entwurf
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
 
 ```
