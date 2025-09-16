@@ -27,37 +27,17 @@ class DartboardGeometry:
     ORIGINAL_SIZE = 2200
     CENTER = ORIGINAL_SIZE // 2
     RADIEN = {
-        "bullseye": 30,
-        "bull": 80,
-        "triple_inner": 470,
-        "triple_outer": 520,
-        "double_inner": 785,
-        "double_outer": 835,
-        "outer_edge": 836,
+        "bullseye": 35,       # Neu vermessen 2024-05-23 (Zentrum korrigiert)
+        "bull": 79,           # Neu vermessen 2024-05-23 (Zentrum korrigiert)
+        "triple_inner": 464,  # Neu vermessen 2024-05-23 (Zentrum korrigiert)
+        "triple_outer": 516,  # Neu vermessen 2024-05-23 (Zentrum korrigiert)
+        "double_inner": 771,  # Neu vermessen 2024-05-23 (Zentrum korrigiert)
+        "double_outer": 820,  # Neu vermessen 2024-05-23 (Zentrum korrigiert)
+        "outer_edge": 1068,   # Neu vermessen 2024-05-23 (Zentrum korrigiert)
     }
-    # Segmente im Uhrzeigersinn, beginnend bei der "6" oben rechts
-    SEGMENTS = [
-        6,
-        13,
-        4,
-        18,
-        1,
-        20,
-        5,
-        12,
-        9,
-        14,
-        11,
-        8,
-        16,
-        7,
-        19,
-        3,
-        17,
-        2,
-        15,
-        10,
-    ]
+    # Standard-Dartboard-Layout, im Uhrzeigersinn, beginnend bei der 3-Uhr-Position.
+    # Dies ist die korrekte, standardisierte Reihenfolge.
+    SEGMENTS = [6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20, 1, 18, 4, 13]
 
     @staticmethod
     def get_segment_from_coords(x: float, y: float, size: int = 2200) -> str:
@@ -116,10 +96,9 @@ class DartboardGeometry:
 
         # Winkel zur Mitte des Segments berechnen.
         # Die SEGMENTS-Liste ist im Uhrzeigersinn definiert. Mathematische Winkel
-        # (und atan2) verlaufen jedoch gegen den Uhrzeigersinn. Um dies zu korrigieren,
-        # muss der Winkel-Offset addiert statt subtrahiert werden.
-        # Dies ist der entscheidende Fix, der das Zielen in die falsche Boardhälfte behebt.
-        angle_deg = 9 + (segment_index * 18)
+        # (und atan2) verlaufen jedoch gegen den Uhrzeigersinn. Um dies zu korrigieren, muss
+        # der Winkel negativ sein, um im Uhrzeigersinn zu laufen.
+        angle_deg = -(9 + (segment_index * 18))
 
         # Datengesteuerte Radienberechnung
         radius_keys_map = {

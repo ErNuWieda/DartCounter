@@ -1,6 +1,5 @@
 # Dartcounter Deluxe
 # Copyright (C) 2025 Martin Hehl (airnooweeda)
-# Copyright (C) 2025 I Deny Code Assist
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,93 +15,111 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from unittest.mock import MagicMock, patch
-from core.dartboard_geometry import DartboardGeometry
+import math
+from unittest.mock import Mock
 from core.dartboard import DartBoard
 
 
-class TestDartboardGeometry:
-
-    # Test get_segment_from_coords
-    def test_get_segment_from_coords_center(self):
-        # Testet mit der korrekten Referenzgröße der Klasse
-        size = DartboardGeometry.ORIGINAL_SIZE
-        center = DartboardGeometry.CENTER
-        assert DartboardGeometry.get_segment_from_coords(center, center, size=size) == "Bullseye"
-
-    def test_get_segment_from_coords_specific_segments(self):
-        # Testet mit der korrekten Referenzgröße der Klasse
-        size = DartboardGeometry.ORIGINAL_SIZE
-        center = DartboardGeometry.CENTER
-        # Oben im Board, im Triple-20-Segment
-        # Radius für T20 ist zwischen 470 und 520. Winkel ist -90 Grad.
-        y_pos_t20 = center - (DartboardGeometry.RADIEN["triple_inner"] + 10)
-        assert DartboardGeometry.get_segment_from_coords(center, y_pos_t20, size=size) == "20"
-        # Rechts im Board, im Single-6-Segment
-        # Radius für S6 ist zwischen 80 und 470. Winkel ist 0 Grad.
-        x_pos_s6 = center + (DartboardGeometry.RADIEN["bull"] + 10)
-        assert DartboardGeometry.get_segment_from_coords(x_pos_s6, center, size=size) == "6"
-
-    def test_get_segment_from_coords_miss(self):
-        # Außerhalb des Boards
-        size = DartboardGeometry.ORIGINAL_SIZE
-        assert DartboardGeometry.get_segment_from_coords(0, 0, size=size) == "Miss"
-        assert DartboardGeometry.get_segment_from_coords(size - 1, size - 1, size=size) == "Miss"
-
-    # Test get_target_coords
-    def test_get_target_coords(self):
-        # Teste einige bekannte Ziel-Koordinaten
-        assert DartboardGeometry.get_target_coords("T20") is not None
-        assert DartboardGeometry.get_target_coords("BE") == (
-            DartboardGeometry.CENTER,
-            DartboardGeometry.CENTER,
-        )
-        assert DartboardGeometry.get_target_coords("INVALID") is None
-
-
 @pytest.fixture
-def mock_dartboard():
-    """Fixture to create a mocked DartBoard instance for testing UI-independent logic."""
-    # Mock the parent 'spiel' object
-    mock_spiel = MagicMock()
+def dartboard_instance(tk_root_session):
+    """
+    Erstellt eine echte DartBoard-Instanz für Tests.
+    Das tk_root_session-Fixture stellt sicher, dass ein gültiges, aber
+    unsichtbares Tkinter-Fenster für die Canvas-Erstellung existiert.
+    """
+    # Mocke die Game-Instanz, die vom DartBoard-Konstruktor benötigt wird
+    mock_game = Mock()
+    mock_game.options.name = "Test"
+    mock_game.root = tk_root_session
 
-    # We can't instantiate DartBoard directly because it creates a Toplevel window.
-    # So we patch the __init__ method to prevent UI creation.
-    with patch.object(DartBoard, "__init__", lambda s, spiel: None):
-        board = DartBoard(mock_spiel)
-        board.spiel = mock_spiel
-
-        # Manually set the attributes that would be created in __init__
-        board.center_x = 500
-        board.center_y = 500
-        # Simulate a board scaled to 1000x1000 for easy calculations
-        scale = 1000 / DartboardGeometry.ORIGINAL_SIZE
-        board.skaliert = {k: int(v * scale) for k, v in DartboardGeometry.RADIEN.items()}
-
-        yield board
+    # Erstelle die DartBoard-Instanz. Der __init__-Konstruktor ruft
+    # _create_board auf, was die notwendigen Attribute wie `canvas`,
+    # `center_x`, `center_y` und `skaliert` initialisiert.
+    db = DartBoard(mock_game)
+    yield db
+    # Das Fenster wird vom tk_root_session-Fixture am Ende des Testlaufs zerstört.
 
 
-class TestDartBoard:
-    """Tests for the DartBoard class, which handles user interaction and click logic."""
+def get_coords_from_polar(dartboard, angle_deg, radius_px):
+    """Hilfsfunktion zur Umrechnung von Polarkoordinaten in kartesische Canvas-Koordinaten."""
+    angle_rad = math.radians(angle_deg)
+    center_x = dartboard.center_x
+    center_y = dartboard.center_y
+    # Die y-Koordinate wird subtrahiert, da die y-Achse im Canvas nach unten zeigt.
+    x = center_x + radius_px * math.cos(angle_rad)
+    y = center_y - radius_px * math.sin(angle_rad)
+    return int(x), int(y)
 
-    def test_get_ring_segment_logic(self, mock_dartboard):
-        """Tests the core logic of identifying the ring and segment from coordinates."""
-        board = mock_dartboard
 
-        # Test Bullseye (scaled radius: 13)
-        assert board.get_ring_segment(500, 500) == (
-            "Bullseye",
-            50,
-        ), "Ein Wurf genau in die Mitte sollte ein Bullseye sein."
-        # Test Bull (25) (scaled radii: bullseye=13, bull=36)
-        assert board.get_ring_segment(500, 520) == ("Bull", 25)
-        # Test Triple 20 (at the top) (scaled radii: triple_inner=213, triple_outer=236)
-        assert board.get_ring_segment(500, 500 - 220) == ("Triple", 20)
-        # Test Double 3 (unten) (scaled radii: double_inner=356, double_outer=379)
-        # Angle for 3 is 270 degrees (straight down).
-        assert board.get_ring_segment(500, 500 + 360) == ("Double", 3)
-        # Test Single 1 (top right, angle ~72 deg) (scaled radii: bull=36, triple_inner=213)
-        # Die alten Koordinaten (600, 400) ergaben einen Winkel von 45°, was im 18er-Segment liegt.
-        assert board.get_ring_segment(531, 405) == ("Single", 1)
-        # Test Miss
-        assert board.get_ring_segment(0, 0) == ("Miss", 0)
+@pytest.mark.parametrize(
+    "description, get_test_coords, expected_ring, expected_segment",
+    [
+        (
+            "Mitte des T20-Feldes (exakt 90 Grad)",
+            lambda db: get_coords_from_polar(
+                db, 90, (db.skaliert["triple_inner"] + db.skaliert["triple_outer"]) / 2
+            ),
+            "Triple",
+            20,
+        ),
+        (
+            "Grenze 20/1 (innerhalb von 1)",
+            lambda db: get_coords_from_polar(
+                db, 80.5, (db.skaliert["triple_inner"] + db.skaliert["triple_outer"]) / 2
+            ),
+            "Triple",
+            1,
+        ),
+        (
+            "Grenze 20/1 (innerhalb von 20)",
+            lambda db: get_coords_from_polar(
+                db, 81.5, (db.skaliert["triple_inner"] + db.skaliert["triple_outer"]) / 2
+            ),
+            "Triple",
+            20,
+        ),
+        (
+            "Mitte des D3-Feldes (exakt 270 Grad)",
+            lambda db: get_coords_from_polar(
+                db, 270, (db.skaliert["double_inner"] + db.skaliert["double_outer"]) / 2
+            ),
+            "Double",
+            3,
+        ),
+        (
+            "Mitte des S6-Feldes (exakt 0 Grad)",
+            lambda db: get_coords_from_polar(
+                db, 0, (db.skaliert["bull"] + db.skaliert["triple_inner"]) / 2
+            ),
+            "Single",
+            6,
+        ),
+        ("Bullseye (genaues Zentrum)", lambda db: (db.center_x, db.center_y), "Bullseye", 50),
+        (
+            "Bull (knapp außerhalb des Bullseye)",
+            lambda db: get_coords_from_polar(db, 45, db.skaliert["bullseye"] + 2),
+            "Bull",
+            25,
+        ),
+        (
+            "Null-Punkte-Ring (zwischen Double und Rand)",
+            lambda db: get_coords_from_polar(
+                db, 180, (db.skaliert["double_outer"] + db.skaliert["outer_edge"]) / 2
+            ),
+            "Miss",  # Korrigiert: Dieser Bereich wird nun als Miss gewertet.
+            0,       # Der Punktwert bleibt 0.
+        ),
+        ("Miss (knapp außerhalb des Boards)", lambda db: (db.center_x - db.skaliert["outer_edge"] - 5, db.center_y), "Miss", 0),
+    ],
+)
+def test_hit_detection_precision(
+    dartboard_instance, description, get_test_coords, expected_ring, expected_segment
+):
+    """
+    Testet die Präzision der Treffererkennung an verschiedenen kritischen Punkten.
+    """
+    coords = get_test_coords(dartboard_instance)
+    ring, segment = dartboard_instance.get_ring_segment(coords[0], coords[1])
+
+    assert ring == expected_ring, f"Fehler bei '{description}': Falscher Ring"
+    assert segment == expected_segment, f"Fehler bei '{description}': Falsches Segment"

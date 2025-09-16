@@ -204,9 +204,7 @@ class CricketAIStrategy(AIStrategy):
         if target_segment == "Bull":
             return "Bullseye", 50
 
-        ring = (
-            "Triple" if self.ai_player.difficulty in ("Profi", "Champion", "Amateur") else "Single"
-        )
+        ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion") else "Single"
         return ring, int(target_segment)
 
     def _get_offensive_target(self, targets: list[str]) -> tuple[str, int] | None:
@@ -218,11 +216,7 @@ class CricketAIStrategy(AIStrategy):
             if self.ai_player.hits.get(target, 0) < 3:
                 if target == "Bull":
                     return "Bullseye", 50
-                ring = (
-                    "Triple"
-                    if self.ai_player.difficulty in ("Profi", "Champion", "Amateur")
-                    else "Single"
-                )
+                ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion") else "Single"
                 return ring, int(target)
         return None
 
@@ -235,11 +229,7 @@ class CricketAIStrategy(AIStrategy):
             if any(opp.hits.get(target, 0) < 3 for opp in opponents):
                 if target == "Bull":
                     return "Bullseye", 50
-                ring = (
-                    "Triple"
-                    if self.ai_player.difficulty in ("Profi", "Champion", "Amateur")
-                    else "Single"
-                )
+                ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion") else "Single"
                 return ring, int(target)
         return None
 
@@ -288,8 +278,11 @@ class KillerAIStrategy(AIStrategy):
         if not player_state.get("can_kill"):
             my_segment = player_state["life_segment"]
             # Korrektur: Wenn das Lebensfeld "Bull" ist, ziele auf das größere Bullseye,
-            # da sowohl Bull als auch Bullseye als Treffer zählen.
-            return ("Bullseye", 50) if my_segment == "Bull" else ("Double", int(my_segment))
+            # da sowohl Bull als auch Bullseye als Treffer zählen. Ansonsten wird versucht,
+            # int("Bull") zu konvertieren, was fehlschlägt.
+            if my_segment == "Bull":
+                return "Bullseye", 50
+            return "Double", int(my_segment)
 
         # Phase 3: Als Killer agieren
         opponents = [p for p in self.game.players if p != self.ai_player and p.score > 0]

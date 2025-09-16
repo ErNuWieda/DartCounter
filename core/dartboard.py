@@ -52,12 +52,12 @@ class DartBoard:
     DARTBOARD_PATH = ASSETS_BASE_DIR / "dartboard.png"
     DART_PATH = ASSETS_BASE_DIR / "dart_mask.png"  # Geändert auf die Maske
 
-    # This constant represents the pixel offset of the dartboard's geometric center
-    # from the image file's center. This was previously a "magic number" correction
-    # applied to every click. By defining it here, we make the code self-documenting.
-    # Setting this to (0,0) assumes a perfectly centered image, which is more robust
-    # and fixes inconsistencies between click detection and AI targeting.
-    BOARD_CENTER_OFFSET = (0, 0)
+    # Diese Konstante korrigiert die Abweichung des visuellen Zentrums des Dartboards
+    # vom geometrischen Zentrum der Bilddatei. Eine kleine Anpassung ist oft nötig,
+    # um eine pixelgenaue Treffererkennung zu gewährleisten.
+    # Ein positiver x-Offset bedeutet, dass das visuelle Zentrum nach RECHTS verschoben ist.
+    # Ein positiver y-Offset bedeutet, dass das visuelle Zentrum nach UNTEN verschoben ist.
+    BOARD_CENTER_OFFSET = (-8, -7)
 
     def __init__(self, spiel):
         """
@@ -208,10 +208,10 @@ class DartBoard:
         Returns:
             float: Der Winkel in Grad (0-360).
         """
-        dx = x - self.center_x
-        dy = self.center_y - y
-        angle = math.atan2(dy, dx)
-        return (math.degrees(angle) + 360) % 360
+        # Korrekte Winkelberechnung für ein Koordinatensystem mit (0,0) oben links.
+        # math.atan2 erwartet (y, x).
+        angle_rad = math.atan2(y - self.center_y, x - self.center_x)
+        return (math.degrees(angle_rad) + 360) % 360
 
     def distance(self, x, y):
         """
@@ -240,19 +240,28 @@ class DartBoard:
 
         # Wenn es nicht Bull oder Bullseye ist, benötigen wir den Winkel für das Segment.
         angle = self.polar_angle(x, y)
+
+        # Die `SEGMENTS`-Liste in DartboardGeometry ist im Uhrzeigersinn sortiert,
+        # beginnend mit der 6 (auf der 0°-Linie). Wir addieren 9° (halbe
+        # Segmentbreite), um die Grenzen korrekt zu behandeln, und teilen durch 18°.
         idx = int((angle + 9) // 18) % 20
         segment = DartboardGeometry.SEGMENTS[idx]
 
+        # Korrekte, von innen nach außen gestaffelte Prüfung der Ringe.
+        # Dies ist die robuste Methode, um die Ringe eindeutig zuzuordnen.
         if dist <= self.skaliert["triple_inner"]:
-            return "Single", segment
-        if dist <= self.skaliert["triple_outer"]:
+            return "Single", segment  # Großer Single-Bereich
+        elif dist <= self.skaliert["triple_outer"]:
             return "Triple", segment
-        if dist <= self.skaliert["double_inner"]:
-            return "Single", segment
-        if dist <= self.skaliert["double_outer"]:
+        elif dist <= self.skaliert["double_inner"]:
+            return "Single", segment  # Kleiner Single-Bereich
+        elif dist <= self.skaliert["double_outer"]:
             return "Double", segment
-
-        return "Miss", 0
+        # Alles außerhalb des Double-Rings, aber innerhalb des Board-Randes, ist ein "Miss".
+        elif dist <= self.skaliert["outer_edge"]:
+            return "Miss", 0
+        else:
+            return "Miss", 0
 
     def on_click(self, event):
         """
@@ -262,6 +271,7 @@ class DartBoard:
         Args:
             event (tk.Event): Das von Tkinter generierte Event-Objekt.
         """
+        print(f"Klick auf ({event.x}, {event.y})")
         self._process_throw_at_coords(event.x, event.y)
 
     def on_click_simulated(self, x, y):
@@ -290,6 +300,7 @@ class DartBoard:
             self.dart_image_ids_on_canvas.append(dart_id)
 
         ring, segment = self.get_ring_segment(x, y)
+        print(f"ermittelter Treffer {ring} {segment}")
 
         # Schritt 1.5: Normalisiere die Klick-Koordinaten für die Heatmap
         canvas_width = self.canvas.winfo_width()
