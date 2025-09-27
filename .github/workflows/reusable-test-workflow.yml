@@ -64,20 +64,15 @@ jobs:
             pip install -r requirements.txt -r requirements-dev.txt
           fi
 
-          # Speziell für Windows: Stelle sicher, dass tkinter verfügbar ist.
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            pip install tk
-          fi
-
       - name: 6. Run Tests with Virtual Display (Linux)
         if: runner.os == 'Linux'
         env:
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-        run: xvfb-run python -m pytest ${{ inputs.pytest-marker && format('-m "{0}"', inputs.pytest-marker) || '' }}
+        run: xvfb-run python -m pytest -m "${{ inputs.pytest-marker }}"
       - name: 6. Run Tests (Windows/macOS)
         if: runner.os == 'Windows' || runner.os == 'macOS'
         env:
           # Für macOS: Führe Tests im "headless" Modus aus, um GUI-Fehler zu vermeiden
           MPLBACKEND: Agg
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-        run: python -m pytest ${{ inputs.pytest-marker && format('-m "{0}"', inputs.pytest-marker) || '' }}
+        run: python -m pytest -m "${{ inputs.pytest-marker }}"
