@@ -31,6 +31,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import configparser
+import json
 import logging
 import shutil
 from sqlalchemy import create_engine, desc, asc, func
@@ -75,6 +76,7 @@ class DatabaseManager:
             self._connect_to_db(config)
             if self.is_connected:
                 self._run_migrations()
+                self._seed_default_profiles()
 
     def _load_config(self):
         """Sucht und lädt die config.ini-Datei."""
@@ -208,6 +210,48 @@ class DatabaseManager:
             # Fängt Fehler ab, die während der Migration auftreten können
             logger.error(f"Fehler während der Datenbank-Migration: {e}", exc_info=True)
             self.is_connected = False
+
+    def _seed_default_profiles(self):
+        """
+        Füllt die 'player_profiles'-Tabelle mit Standard-KI-Profilen,
+        falls die Tabelle leer ist. Wird nur beim allerersten Start ausgeführt.
+        """
+        if not self.Session:
+            return
+
+        with self.Session() as session:
+            # Prüfen, ob bereits Profile existieren.
+            # .first() ist effizienter als .count(), da es die Abfrage sofort beendet.
+            if session.query(PlayerProfileORM).first() is not None:
+                return  # Tabelle ist nicht leer, also nichts tun.
+
+            logger.info("Player-Tabelle ist leer. Fülle sie mit Standard-KI-Profilen...")
+
+            try:
+                # Pfad zur JSON-Datei relativ zu diesem Skript
+                json_path = get_application_root_dir() / "assets" / "default_profiles.json"
+                with open(json_path, "r", encoding="utf-8") as f:
+                    default_profiles = json.load(f)
+
+                for profile_data in default_profiles:
+                    new_profile = PlayerProfileORM(
+                        name=profile_data["name"],
+                        avatar_path=profile_data["avatar_path"],
+                        dart_color=profile_data["dart_color"],
+                        is_ai=profile_data["is_ai"],
+                        difficulty=profile_data["difficulty"],
+                        preferred_double=profile_data.get("preferred_double"),
+                    )
+                    session.add(new_profile)
+
+                session.commit()
+                logger.info(f"{len(default_profiles)} Standard-Profile erfolgreich hinzugefügt.")
+            except (FileNotFoundError, json.JSONDecodeError, SQLAlchemyError) as e:
+                logger.error(
+                    f"Fehler beim Hinzufügen der Standard-Profile: {e}",
+                    exc_info=True,
+                )
+                session.rollback()
 
     def get_scores(self, game_mode):
         """

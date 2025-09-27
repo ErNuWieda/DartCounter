@@ -60,7 +60,7 @@ def app_with_mocks():
         "image_open": patch("main.Image.open"),
         "image_tk": patch("main.ImageTk.PhotoImage"),
         "canvas": patch("main.tk.Canvas"),
-        "menu": patch("main.tk.Menu"),
+        "app_menu": patch("main.AppMenu"),  # Patch AppMenu instead of tk.Menu
         "ui_utils": patch("main.ui_utils"),
         "game_settings_dialog": patch("main.GameSettingsDialog"),
         "save_load_manager": patch("main.SaveLoadManager"),

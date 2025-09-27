@@ -1,0 +1,42 @@
+[
+    {
+        "name": "Lucky Luke",
+        "avatar_path": "assets/LuckyLuke.png",
+        "dart_color": "#f5f535",
+        "is_ai": true,
+        "difficulty": "Anfänger",
+        "preferred_double": null
+    },
+    {
+        "name": "Taktik-Tobi",
+        "avatar_path": "assets/TaktikTobi.png",
+        "dart_color": "#039be5",
+        "is_ai": true,
+        "difficulty": "Fortgeschritten",
+        "preferred_double": null
+    },
+    {
+        "name": "Chaos-Kalle",
+        "avatar_path": "assets/ChaosKalle.png",
+        "dart_color": "#c0ca33",
+        "is_ai": true,
+        "difficulty": "Amateur",
+        "preferred_double": 16
+    },
+    {
+        "name": "Präzisions-Petra",
+        "avatar_path": "assets/PraezisionsPetra.png",
+        "dart_color": "#6735b1",
+        "is_ai": true,
+        "difficulty": "Profi",
+        "preferred_double": 20
+    },
+    {
+        "name": "Meister Max",
+        "avatar_path": "assets/MeisterMax.png",
+        "dart_color": "#f5f535",
+        "is_ai": true,
+        "difficulty": "Champion",
+        "preferred_double": 18
+    }
+]

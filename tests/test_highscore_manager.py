@@ -1,5 +1,6 @@
 import unittest
 import tkinter as tk
+import pytest
 from tkinter import ttk
 from unittest.mock import MagicMock, patch, call, ANY
 from datetime import date
@@ -7,6 +8,7 @@ from datetime import date
 from core.highscore_manager import HighscoreManager
 
 
+@pytest.mark.db
 class TestHighscoreManager(unittest.TestCase):
     """
     Testet den HighscoreManager.

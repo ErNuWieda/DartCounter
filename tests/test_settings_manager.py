@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import mock_open, call, MagicMock, patch
+import logging
 import json
 from pathlib import Path
 
@@ -81,17 +82,21 @@ class TestSettingsManager:
             assert sm.get("sound_enabled")  # Wert aus Defaults
             assert sm.get("last_player_names") is not None  # Wert aus Defaults
 
-    def test_load_settings_with_corrupt_file_uses_defaults(
-        self, settings_manager_mocks, monkeypatch
-    ):
+    def test_load_settings_with_corrupt_file_uses_defaults(self, settings_manager_mocks, monkeypatch, caplog):
         """Testet, ob bei einer korrupten JSON-Datei auf Standardwerte zurückgegriffen wird."""
         monkeypatch.setattr("pathlib.Path.exists", MagicMock(return_value=True))
         mock_data = "this is not valid json"
 
-        with patch("builtins.open", mock_open(read_data=mock_data)):  # noqa: F821
-            sm = SettingsManager()
-            defaults = sm._get_defaults()
-            assert sm.settings == defaults
+        # Wir verwenden caplog, um die erwartete Fehlermeldung abzufangen und
+        # zu verhindern, dass sie in der Konsole erscheint.
+        with caplog.at_level(logging.ERROR):
+            with patch("builtins.open", mock_open(read_data=mock_data)):
+                sm = SettingsManager()
+                defaults = sm._get_defaults()
+                assert sm.settings == defaults
+
+        # Überprüfen, ob der Fehler tatsächlich geloggt wurde.
+        assert "Fehler beim Lesen oder Parsen" in caplog.text
 
     def test_get_value_with_default_fallback(self, settings_manager_mocks, monkeypatch):
         """Testet die get-Methode mit einem Fallback-Standardwert."""

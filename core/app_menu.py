@@ -20,9 +20,10 @@ from tkinter import Menu
 class AppMenu:
     """Erstellt und verwaltet die Hauptmenüleiste der Anwendung."""
 
-    def __init__(self, root, controller):
+    def __init__(self, root, controller, db_available: bool):
         self.root = root
         self.controller = controller
+        self.db_available = db_available
         self._create_menu()
 
     def _create_menu(self):
@@ -31,27 +32,34 @@ class AppMenu:
         # Datei Menü
         file_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Datei", menu=file_menu)
-        file_menu.add_command(label="Neues Turnier", command=self.controller.new_tournament)
-        file_menu.add_command(label="Turnier laden", command=self.controller.load_tournament)
-        file_menu.add_command(label="Turnier speichern", command=self.controller.save_tournament)
-        file_menu.add_separator()
         file_menu.add_command(label="Neues Spiel", command=self.controller.new_game)
         file_menu.add_command(label="Spiel laden", command=self.controller.load_game)
         file_menu.add_command(label="Spiel speichern", command=self.controller.save_game)
         file_menu.add_separator()
-        file_menu.add_command(
-            label="Spielerprofile verwalten",
-            command=self.controller.open_profile_manager,
-        )
+        file_menu.add_command(label="Neues Turnier", command=self.controller.new_tournament)
+        file_menu.add_command(label="Turnier laden", command=self.controller.load_tournament)
+        file_menu.add_command(label="Turnier speichern", command=self.controller.save_tournament)
+        file_menu.add_separator()
         file_menu.add_command(label="Einstellungen", command=self.controller.open_settings_dialog)
         file_menu.add_separator()
-        file_menu.add_command(
-            label="Spielerstatistiken",
+        file_menu.add_command(label="Spiel beenden", command=self.controller.quit_game)
+
+        # Datenbank Menü
+        db_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Datenbank", menu=db_menu)
+        db_menu.add_command(
+            label="Spielerprofile verwalten...",
+            command=self.controller.open_profile_manager,
+        )
+        db_menu.add_command(
+            label="Spielerstatistiken anzeigen...",
             command=self.controller.show_player_stats,
         )
-        file_menu.add_command(label="Highscores", command=self.controller.show_highscores)
-        file_menu.add_separator()
-        file_menu.add_command(label="Spiel beenden", command=self.controller.quit_game)
+        db_menu.add_command(label="Highscores anzeigen...", command=self.controller.show_highscores)
+
+        # Deaktiviere das Menü, wenn die Datenbank nicht verfügbar ist.
+        if not self.db_available:
+            menu_bar.entryconfig("Datenbank", state="disabled")
 
         # Über Menü
         about_menu = Menu(menu_bar, tearoff=0)

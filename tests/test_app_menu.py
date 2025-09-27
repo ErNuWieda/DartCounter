@@ -38,7 +38,7 @@ def menu_setup(tk_root):
     # Erstelle einen Mock-Controller mit allen Methoden, die das Menü aufrufen wird
     mock_controller = MagicMock()
     # Instanziiere die AppMenu mit der echten Wurzel und dem Mock-Controller
-    AppMenu(tk_root, mock_controller)
+    AppMenu(tk_root, mock_controller, db_available=True)
     yield tk_root, mock_controller
 
 
@@ -55,17 +55,18 @@ class TestAppMenu:
         "menu_name, item_index, expected_command_name",
         [
             # Datei-Menü
-            ("Datei", 0, "new_tournament"),
-            ("Datei", 1, "load_tournament"),
-            ("Datei", 2, "save_tournament"),
-            ("Datei", 4, "new_game"),
-            ("Datei", 5, "load_game"),
-            ("Datei", 6, "save_game"),
-            ("Datei", 8, "open_profile_manager"),
-            ("Datei", 9, "open_settings_dialog"),
-            ("Datei", 11, "show_player_stats"),
-            ("Datei", 12, "show_highscores"),
-            ("Datei", 14, "quit_game"),
+            ("Datei", 0, "new_game"),
+            ("Datei", 1, "load_game"),
+            ("Datei", 2, "save_game"),
+            ("Datei", 4, "new_tournament"),
+            ("Datei", 5, "load_tournament"),
+            ("Datei", 6, "save_tournament"),
+            ("Datei", 8, "open_settings_dialog"),
+            ("Datei", 10, "quit_game"),
+            # Datenbank-Menü
+            ("Datenbank", 0, "open_profile_manager"),
+            ("Datenbank", 1, "show_player_stats"),
+            ("Datenbank", 2, "show_highscores"),
             # Über-Menü
             ("Über", 0, "about"),
             ("Über", 2, "open_donate_link"),

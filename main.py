@@ -111,7 +111,7 @@ class App:
         self.root.bind("<Escape>", lambda e: self.quit_game())
 
     def _setup_menu(self):
-        self.menu = AppMenu(self.root, self)
+        self.menu = AppMenu(self.root, self, self.db_manager.is_connected)
 
     def _setup_main_canvas(self):
         assets_base_dir = get_asset_path("assets")

@@ -46,21 +46,36 @@ def run_tests():
             "-m",
             "pytest",
             "-sv",  # -s: print() ausgeben, -v: verbose. Gut für Build-Logs.
+            "-m",  # Marker-Argument für pytest
+            "not db",  # Der eigentliche Marker-Ausdruck
         ]
 
         # Auf Linux-Systemen (wie in der CI) müssen GUI-Tests in einer virtuellen Anzeige laufen.
-        if platform.system() == "Linux":
+        # Wir prüfen, ob wir in einer CI-Umgebung sind, um xvfb-run nur dort zu verwenden.
+        if platform.system() == "Linux" and os.getenv("CI"):
             test_command.insert(0, "xvfb-run")
 
-        subprocess.run(test_command, check=True)
+        # Führe den Befehl aus. Wir verwenden nicht check=True, um die Ausnahme selbst zu behandeln
+        # und eine bessere Fehlermeldung auszugeben.
+        result = subprocess.run(test_command)
+
+        if result.returncode != 0:
+            # Wenn der Prozess mit einem Fehlercode beendet wird, lösen wir manuell eine Ausnahme aus.
+            raise subprocess.CalledProcessError(result.returncode, test_command)
+
         print(">>> ✅ Alle Tests erfolgreich bestanden.")
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    except FileNotFoundError as e:
         print("\n" + "=" * 50)
-        print("FEHLER: Die Test-Suite ist fehlgeschlagen.")
-        print("Mögliche Ursachen:")
-        print("  - Ein oder mehrere Tests sind nicht erfolgreich.")
-        print("  - Die Test-Abhängigkeiten (pytest, pytest-cov) sind nicht installiert.")
+        print(f"FEHLER: Ein benötigter Befehl wurde nicht gefunden: '{e.filename}'")
+        print("Stellen Sie sicher, dass alle System-Abhängigkeiten (z.B. xvfb auf Linux) installiert sind.")
+        print("=" * 50 + "\n")
+        return False
+    except subprocess.CalledProcessError as e:
+        print("\n" + "=" * 50)
+        print(f"FEHLER: Die Test-Suite ist mit Exit-Code {e.returncode} fehlgeschlagen.")
+        print("Die pytest-Ausgabe sollte direkt über dieser Nachricht sichtbar sein.")
+        print("Bitte beheben Sie die fehlschlagenden Tests.")
         print("Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:")
         print("  pip install -r requirements-dev.txt")
         print("=" * 50 + "\n")

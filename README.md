@@ -82,10 +82,16 @@ Nach der Aktivierung sollte der Name der Umgebung (z.B. `(.venv)`) am Anfang Ihr
 
 ### Schritt 3: Notwendige Pakete installieren
 Installieren Sie alle Python-Abhängigkeiten, die in der `requirements.txt`-Datei aufgelistet sind.
+Die Anwendung ist auch ohne Datenbankverbindung lauffähig. Wenn Sie die optionalen Datenbank-Features (Profile, Statistiken, Highscores) nutzen möchten, installieren Sie die zusätzlichen Pakete.
 
 ```bash
 # Stellen Sie sicher, dass Ihre virtuelle Umgebung aktiv ist
+
+# Basis-Pakete installieren (immer erforderlich)
 pip install -r requirements.txt
+
+# Optionale Pakete für PostgreSQL-Datenbank-Features
+# pip install -r requirements-db.txt
 ```
 
 ### Schritt 4: PostgreSQL-Datenbank einrichten (Optional)

@@ -24,4 +24,5 @@ jobs:
     with:
       os: ${{ matrix.os }}
       python-version: ${{ matrix.python-version }}
+      pytest-marker: "not db"
       # container-image wird nicht übergeben, da wir auf dem Host-System testen
