@@ -62,11 +62,11 @@ jobs:
         if: runner.os == 'Linux'
         env:
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-        run: xvfb-run ${{ inputs.container-image && 'python3' || 'python' }} -m pytest -m '${{ inputs.pytest-marker }}'
+        run: xvfb-run ${{ inputs.container-image && 'python3' || 'python' }} -m pytest -m "${{ inputs.pytest-marker }}"
       - name: 6. Run Tests (Windows/macOS)
         if: runner.os == 'Windows' || runner.os == 'macOS'
         env:
           # Für macOS: Führe Tests im "headless" Modus aus, um GUI-Fehler zu vermeiden
           MPLBACKEND: Agg
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-        run: python -m pytest -m '${{ inputs.pytest-marker }}'
+        run: python -m pytest -m "${{ inputs.pytest-marker }}"
