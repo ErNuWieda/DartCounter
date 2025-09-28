@@ -47,26 +47,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-tk python3-pil.imagetk xvfb
 
-      - name: 5. Install Python Dependencies
+      - name: 5. Install Python Dependencies (Container/PEP 668)
+        if: inputs.container-image
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt -r requirements-dev.txt -r requirements-db.txt --break-system-packages
+      - name: 5. Install Python Dependencies (Host)
+        if: '!inputs.container-image'
         run: |
           python -m pip install --upgrade pip
-          # Für containerisierte Umgebungen (wie Debian Trixie), die PEP 668 durchsetzen,
-          # müssen wir pip anweisen, die systemverwaltete Umgebung zu ignorieren.
-          if [ -n "${{ inputs.container-image }}" ]; then
-            pip install -r requirements.txt -r requirements-dev.txt --break-system-packages
-          else
-            pip install -r requirements.txt -r requirements-dev.txt
-          fi
+          pip install -r requirements.txt -r requirements-dev.txt -r requirements-db.txt
 
       - name: 6. Run Tests with Virtual Display (Linux)
         if: runner.os == 'Linux'
         env:
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-        run: xvfb-run python -m pytest -m ${{ inputs.pytest-marker }}
+        run: xvfb-run ${{ inputs.container-image && 'python3' || 'python' }} -m pytest -m '${{ inputs.pytest-marker }}'
       - name: 6. Run Tests (Windows/macOS)
         if: runner.os == 'Windows' || runner.os == 'macOS'
         env:
           # Für macOS: Führe Tests im "headless" Modus aus, um GUI-Fehler zu vermeiden
           MPLBACKEND: Agg
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-        run: python -m pytest -m ${{ inputs.pytest-marker }}
+        run: python -m pytest -m '${{ inputs.pytest-marker }}'
