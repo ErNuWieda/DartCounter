@@ -72,6 +72,6 @@ jobs:
           CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
           # Für Windows: Setze die Pfade zu den Tcl/Tk-Bibliotheken manuell,
           # um "TclError: Can't find a usable tk.tcl" zu beheben.
-          TCL_LIBRARY: "${{ env.pythonLocation }}\\tcl\\tcl8.6"
-          TK_LIBRARY: "${{ env.pythonLocation }}\\tcl\\tk8.6"
+          TCL_LIBRARY: "${{ steps.python-setup.outputs.python-path }}\\..\\tcl\\tcl8.6"
+          TK_LIBRARY: "${{ steps.python-setup.outputs.python-path }}\\..\\tcl\\tk8.6"
         run: python -m pytest -m "${{ inputs.pytest-marker }}"
