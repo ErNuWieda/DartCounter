@@ -5,6 +5,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch: # Erlaubt manuelles Starten über die GitHub UI
+
 
 jobs:
   run-trixie-tests:
