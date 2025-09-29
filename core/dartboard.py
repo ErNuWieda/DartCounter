@@ -59,7 +59,7 @@ class DartBoard:
     # Ein positiver y-Offset bedeutet, dass das visuelle Zentrum nach UNTEN verschoben ist.
     BOARD_CENTER_OFFSET = (-8, -7)
 
-    def __init__(self, spiel):
+    def __init__(self, spiel, parent_root):
         """
         Initialisiert das Dartboard-Fenster.
 
@@ -68,6 +68,7 @@ class DartBoard:
 
         Args:
             spiel (Game): Die Instanz des laufenden Spiels.
+            parent_root (tk.Tk | tk.Toplevel): Das übergeordnete Fenster.
         """
         self.spiel = spiel
         self.dartboard_path = DartBoard.DARTBOARD_PATH
@@ -76,7 +77,7 @@ class DartBoard:
         self.center_x = None
         self.center_y = None
         self.canvas = None  # Wird in _create_board gesetzt
-        self.root = tk.Toplevel()
+        self.root = tk.Toplevel(parent_root)
         if len(self.spiel.options.name) == 3:  # = x01-Spiele
             title = f"{self.spiel.options.name} - {self.spiel.options.opt_in}-in, "
             title += f"{self.spiel.options.opt_out}-out"

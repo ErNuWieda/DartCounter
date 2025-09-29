@@ -23,33 +23,39 @@ def reset_db_manager_singleton():
 @pytest.fixture
 def db_manager_setup(monkeypatch):
     """Setzt eine saubere Testumgebung mit gemockter SQLAlchemy-Engine und Session auf."""
-    # Mock für die Konfiguration
-    monkeypatch.setattr("core.database_manager.shutil.copy", MagicMock())
+    # Diese Variable wird die erstellte Instanz halten, zugänglich für die inneren Funktionen.
+    db_instance_holder = []
 
-    # Wir mocken die `exists`-Methode so, dass sie nur für die config.ini True zurückgibt
-    def mock_exists(path):
-        return "config.ini" in str(path)
+    # Wir patchen __new__, um die Instanz abzufangen, sobald sie erstellt wird.
+    original_new = DatabaseManager.__new__
 
-    monkeypatch.setattr("pathlib.Path.exists", mock_exists)
+    def patched_new(cls, *args, **kwargs):
+        # Rufe die ursprüngliche __new__-Methode auf, um die Instanz zu bekommen.
+        instance = original_new(cls, *args, **kwargs)
+        # Speichere die Instanz, damit wir sie im side_effect verwenden können.
+        db_instance_holder.append(instance)
+        return instance
 
-    mock_configparser = MagicMock()
-    monkeypatch.setattr("core.database_manager.configparser.ConfigParser", mock_configparser)
+    with patch("core.database_manager.DatabaseManager.__new__", new=patched_new), patch(
+        "core.database_manager.DatabaseManager._load_config"
+    ) as mock_load_config, patch("core.database_manager.DatabaseManager._connect_to_db") as mock_connect_to_db, patch(
+        "core.database_manager.DatabaseManager._run_migrations"
+    ) as mock_run_migrations, patch("core.database_manager.DatabaseManager._seed_default_profiles") as mock_seed_profiles:
 
-    mock_config_instance = mock_configparser.return_value
-    # Simuliere den Zugriff via `config['postgresql']`
-    mock_config_instance.__getitem__.return_value = {
-        "host": "testhost",
-        "database": "testdb",
-        "user": "testuser",
-        "password": "testpassword",
-    }
+        # Simuliere, dass die Konfiguration erfolgreich geladen wurde und die Verbindung steht.
+        # Dies ist die Annahme für die meisten Tests, die diese Fixture verwenden.
+        mock_load_config.return_value = MagicMock()  # Gibt ein Mock-Config-Objekt zurück
 
-    # Mock für SQLAlchemy-Engine und Session
-    with patch("core.database_manager.create_engine") as mock_create_engine, patch(
-        "core.database_manager.DatabaseManager.__init__", return_value=None
-    ) as mock_init:
+        def connect_side_effect(config):
+            # Greife auf die Instanz zu, die von unserem gepatchten __new__ gespeichert wurde.
+            instance = db_instance_holder[0]
+            instance.is_connected = True
+            instance.Session = mock_sessionmaker
+
+        mock_connect_to_db.side_effect = connect_side_effect
+
+        # Mock für die SQLAlchemy Session
         mock_engine_instance = MagicMock()
-
         mock_session_instance = MagicMock()
         # Konfiguriere den Context Manager (__enter__/__exit__) der Session
         mock_session_instance.query.return_value.distinct.return_value.order_by.return_value.all.return_value = (
@@ -58,23 +64,17 @@ def db_manager_setup(monkeypatch):
         mock_session_instance.query.return_value.filter_by.return_value.one_or_none.return_value = (
             None
         )
-
         mock_sessionmaker = MagicMock()
         mock_sessionmaker.return_value.__enter__.return_value = mock_session_instance
 
         # WICHTIG: Das Singleton vor der Instanziierung zurücksetzen.
         reset_db_manager_singleton()
 
-        # Instanziiere den DatabaseManager. Der __init__ ist gemockt und tut nichts.
+        # Instanziiere den DatabaseManager. Der echte __init__ wird jetzt aufgerufen.
         db_manager = DatabaseManager()
 
         # Setze die Attribute manuell für die Tests
         db_manager.engine = mock_engine_instance
-        db_manager.is_connected = True
-        db_manager.Session = mock_sessionmaker
-        # Mock für Methoden, die in __init__ aufgerufen worden wären
-        db_manager._run_migrations = MagicMock()
-        db_manager._connect_to_db = MagicMock()
 
         yield db_manager, mock_engine_instance, mock_session_instance
 
@@ -90,11 +90,15 @@ def mock_logger(monkeypatch):
 @pytest.fixture
 def config_test_setup(monkeypatch):
     """Eine Fixture, die die gesamte Umgebung für die Konfigurations-Tests einrichtet."""
-    # Wir verwenden `with` hier, um sicherzustellen, dass die Mocks nach dem Test
-    # automatisch aufgeräumt werden.
-    with patch("core.database_manager.configparser.ConfigParser") as MockConfigParser, patch(
-        "core.database_manager.shutil.copy"
-    ) as mock_shutil_copy, patch("core.database_manager.DatabaseManager._connect_to_db"):
+    # Wir verwenden `with` hier, um sicherzustellen, dass die Mocks nach dem Test automatisch aufgeräumt werden.
+    # _connect_to_db wird NICHT mehr standardmäßig gepatcht, damit wir es testen können.
+    with patch("core.database_manager.configparser.ConfigParser") as MockConfigParser, \
+         patch("core.database_manager.shutil.copy") as mock_shutil_copy, \
+         patch("core.database_manager.create_engine") as mock_create_engine, \
+         patch("core.database_manager.DatabaseManager._run_migrations") as mock_run_migrations, \
+         patch("core.database_manager.DatabaseManager._seed_default_profiles") as mock_seed_profiles:
+
+        mock_create_engine.return_value.connect.return_value.__enter__.return_value = MagicMock()
 
         # 1. Setze das Singleton vor jedem Test zurück.
         reset_db_manager_singleton()
@@ -130,6 +134,7 @@ def config_test_setup(monkeypatch):
             "mock_exists_factory": mock_exists_factory,
             "mock_shutil_copy": mock_shutil_copy,
             "MockConfigParser": MockConfigParser,
+            "mock_create_engine": mock_create_engine,
         }
 
 
@@ -137,8 +142,10 @@ def config_test_setup(monkeypatch):
 def test_config_loading_user_config_exists(config_test_setup):
     """Szenario 1: User-Config existiert und wird gelesen."""
     mocks = config_test_setup
-    mocks["mock_exists_factory"](user_exists=True)
-    DatabaseManager()
+    # Für diesen Test wollen wir _connect_to_db nicht ausführen.
+    with patch("core.database_manager.DatabaseManager._connect_to_db"):
+        mocks["mock_exists_factory"](user_exists=True)
+        DatabaseManager()
     mocks["MockConfigParser"].return_value.read.assert_called_once()
 
 
@@ -146,8 +153,9 @@ def test_config_loading_user_config_exists(config_test_setup):
 def test_config_loading_root_config_exists(config_test_setup):
     """Szenario 2: Nur Root-Config existiert und wird gelesen."""
     mocks = config_test_setup
-    mocks["mock_exists_factory"](root_exists=True)
-    DatabaseManager()
+    with patch("core.database_manager.DatabaseManager._connect_to_db"):
+        mocks["mock_exists_factory"](root_exists=True)
+        DatabaseManager()
     mocks["MockConfigParser"].return_value.read.assert_called_once()
 
 
@@ -155,8 +163,9 @@ def test_config_loading_root_config_exists(config_test_setup):
 def test_config_loading_example_config_exists(config_test_setup):
     """Szenario 3: Nur Example-Config existiert, wird kopiert und dann gelesen."""
     mocks = config_test_setup
-    mocks["mock_exists_factory"](example_exists=True)
-    DatabaseManager()
+    with patch("core.database_manager.DatabaseManager._connect_to_db"):
+        mocks["mock_exists_factory"](example_exists=True)
+        DatabaseManager()
     mocks["mock_shutil_copy"].assert_called_once()
     mocks["MockConfigParser"].return_value.read.assert_called_once()
 
@@ -165,11 +174,68 @@ def test_config_loading_example_config_exists(config_test_setup):
 def test_config_loading_no_config_exists(config_test_setup):
     """Szenario 4: Keine Config-Datei existiert, nichts wird gelesen."""
     mocks = config_test_setup
-    mocks["mock_exists_factory"]()
-    dbm = DatabaseManager()
-    assert not dbm.is_connected
+    with patch("core.database_manager.DatabaseManager._connect_to_db"):
+        mocks["mock_exists_factory"]()
+        dbm = DatabaseManager()
+        assert not dbm.is_connected
     mocks["MockConfigParser"].return_value.read.assert_not_called()
 
+
+@pytest.mark.db
+def test_connect_to_db_no_postgresql_section(config_test_setup, mock_logger):
+    """Testet, ob die Verbindung abbricht, wenn der [postgresql]-Abschnitt fehlt."""
+    mocks = config_test_setup
+    mocks["mock_exists_factory"](user_exists=True)
+    # Simuliere eine Config OHNE den [postgresql] Abschnitt
+    mocks["MockConfigParser"].return_value.__getitem__.side_effect = KeyError
+
+    dbm = DatabaseManager()
+
+    assert not dbm.is_connected
+    mock_logger.info.assert_any_call(
+        "Kein [postgresql]-Abschnitt in der config.ini gefunden."
+        + " Datenbankfunktionen sind deaktiviert."
+    )
+    mocks["mock_create_engine"].assert_not_called()
+
+
+@pytest.mark.db
+def test_connect_to_db_incomplete_config(config_test_setup, mock_logger):
+    """Testet, ob die Verbindung bei unvollständigen Keys abbricht."""
+    mocks = config_test_setup
+    mocks["mock_exists_factory"](user_exists=True)
+    # Simuliere eine Config mit fehlendem 'password'
+    mocks["MockConfigParser"].return_value.__getitem__.return_value = {
+        "host": "testhost",
+        "database": "testdb",
+        "user": "testuser",
+        "password": "",  # Leerer Wert
+    }
+
+    dbm = DatabaseManager()
+
+    assert not dbm.is_connected
+    mock_logger.error.assert_any_call(
+        "'config.ini' ist unvollständig. Es fehlen Schlüssel oder Werte im "
+        "[postgresql]-Abschnitt. Datenbankfunktionen sind deaktiviert."
+    )
+    mocks["mock_create_engine"].assert_not_called()
+
+
+@pytest.mark.db
+def test_connect_to_db_sqlalchemy_error(config_test_setup, mock_logger):
+    """Testet, ob ein SQLAlchemyError beim Verbindungsaufbau korrekt behandelt wird."""
+    mocks = config_test_setup
+    mocks["mock_exists_factory"](user_exists=True)
+    mocks["mock_create_engine"].return_value.connect.side_effect = SQLAlchemyError("Test Error")
+
+    dbm = DatabaseManager()
+
+    assert not dbm.is_connected
+    mock_logger.error.assert_any_call(
+        "Fehler beim Verbindungsaufbau zur PostgreSQL-Datenbank: Test Error",
+        exc_info=True,
+    )
 
 @pytest.mark.db
 def test_initialization_successful(db_manager_setup):
@@ -329,16 +395,22 @@ def test_delete_profile_returns_false_if_not_found(db_manager_setup):
     mock_session.commit.assert_not_called()
 
 
+@pytest.mark.db
 def test_update_profile_handles_integrity_error(db_manager_setup, mock_logger):
     """Testet, ob update_profile bei einem IntegrityError korrekt reagiert."""
     db_manager, _, mock_session = db_manager_setup
+    # Simuliere, dass ein Profil zum Aktualisieren gefunden wird
     mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = MagicMock()
+    # Simuliere den Fehler beim Commit
     mock_session.commit.side_effect = IntegrityError("test", "test", "test")
 
-    result = db_manager.update_profile(1, "ExistingName", "/path", "#ff0000", False, None, None)
+    result = db_manager.update_profile(
+        1, "ExistingName", "/path", "#ff0000", False, None, None
+    )
 
-    assert not result
+    assert not result, "update_profile sollte bei einem Fehler False zurückgeben."
     mock_session.rollback.assert_called_once()
+    # Die Warnung wird jetzt direkt im DatabaseManager geloggt
     mock_logger.warning.assert_called_once()
 
 

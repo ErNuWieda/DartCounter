@@ -107,13 +107,11 @@ def ask_question(buttons: str, title: str, message: str, default=None, parent=No
         message (str): Die anzuzeigende Frage.
         parent (tk.Widget, optional): Das übergeordnete Fenster.
     """
-    ask_func = {
-        "yesno": tk.messagebox.askyesno,
-        "yesnocancel": tk.messagebox.askyesnocancel,
-        "retrycancel": tk.messagebox.askretrycancel,
-        "okcancel": tk.messagebox.askokcancel,
-    }.get(buttons)
+    # Hole die Funktion dynamisch zur Laufzeit über getattr.
+    # Dies stellt sicher, dass Mocks in Tests korrekt angewendet werden.
+    func_name = f"ask{buttons}"
+    ask_func = getattr(messagebox, func_name, None)
 
     if ask_func:
         return ask_func(title, message, default=default, parent=parent)
-    return None  # Fallback
+    return None

@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .game_logic import GameLogic  # Korrekter Import
+from .game_logic_base import GameLogicBase
 from .throw_result import ThrowResult
 
 
-class SplitScore(GameLogic):
+class SplitScore(GameLogicBase):
     """
     Implements the game logic for the "Split Score" training game.
     The goal is to have the highest score after 7 rounds.
@@ -26,7 +26,9 @@ class SplitScore(GameLogic):
 
     def __init__(self, game_controller):
         super().__init__(game_controller)
-        self.start_score = int(getattr(self.options, "opt_split_score_target", 60))
+        # KORREKTUR: Die Optionen sind über self.game.options verfügbar, nicht direkt über self.options.
+        # Die Basisklasse GameLogicBase stellt nur self.game bereit.
+        self.start_score = int(getattr(self.game.options, "opt_split_score_target", 60))
         # Feste Zielsequenz für das Spiel
         self.targets = [
             ("Single", 15),
@@ -79,21 +81,23 @@ class SplitScore(GameLogic):
         # Prüfen, ob das Ziel in dieser Runde getroffen wurde
         hit_in_round = any(r == target_ring and s == target_segment for r, s, _ in player.throws)
 
-        if not hit_in_round:
+        if not hit_in_round and player.throws:
             # Score halbieren und aufrunden
             player.score = (player.score + 1) // 2
 
         player.sb.update_score(player.score)
         
         # Prüfen, ob das Spiel nach der Runde des letzten Spielers beendet ist
-        is_last_player_of_round = self.game.current == len(self.players) - 1
+        is_last_player_of_round = self.game.current == len(self.game.players) - 1
         if self.game.round >= 7 and is_last_player_of_round:
             self.game.end = True
             # Der Gewinner ist der Spieler mit den meisten verbleibenden Punkten
-            self.game.winner = max(self.players, key=lambda p: p.score)
+            self.game.winner = max(self.game.players, key=lambda p: p.score)
             message = (
                 f"🏆 {self.game.winner.name} gewinnt Split Score mit {self.game.winner.score} Punkten!"
             )
+            # KORREKTUR: Der Callback muss explizit aufgerufen werden, um die UI (z.B. Sound)
+            # über den Spielgewinn zu informieren.
             self.on_throw_processed_callback(
                 ThrowResult(status="win", message=message, sound="win"), self.game.winner
             )

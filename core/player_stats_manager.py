@@ -249,6 +249,16 @@ class PlayerStatsManager:
 
     def show_stats_window(self, parent):
         """Erstellt und zeigt das Fenster für die Spielerstatistiken an."""
+        if not self.db_manager.is_connected:
+            messagebox.showerror(
+                "Datenbankfehler",
+                (
+                    "Keine Verbindung zur Datenbank möglich, um Statistiken anzuzeigen.\n"
+                    "Bitte prüfe die `config.ini` und den Datenbank-Server."
+                ),
+                parent=parent,
+            )
+            return None  # Explizit None zurückgeben, um Fehler in Tests zu vermeiden
         if not MATPLOTLIB_AVAILABLE:
             messagebox.showerror(
                 "Fehler",
@@ -256,7 +266,7 @@ class PlayerStatsManager:
                 "Bitte installieren: pip install matplotlib",  # noqa: E501
                 parent=parent,
             )
-            return
+            return None
 
         win = tk.Toplevel(parent)
         win.title("Spielerstatistiken")
@@ -479,6 +489,8 @@ class PlayerStatsManager:
                         fig.canvas.draw_idle()
 
         canvas.mpl_connect("motion_notify_event", on_hover)
+
+        return win
 
     def _show_heatmap(self, parent, player_name):
         """Sammelt alle Koordinaten für einen Spieler und zeigt die Heatmap an."""

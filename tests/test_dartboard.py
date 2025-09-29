@@ -35,7 +35,7 @@ def dartboard_instance(tk_root_session):
     # Erstelle die DartBoard-Instanz. Der __init__-Konstruktor ruft
     # _create_board auf, was die notwendigen Attribute wie `canvas`,
     # `center_x`, `center_y` und `skaliert` initialisiert.
-    db = DartBoard(mock_game)
+    db = DartBoard(mock_game, parent_root=tk_root_session)
     yield db
     # Das Fenster wird vom tk_root_session-Fixture am Ende des Testlaufs zerstört.
 

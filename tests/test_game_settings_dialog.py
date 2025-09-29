@@ -18,9 +18,11 @@ def tk_root():
 
 
 @pytest.fixture
-def dialog_setup(tk_root, monkeypatch):
+def dialog_setup(tk_root, monkeypatch, mock_settings_manager, mock_profile_manager):
     """
     Setzt für jeden Test einen neuen Dialog in einer Test-Umgebung auf.
+    Verwendet die zentralen Fixtures aus conftest.py für die Manager-Mocks,
+    um Code-Duplikation zu reduzieren.
     """
     # Patch wait_window, um zu verhindern, dass der modale Dialog den Test blockiert.
     # Dies ist notwendig, da der Dialog selbst `wait_window` aufruft, wenn der
@@ -60,23 +62,12 @@ def dialog_setup(tk_root, monkeypatch):
     }
     monkeypatch.setattr("core.game_settings_dialog.GAME_CONFIG", mock_game_config)
 
-    mock_settings_manager = MagicMock()
     mock_settings_manager.get.return_value = [
         "P1",
         "P2",
         "",
         "",
     ]  # für last_player_names
-
-    mock_profile_manager = MagicMock()
-    mock_profile1 = MagicMock()
-    mock_profile1.name = "ProfA"
-    mock_profile2 = MagicMock()
-    mock_profile2.name = "ProfB"
-    mock_profile_manager.get_profiles.return_value = [
-        mock_profile1,
-        mock_profile2,
-    ]
 
     # Instanziiere den Dialog mit der echten, aber versteckten Wurzel
     dialog = GameSettingsDialog(tk_root, mock_settings_manager, mock_profile_manager)
@@ -130,7 +121,7 @@ class TestGameSettingsDialog:
 
         # Überprüfe die Sichtbarkeit der Frames
         assert not dialog.game_option_frames["x01_options"].grid_info()
-        assert dialog.game_option_frames["killer_options"].grid_info()
+        assert dialog.game_option_frames.get("killer_options").grid_info()
 
     def test_start_button_collects_data_and_sets_flag(self, dialog_setup):
         """Testet, ob der Start-Button die Daten korrekt sammelt und den Dialog schließt."""

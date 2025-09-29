@@ -24,37 +24,6 @@ from core.micky import Micky
 from core.player import Player
 from core.game import Game
 
-
-@pytest.fixture
-def mock_game():
-    """Erstellt eine gemockte Game-Instanz mit den für die Micky-Logik benötigten Attributen."""
-    game = MagicMock(spec=Game)
-    game.options = MagicMock()
-    game.options.name = "Micky Mouse"
-    game.round = 1  # Fehlte, wird für die Gewinnprüfung benötigt
-    game.end = False
-    game.winner = None
-    game.sound_manager = MagicMock()
-    game.highscore_manager = MagicMock()
-
-    # Die get_score Methode des Spiels simulieren
-    def mock_get_score(ring, segment):
-        if ring == "Single":
-            return segment
-        if ring == "Double":
-            return segment * 2
-        if ring == "Triple":
-            return segment * 3
-        if ring == "Bull":
-            return 25
-        if ring == "Bullseye":
-            return 50
-        return 0
-
-    game.get_score.side_effect = mock_get_score
-    return game
-
-
 @pytest.fixture
 def micky_logic(mock_game):
     """Erstellt eine Instanz der Micky-Logik mit dem gemockten Spiel."""

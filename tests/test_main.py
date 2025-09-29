@@ -69,6 +69,9 @@ def app_with_mocks():
         "app_settings_dialog": patch("main.AppSettingsDialog"),
         "tournament_view": patch("main.TournamentView"),
         "db_manager": patch("main.DatabaseManager"),
+        # NEU: Auch die Settings- und Sound-Manager mocken für vollständige Isolation
+        "settings_manager": patch("main.SettingsManager"),
+        "sound_manager": patch("main.SoundManager"),
         "tournament_manager": patch("main.TournamentManager"),
     }
 

@@ -88,6 +88,8 @@ def mock_game():
     game.options.opt_out = "Single"
     game.options.legs_to_win = 1
     game.options.sets_to_win = 1
+    # Füge den fehlenden Callback hinzu, der von GameLogicBase erwartet wird.
+    game.on_throw_processed = MagicMock()
     # Füge ein gemocktes Logik-Objekt hinzu, das von UI-Komponenten erwartet wird
     game.game = MagicMock()
     game.game.get_scoreboard_height.return_value = 400
@@ -115,6 +117,31 @@ def mock_game():
     game.get_score.side_effect = _get_score_side_effect
     return game
 
+@pytest.fixture
+def mock_profile_manager():
+    """
+    Stellt einen standardisierten, gemockten PlayerProfileManager bereit.
+    Kann in allen Tests verwendet werden, die Profil-Daten benötigen.
+    """
+    mock_manager = MagicMock()
+    mock_profile_a = MagicMock()
+    mock_profile_a.name = "ProfA"
+    mock_profile_b = MagicMock()
+    mock_profile_b.name = "ProfB"
+    mock_manager.get_profiles.return_value = [
+        mock_profile_a,
+        mock_profile_b,
+    ]
+    return mock_manager
+
+
+@pytest.fixture
+def mock_settings_manager():
+    """Stellt einen standardisierten, gemockten SettingsManager bereit."""
+    mock_manager = MagicMock()
+    # Standardverhalten für get, kann in Tests bei Bedarf überschrieben werden.
+    mock_manager.get.return_value = []
+    return mock_manager
 
 @pytest.fixture(scope="session")
 def tk_root_session():
@@ -152,13 +179,13 @@ def game_factory(tk_root_session, monkeypatch):
         game_options = GameOptions.from_dict(game_options_dict)
 
         game = Game(
-            tk_root_session,
-            game_options,
-            player_names,
+            root=tk_root_session,
+            game_options=game_options,
+            player_names=player_names,
             on_throw_processed_callback=MagicMock(),
             highscore_manager=mock_highscore_manager,
             player_stats_manager=mock_player_stats_manager,
-            profile_manager=mock_profile_manager,
+            profile_manager=mock_profile_manager
         )
         created_games.append(game)
         return game

@@ -1,4 +1,3 @@
-import unittest
 import tkinter as tk
 import pytest
 from tkinter import ttk
@@ -9,35 +8,21 @@ from core.highscore_manager import HighscoreManager
 
 
 @pytest.mark.db
-class TestHighscoreManager(unittest.TestCase):
+class TestHighscoreManager:
     """
     Testet den HighscoreManager.
     Verwendet eine echte, aber versteckte Tk-Instanz, um UI-Interaktionen
     zuverlässig zu testen, ohne Fenster anzuzeigen oder Tests aufzuhängen.
     """
 
-    @classmethod
-    def setUpClass(cls):
-        """Erstellt eine einzige Tk-Wurzel für alle Tests in dieser Klasse."""
-        cls.root = tk.Tk()
-        cls.root.withdraw()  # Verhindert, dass das Hauptfenster angezeigt wird
+    # Nutze die session-weite, unsichtbare tk_root_session Fixture aus conftest.py
+    # anstelle einer eigenen Tk-Instanz pro Testklasse.
+    # Dies wird automatisch an die Methoden übergeben, die es benötigen.
+    # Wir müssen es hier nur deklarieren, damit pytest es erkennt.
 
-    @classmethod
-    def tearDownClass(cls):
-        """Zerstört die Tk-Wurzel, nachdem alle Tests beendet sind."""
-        if cls.root:
-            cls.root.destroy()
-            cls.root = None
-
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, tk_root_session):
         """Wird vor jedem Test ausgeführt."""
-        # Patch wait_window, um zu verhindern, dass modale Dialoge den Test blockieren.
-        patcher_wait = patch("tkinter.Toplevel.wait_window")
-        patcher_wait.start()
-        self.addCleanup(patcher_wait.stop)
-
-        # Wrapper, um neu erstellte Toplevel-Dialoge (wie den Reset-Dialog) abzufangen.
-        # Dies ist entscheidend, um mit modalen Dialogen in Tests interagieren zu können.
         self.created_dialogs = []
         original_toplevel = tk.Toplevel
 
@@ -46,14 +31,20 @@ class TestHighscoreManager(unittest.TestCase):
             self.created_dialogs.append(dialog)
             return dialog
 
+        # KORREKTE REIHENFOLGE & PFAD:
+        # Zuerst die Methode auf der Originalklasse patchen.
+        # Wir müssen den Pfad patchen, wo das Objekt *verwendet* wird.
+        # In diesem Fall wird `wait_window` auch in `ui_utils` aufgerufen.
+        self.patcher_wait = patch("core.ui_utils.tk.Toplevel.wait_window")
+        self.mock_wait = self.patcher_wait.start()
+
+        # ...DANN die gesamte Klasse durch unseren Wrapper ersetzen.
         self.patcher_toplevel = patch("tkinter.Toplevel", new=toplevel_wrapper)
-        self.patcher_toplevel.start()
-        self.addCleanup(self.patcher_toplevel.stop)
+        self.mock_toplevel = self.patcher_toplevel.start()
 
         # Patch für die neuen UI-Utilities
         patcher_ui_utils = patch("core.highscore_manager.ui_utils")
         self.mock_ui_utils = patcher_ui_utils.start()
-        self.addCleanup(patcher_ui_utils.stop)
 
         # Patch für die DatabaseManager-Abhängigkeit
         patcher_db = patch("core.highscore_manager.DatabaseManager")
@@ -68,14 +59,18 @@ class TestHighscoreManager(unittest.TestCase):
 
         self.highscore_manager = HighscoreManager(self.mock_db_instance)
         self.windows_to_destroy = []
-
-    def tearDown(self):
-        """Räumt nach jedem Test alle erstellten Fenster auf."""
+        self.root = tk_root_session
+        yield
+        # --- Teardown ---
+        self.patcher_toplevel.stop()
+        self.patcher_wait.stop()
+        patcher_ui_utils.stop()
+        patcher_db.stop()
         for window in self.windows_to_destroy:
             if window and window.winfo_exists():
                 window.destroy()
 
-    def test_initialization_handles_no_db_connection(self):
+    def test_initialization_handles_no_db_connection(self, setup_method):
         """
         Testet, dass der Manager auch ohne DB-Verbindung initialisiert werden kann.
         """
@@ -87,18 +82,18 @@ class TestHighscoreManager(unittest.TestCase):
         highscore_manager = HighscoreManager(mock_db_instance_disconnected)
 
         # Die einzige Behauptung ist, dass die Initialisierung nicht abstürzt
-        self.assertIsNotNone(highscore_manager)
+        assert highscore_manager is not None
 
-    def test_show_highscores_window_db_not_connected(self):
+    def test_show_highscores_window_db_not_connected(self, setup_method):
         """Testet das Verhalten, wenn das Fenster ohne DB-Verbindung geöffnet wird."""
         self.mock_db_instance.is_connected = False
         window = self.highscore_manager.show_highscores_window(self.root)
-        self.assertIsNone(window, "Es sollte kein Fenster erstellt werden.")
+        assert window is None, "Es sollte kein Fenster erstellt werden."
         self.mock_ui_utils.show_message.assert_called_once_with(
             "warning", ANY, ANY, parent=self.root
         )
 
-    def test_show_highscores_window_successful(self):
+    def test_show_highscores_window_successful(self, setup_method):
         """Testet die korrekte Erstellung des Highscore-Fensters und die Datenanzeige."""
         # Mock-Daten für verschiedene Spielmodi
         mock_scores_301 = [
@@ -129,23 +124,23 @@ class TestHighscoreManager(unittest.TestCase):
         window.update()  # Widgets zeichnen
 
         # Überprüfe den Widget-Typ über winfo_class(), das ist robuster in Tests.
-        self.assertEqual(window.winfo_class(), "Toplevel")
+        assert window.winfo_class() == "Toplevel"
         notebook = window.winfo_children()[0]
-        self.assertEqual(notebook.winfo_class(), "TNotebook")
+        assert notebook.winfo_class() == "TNotebook"
 
         # Überprüfen, ob die Daten im ersten Tab (301) korrekt sind
         tree_301 = notebook.tabs()[0]
         treeview_301 = window.nametowidget(tree_301).winfo_children()[0]
-        self.assertEqual(len(treeview_301.get_children()), 1)
+        assert len(treeview_301.get_children()) == 1
         item = treeview_301.item(treeview_301.get_children()[0])
-        self.assertEqual(item["values"], ["1.", "Alice", 18, "2023-01-01"])
+        assert item["values"] == ["1.", "Alice", 18, "2023-01-01"]
 
         # Überprüfen, ob die Daten im Cricket-Tab korrekt sind
         tree_cricket = notebook.tabs()[3]
         treeview_cricket = window.nametowidget(tree_cricket).winfo_children()[0]
-        self.assertEqual(len(treeview_cricket.get_children()), 1)
+        assert len(treeview_cricket.get_children()) == 1
         item_cricket = treeview_cricket.item(treeview_cricket.get_children()[0])
-        self.assertEqual(item_cricket["values"], ["1.", "Bob", "2.57", "2023-01-02"])
+        assert item_cricket["values"] == ["1.", "Bob", "2.57", "2023-01-02"]
 
     def _find_button_by_text(self, window, text, retries=5, delay=100):
         """
@@ -164,7 +159,23 @@ class TestHighscoreManager(unittest.TestCase):
             window.after(delay)  # Kurze Pause, damit das UI sich aufbauen kann
         return None  # Button nicht gefunden
 
-    def test_prompt_and_reset_single_mode_confirmed(self):
+    def _wait_for_dialog(self, title, timeout_ms=1000):
+        """
+        Wartet explizit auf das Erscheinen eines neuen Toplevel-Dialogs
+        mit einem bestimmten Titel.
+        """
+        start_time = self.root.tk.call("clock", "milliseconds")
+        while True:
+            self.root.update()
+            for dialog in self.created_dialogs:
+                if dialog.winfo_exists() and dialog.title() == title:
+                    return dialog
+            elapsed = self.root.tk.call("clock", "milliseconds") - start_time
+            if elapsed > timeout_ms:
+                pytest.fail(f"Timeout: Dialog mit Titel '{title}' nicht erschienen.")
+            self.root.after(50)
+
+    def test_prompt_and_reset_single_mode_confirmed(self, setup_method):
         """Testet das Zurücksetzen eines einzelnen Modus nach Bestätigung."""
         # Simuliere "Ja" im finalen Bestätigungsdialog
         self.mock_ui_utils.ask_question.return_value = True
@@ -180,40 +191,26 @@ class TestHighscoreManager(unittest.TestCase):
 
         # 2. Klicke den Haupt-Reset-Button, um den Auswahl-Dialog zu öffnen
         reset_button = self._find_button_by_text(window, "zurücksetzen")
-        self.assertIsNotNone(reset_button)
+        assert reset_button is not None
         reset_button.invoke()
 
-        # 3. Finde den neu erstellten modalen Dialog
-        self.assertGreaterEqual(
-            len(self.created_dialogs),
-            1,
-            "Der Reset-Dialog wurde nicht erstellt.",
-        )
-        reset_dialog = self.created_dialogs[-1]
+        # 3. Finde den neu erstellten modalen Dialog mit einer robusten Wartefunktion
+        reset_dialog = self._wait_for_dialog("Highscores zurücksetzen")
         self.windows_to_destroy.append(reset_dialog)
 
         # 4. Finde den "Nur '501'"-Button im modalen Dialog und klicke ihn
         single_reset_button = self._find_button_by_text(reset_dialog, "Nur '501'")
-        self.assertIsNotNone(
-            single_reset_button,
-            "Button zum Zurücksetzen des einzelnen Modus nicht gefunden.",
-        )
+        assert single_reset_button is not None, "Button zum Zurücksetzen des einzelnen Modus nicht gefunden."
         single_reset_button.invoke()
 
         # Überprüfe die Ergebnisse
         self.mock_ui_utils.ask_question.assert_called_once()
         self.mock_db_instance.reset_scores.assert_called_once_with("501")
         self.mock_ui_utils.show_message.assert_called_once()
-        self.assertFalse(
-            window.winfo_exists(),
-            "Das Highscore-Fenster sollte nach dem Reset geschlossen sein.",
-        )
-        self.assertFalse(
-            reset_dialog.winfo_exists(),
-            "Der Reset-Dialog sollte nach dem Reset geschlossen sein.",
-        )
+        assert not window.winfo_exists(), "Das Highscore-Fenster sollte nach dem Reset geschlossen sein."
+        assert not reset_dialog.winfo_exists(), "Der Reset-Dialog sollte nach dem Reset geschlossen sein."
 
-    def test_prompt_and_reset_all_modes_confirmed(self):
+    def test_prompt_and_reset_all_modes_confirmed(self, setup_method):
         """Testet das Zurücksetzen aller Modi nach Bestätigung."""
         self.mock_ui_utils.ask_question.return_value = True
         window = self.highscore_manager.show_highscores_window(self.root)
@@ -224,27 +221,21 @@ class TestHighscoreManager(unittest.TestCase):
         reset_button = self._find_button_by_text(window, "zurücksetzen")
         reset_button.invoke()
 
-        # 2. Finde den modalen Dialog
-        self.assertGreaterEqual(
-            len(self.created_dialogs),
-            1,
-            "Der Reset-Dialog wurde nicht erstellt.",
-        )
-        reset_dialog = self.created_dialogs[-1]
+        # 2. Finde den modalen Dialog mit einer robusten Wartefunktion
+        reset_dialog = self._wait_for_dialog("Highscores zurücksetzen")
         self.windows_to_destroy.append(reset_dialog)
 
         # 3. Finde den "Alle zurücksetzen"-Button und klicke ihn
         all_reset_button = self._find_button_by_text(reset_dialog, "Alle zurücksetzen")
-        self.assertIsNotNone(all_reset_button, "Button 'Alle zurücksetzen' nicht gefunden.")
-        self.assertIsNotNone(all_reset_button)
+        assert all_reset_button is not None, "Button 'Alle zurücksetzen' nicht gefunden."
         all_reset_button.invoke()
 
         self.mock_db_instance.reset_scores.assert_called_once_with(None)
         self.mock_ui_utils.show_message.assert_called_once()
-        self.assertFalse(window.winfo_exists())
-        self.assertFalse(reset_dialog.winfo_exists())
+        assert not window.winfo_exists()
+        assert not reset_dialog.winfo_exists()
 
-    def test_prompt_and_reset_cancelled(self):
+    def test_prompt_and_reset_cancelled(self, setup_method):
         """Testet, dass nichts passiert, wenn der Benutzer den Reset abbricht."""
         window = self.highscore_manager.show_highscores_window(self.root)
         self.windows_to_destroy.append(window)
@@ -254,31 +245,16 @@ class TestHighscoreManager(unittest.TestCase):
         reset_button = self._find_button_by_text(window, "zurücksetzen")
         reset_button.invoke()
 
-        # 2. Finde den modalen Dialog
-        self.assertGreaterEqual(
-            len(self.created_dialogs),
-            1,
-            "Der Reset-Dialog wurde nicht erstellt.",
-        )
-        reset_dialog = self.created_dialogs[-1]
+        # 2. Finde den modalen Dialog mit einer robusten Wartefunktion
+        reset_dialog = self._wait_for_dialog("Highscores zurücksetzen")
         self.windows_to_destroy.append(reset_dialog)
 
         # 3. Finde den "Abbrechen"-Button und klicke ihn
         cancel_button = self._find_button_by_text(reset_dialog, "Abbrechen")
-        self.assertIsNotNone(cancel_button)
+        assert cancel_button is not None
         cancel_button.invoke()
 
         self.mock_db_instance.reset_scores.assert_not_called()
         self.mock_ui_utils.show_message.assert_not_called()
-        self.assertTrue(
-            window.winfo_exists(),
-            "Das Highscore-Fenster sollte nach dem Abbrechen geöffnet bleiben.",
-        )
-        self.assertFalse(
-            reset_dialog.winfo_exists(),
-            "Der Reset-Dialog sollte nach dem Abbrechen geschlossen sein.",
-        )
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
+        assert window.winfo_exists(), "Das Highscore-Fenster sollte nach dem Abbrechen geöffnet bleiben."
+        assert not reset_dialog.winfo_exists(), "Der Reset-Dialog sollte nach dem Abbrechen geschlossen sein."

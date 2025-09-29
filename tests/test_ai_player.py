@@ -60,7 +60,7 @@ def ai_player_with_mocks():
     mock_game.dartboard.get_coords_for_target.return_value = (300, 300)
 
     # FIX: Füge das fehlende settings_manager-Attribut hinzu, das vom AIPlayer-Konstruktor benötigt wird.
-    mock_game.settings_manager = MagicMock(get=MagicMock(return_value=1000))
+    mock_game.settings_manager = MagicMock(get=MagicMock(return_value=1000)) # type: ignore
 
     mock_game.targets = []  # Fehlendes Attribut hinzufügen
     
@@ -211,13 +211,24 @@ def test_get_strategic_target_for_x01_high_score(x01_ai_player):
 def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_player):
     """Testet die Zielauswahl, wenn ein Checkout-Pfad verfügbar ist."""
     ai_player, mock_game = x01_ai_player
+    # KORREKTUR: Der Mock muss am Pfad gesetzt werden, den die Strategie tatsächlich verwendet.
+    # Die Strategie greift auf `self.game.game.opt_out` zu, was im Test `mock_game.game.opt_out` entspricht.
+    mock_game.game.opt_out = "Double"
+
+    # Szenario 1: 100 Rest, 3 Darts -> T20, D20
+    mock_get_suggestion.reset_mock()
+    ai_player.difficulty = "Anfänger"
+    ai_player.score = 100
+    mock_get_suggestion.return_value = "T20, D20"
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Triple", 20)
+    mock_get_suggestion.assert_called_with(100, "Double", 3, preferred_double=None)
 
     # Szenario 2: 40 Rest, 2 Darts -> D20.
     # Hier müssen wir zwei Fälle testen: die aggressive Profi-Logik und die Standard-Logik.
     mock_get_suggestion.reset_mock()
     ai_player.score = 40
     mock_get_suggestion.return_value = "D20"
-    mock_game.game.opt_out = "Double"  # Sicherstellen, dass die Regel greift
 
     # Fall A: Profi-KI umgeht den Calculator
     ai_player.difficulty = "Profi"
@@ -230,16 +241,6 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
     target = ai_player.strategy.get_target(throw_number=2)
     assert target == ("Double", 20)
     mock_get_suggestion.assert_called_with(40, "Double", 2, preferred_double=None)
-
-    # Szenario 1 (neu positioniert): 100 Rest, 3 Darts -> T20, D20
-    # Dieser Test muss nach dem anderen kommen, da der Mock sonst nicht korrekt zurückgesetzt wird.
-    mock_get_suggestion.reset_mock()
-    ai_player.difficulty = "Anfänger"
-    ai_player.score = 100
-    mock_get_suggestion.return_value = "T20, D20"
-    target = ai_player.strategy.get_target(throw_number=1)
-    assert target == ("Triple", 20)
-    mock_get_suggestion.assert_called_with(100, "Double", 3, preferred_double=None)
 
 
 @patch(

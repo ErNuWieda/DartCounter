@@ -23,7 +23,7 @@ class GameLogic:
 
     def __init__(self, game_controller):
         self.game = game_controller
-        self.on_throw_processed_callback = game_controller.on_throw_processed
+        self.on_throw_processed_callback = game_controller.on_throw_processed_callback
 
     @property
     def players(self):

@@ -107,19 +107,22 @@ class CustomColorChooserDialog(tk.Toplevel):
                 borderwidth=1,
             )
             swatch.grid(row=row, column=col, padx=3, pady=3)
+            # KORREKTUR: Verwende ein Default-Argument im Lambda, um das "late binding"-Problem zu lösen.
+            # Ohne `c=color` würde `color` erst beim Klick ausgewertet werden und hätte dann
+            # immer den Wert des letzten Elements aus der Schleife.
             swatch.bind("<Button-1>", lambda e, c=color: self._on_swatch_click(c))
 
         # --- Rechte Spalte: RGB-Slider und Hex-Eingabe ---
         right_frame = ttk.Frame(main_frame)
         right_frame.grid(row=0, column=1, sticky="nsew")
-        self._create_slider(right_frame, "R", self.r_var, "red")
-        self._create_slider(right_frame, "G", self.g_var, "green")
-        self._create_slider(right_frame, "B", self.b_var, "blue")
+        self.red_slider = self._create_slider(right_frame, "R", self.r_var, "red")
+        self.green_slider = self._create_slider(right_frame, "G", self.g_var, "green")
+        self.blue_slider = self._create_slider(right_frame, "B", self.b_var, "blue")
 
         hex_frame = ttk.Frame(right_frame)
         hex_frame.pack(fill=tk.X, pady=(20, 0))
         ttk.Label(hex_frame, text="Hex:").pack(side=tk.LEFT)
-        self.hex_entry = ttk.Entry(
+        self.hex_entry = ttk.Entry(  # Widget als Instanzattribut speichern
             hex_frame,
             textvariable=self.hex_color_var,
             width=10,
@@ -128,13 +131,14 @@ class CustomColorChooserDialog(tk.Toplevel):
         self.hex_entry.pack(side=tk.LEFT, padx=5)
 
         # --- Untere Reihe: Buttons ---
-        button_frame = ttk.Frame(main_frame)
+        button_frame = ttk.Frame(main_frame) 
         button_frame.grid(row=1, column=0, columnspan=2, sticky="e", pady=(20, 0))
-        ok_button = ttk.Button(button_frame, text="OK", command=self._on_ok, style="Accent.TButton")
-        ok_button.pack(side=tk.LEFT, padx=5)
-        ok_button.bind("<Return>", lambda e: self._on_ok())
-        ok_button.focus_set()
-        ttk.Button(button_frame, text="Abbrechen", command=self.destroy).pack(side=tk.LEFT)
+        self.ok_button = ttk.Button(button_frame, text="OK", command=self._on_ok, style="Accent.TButton") # Als Instanzattribut speichern
+        self.ok_button.pack(side=tk.LEFT, padx=5)
+        self.ok_button.bind("<Return>", lambda e: self._on_ok())
+        self.ok_button.focus_set()
+        self.cancel_button = ttk.Button(button_frame, text="Abbrechen", command=self.destroy) # Als Instanzattribut speichern
+        self.cancel_button.pack(side=tk.LEFT)
 
     def _create_slider(self, parent, label_text, variable, color):
         """Hilfsmethode zur Erstellung eines RGB-Sliders."""
@@ -150,6 +154,7 @@ class CustomColorChooserDialog(tk.Toplevel):
         # Ein Label, das den numerischen Wert des Sliders anzeigt
         value_label = ttk.Label(frame, textvariable=variable, width=3)
         value_label.pack(side=tk.LEFT)
+        return scale # Den erstellten Slider zurückgeben
 
     def _update_from_sliders(self, *args):
         """Wird aufgerufen, wenn ein Slider bewegt wird. Aktualisiert den Hex-Code."""
@@ -184,8 +189,11 @@ class CustomColorChooserDialog(tk.Toplevel):
             self._update_preview(self.cget("bg"))  # Fallback-Farbe
             self.hex_entry.config(foreground="red")  # Ungültige Farbe
 
-    def _on_swatch_click(self, color):
+    def _on_swatch_click(self, color: str):
         """Wird aufgerufen, wenn ein Farbfeld angeklickt wird."""
+        # KORREKTUR: Die Methode muss den 'color'-Parameter akzeptieren, der
+        # vom Lambda-Callback übergeben wird. Zuvor hatte die Methode
+        # fälschlicherweise nur 'self', weshalb der Aufruf fehlschlug.
         self.hex_color_var.set(color)
 
     def _is_valid_hex_color(self, hex_string):

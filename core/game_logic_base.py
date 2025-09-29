@@ -37,6 +37,7 @@ class GameLogicBase:
             game (Game): Die Haupt-Spielinstanz.
         """
         self.game = game
+        self.on_throw_processed_callback = game.on_throw_processed
         self.targets = None
 
     def get_targets(self):

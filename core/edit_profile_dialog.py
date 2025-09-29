@@ -323,7 +323,10 @@ class EditProfileDialog(tk.Toplevel):
         elif pref_double_str == "Bull":
             preferred_double = 25
         else:
-            preferred_double = int(pref_double_str)
+            # Stelle sicher, dass der String nicht leer ist, bevor du ihn konvertierst.
+            preferred_double = (
+                int(pref_double_str) if pref_double_str and pref_double_str.isdigit() else None
+            )
 
         # --- Logik für adaptive KI ---
         if is_ai and difficulty == "Adaptiv":

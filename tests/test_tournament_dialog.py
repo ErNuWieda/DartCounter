@@ -17,24 +17,13 @@ def tk_root():
 
 
 @pytest.fixture
-def dialog_setup(tk_root, monkeypatch):
+def dialog_setup(tk_root, mock_settings_manager, mock_profile_manager):
     """Richtet den TournamentSettingsDialog mit Mocks für den Test ein."""
 
-    mock_settings_manager = MagicMock()
     mock_settings_manager.get.return_value = [
         "ProfA",
         "Guest1",
     ]  # für last_tournament_players
-
-    mock_profile_manager = MagicMock()
-    mock_profile_a = MagicMock()
-    mock_profile_a.name = "ProfA"
-    mock_profile_b = MagicMock()
-    mock_profile_b.name = "ProfB"
-    mock_profile_manager.get_profiles.return_value = [
-        mock_profile_a,
-        mock_profile_b,
-    ]
 
     dialog = TournamentSettingsDialog(tk_root, mock_profile_manager, mock_settings_manager)
     dialog.update()
