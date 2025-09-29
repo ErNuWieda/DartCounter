@@ -131,11 +131,13 @@ class TestPlayerStatsManagerUI:
         # Mocke matplotlib, um die Erstellung echter Diagramme zu verhindern
         patcher_matplotlib = patch("core.player_stats_manager.MATPLOTLIB_AVAILABLE", True)
         self.mock_matplotlib = patcher_matplotlib.start()
-
-        patcher_figure = patch("core.player_stats_manager.Figure")
+        
+        # KORREKTUR: Patche die Klassen dort, wo sie herkommen, nicht dort, wo sie importiert werden.
+        # Dies ist robuster, besonders wenn der Import fehlschlagen kann (wie im CI-Workflow).
+        patcher_figure = patch("matplotlib.figure.Figure")
         self.mock_figure = patcher_figure.start()
 
-        patcher_canvas = patch("core.player_stats_manager.FigureCanvasTkAgg")
+        patcher_canvas = patch("matplotlib.backends.backend_tkagg.FigureCanvasTkAgg")
         self.mock_canvas = patcher_canvas.start()
 
         # Mocke messagebox, um Dialoge abzufangen
@@ -231,4 +233,3 @@ class TestPlayerStatsManagerUI:
 
         # 5. Überprüfen, ob die korrekte DB-Methode aufgerufen wurde
         self.mock_db_manager.get_records_for_player.assert_called_once_with("Bob")
-
