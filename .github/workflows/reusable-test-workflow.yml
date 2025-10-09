@@ -25,6 +25,10 @@ jobs:
     runs-on: ${{ inputs.os }}
     container:
       image: ${{ inputs.container-image }}
+    env:
+      # Setzt den Matplotlib-Backend auf einen nicht-interaktiven Modus.
+      # Wichtig für Tests, die Plots erstellen (z.B. Statistiken), um GUI-Fehler in der CI zu vermeiden.
+      MPLBACKEND: Agg
 
     steps:
       - name: 1. Install System Prerequisites (for container)
@@ -68,7 +72,6 @@ jobs:
       - name: 6. Run Tests (macOS)
         if: runner.os == 'macOS'
         env:
-          MPLBACKEND: Agg
           CI: "true"
         run: python -m pytest -m "${{ inputs.pytest-marker }}"
 
