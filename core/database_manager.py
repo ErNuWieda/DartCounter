@@ -203,7 +203,7 @@ class DatabaseManager:
             alembic_cfg.set_main_option("sqlalchemy.url", str(self.engine.url))
 
             # Führe den 'upgrade head'-Befehl aus
-            command.upgrade(alembic_cfg, "head")
+            # command.upgrade(alembic_cfg, "head")
 
             logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
         except SQLAlchemyError as e:

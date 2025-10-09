@@ -62,16 +62,21 @@ jobs:
       - name: 6. Run Tests with Virtual Display (Linux)
         if: runner.os == 'Linux'
         env:
-          CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
+          CI: "true"
         run: xvfb-run ${{ inputs.container-image && 'python3' || 'python' }} -m pytest -m "${{ inputs.pytest-marker }}"
-      - name: 6. Run Tests (Windows/macOS)
-        if: runner.os == 'Windows' || runner.os == 'macOS'
+
+      - name: 6. Run Tests (macOS)
+        if: runner.os == 'macOS'
         env:
-          # Für macOS: Führe Tests im "headless" Modus aus, um GUI-Fehler zu vermeiden
           MPLBACKEND: Agg
-          CI: "true" # Signalisiert den Tests, dass sie in einer CI-Umgebung laufen
-          # Für Windows: Setze die Pfade zu den Tcl/Tk-Bibliotheken manuell,
-          # um "TclError: Can't find a usable tk.tcl" zu beheben.
-          TCL_LIBRARY: "${{ env.pythonLocation }}\\tcl\\tcl8.6"
-          TK_LIBRARY: "${{ env.pythonLocation }}\\tcl\\tk8.6"
+          CI: "true"
         run: python -m pytest -m "${{ inputs.pytest-marker }}"
+
+      - name: 6. Run Tests (Windows)
+        if: runner.os == 'Windows'
+        env:
+          CI: "true"
+        run: |
+          $env:TCL_LIBRARY = Join-Path $env:pythonLocation 'tcl\tcl8.6'
+          $env:TK_LIBRARY = Join-Path $env:pythonLocation 'tcl\tk8.6'
+          python -m pytest -m "${{ inputs.pytest-marker }}"

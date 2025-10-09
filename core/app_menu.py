@@ -44,22 +44,19 @@ class AppMenu:
         file_menu.add_separator()
         file_menu.add_command(label="Spiel beenden", command=self.controller.quit_game)
 
-        # Datenbank Menü
-        db_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="Datenbank", menu=db_menu)
-        db_menu.add_command(
-            label="Spielerprofile verwalten...",
-            command=self.controller.open_profile_manager,
-        )
-        db_menu.add_command(
-            label="Spielerstatistiken anzeigen...",
-            command=self.controller.show_player_stats,
-        )
-        db_menu.add_command(label="Highscores anzeigen...", command=self.controller.show_highscores)
-
-        # Deaktiviere das Menü, wenn die Datenbank nicht verfügbar ist.
-        if not self.db_available:
-            menu_bar.entryconfig("Datenbank", state="disabled")
+        # Datenbank Menü (nur erstellen, wenn die DB verfügbar ist)
+        if self.db_available:
+            db_menu = Menu(menu_bar, tearoff=0)
+            menu_bar.add_cascade(label="Datenbank", menu=db_menu)
+            db_menu.add_command(
+                label="Spielerprofile verwalten...",
+                command=self.controller.open_profile_manager,
+            )
+            db_menu.add_command(
+                label="Spielerstatistiken anzeigen...",
+                command=self.controller.show_player_stats,
+            )
+            db_menu.add_command(label="Highscores anzeigen...", command=self.controller.show_highscores)
 
         # Über Menü
         about_menu = Menu(menu_bar, tearoff=0)

@@ -40,6 +40,13 @@ GAME_LOGIC_MAP = {
     "Split Score": SplitScore,
 }
 
+# Leite Listen von Spielmodi-Typen aus der GAME_LOGIC_MAP ab.
+# Dies zentralisiert die Konfiguration und vermeidet doppelte Listen.
+X01_MODES = [mode for mode, logic in GAME_LOGIC_MAP.items() if logic == X01]
+CRICKET_MODES = [mode for mode, logic in GAME_LOGIC_MAP.items() if logic == Cricket]
+HIGHSCORE_MODES = sorted(list(GAME_LOGIC_MAP.keys()))
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -128,7 +135,7 @@ class Game:
             self.game.set_players(self.players)
 
         # --- UI-Setup: Die Game-Klasse erstellt und verwaltet ihre UI-Komponenten direkt ---
-        self.dartboard = DartBoard(self)
+        self.dartboard = DartBoard(self, self.root)
         # Die Erstellung und Positionierung der Scoreboards wird an eine Hilfsfunktion ausgelagert.
         self.scoreboards = setup_scoreboards(self)
 
@@ -150,55 +157,46 @@ class Game:
         Spieler entfernt wird oder wenn der letzte verbleibende Spieler das
         Spiel verlässt, was zum Spielende führt.
         """
-        try:
-            player_to_remove_index = self.players.index(player_to_remove)
-        except ValueError:
-            return  # Spieler wurde nicht in der Liste gefunden, nichts zu tun.
+        if player_to_remove not in self.players:
+            return
 
-        if not player_to_remove:
-            return  # Spieler nicht gefunden
-
-        # Zerstöre das Scoreboard des Spielers, bevor er aus der Liste entfernt wird,
-        # um hängende UI-Fenster zu vermeiden.
+        # UI des Spielers sicher zerstören
         if player_to_remove.sb and player_to_remove.sb.score_window.winfo_exists():
             try:
                 player_to_remove.sb.score_window.destroy()
             except tk.TclError:
                 pass  # Fenster wurde möglicherweise bereits anderweitig geschlossen
 
-        was_current_player = player_to_remove_index == self.current
+        # --- Vereinfachte Logik zur Bestimmung des nächsten Spielers ---
+        # 1. Merke dir, wer als Nächstes dran gewesen wäre.
+        was_current_player = self.current_player() == player_to_remove
+        next_player_in_line = self.players[(self.players.index(player_to_remove) + 1) % len(self.players)]
 
-        # Passe den 'current' Index an, BEVOR der Spieler entfernt wird.
-        if player_to_remove_index < self.current:
-            self.current -= 1
+        # 2. Entferne den Spieler.
+        self.players.remove(player_to_remove)
 
-        # Entferne den Spieler aus der Liste
-        self.players.pop(player_to_remove_index)
-
-        # --- Spielzustand nach dem Entfernen prüfen ---
-
-        # Fall 1: Keine Spieler mehr übrig
+        # 3. Prüfe, ob das Spiel vorbei ist.
         if not self.players:
             ui_utils.show_message(
                 "info",
                 "Spielende",
                 "Alle Spieler haben das Spiel verlassen.",
-                parent=self.root,
+                parent=self.dartboard.root if self.dartboard else self.root,
             )
             self.end = True
-            self.destroy()  # Beendet das Spiel und schließt alle Fenster
+            self.destroy()
             return
 
-        # Fall 2: Der Index des aktuellen Spielers ist jetzt außerhalb der Liste
-        # (passiert, wenn der letzte Spieler in der Liste entfernt wird).
-        if self.current >= len(self.players):
+        # 4. Setze den 'current'-Index neu, basierend auf dem, der als Nächstes dran war.
+        try:
+            self.current = self.players.index(next_player_in_line)
+        except ValueError:
+            # Dieser Fall tritt ein, wenn der 'next_player_in_line' derjenige war,
+            # der entfernt wurde (passiert, wenn der letzte Spieler geht).
+            # Der Index wird sicher auf 0 gesetzt.
             self.current = 0
-            # Wenn der letzte Spieler einer Runde entfernt wurde, beginnt eine neue Runde.
-            if was_current_player:
-                self.round += 1
 
-        # Fall 3: Der aktuelle Spieler hat das Spiel verlassen.
-        # Der nächste Spieler ist nun automatisch am Zug.
+        # 5. Wenn der Spieler am Zug entfernt wurde, starte den Zug des neuen Spielers.
         if was_current_player:
             self.announce_current_player_turn()
 
@@ -386,23 +384,11 @@ class Game:
         if result.status == "bust":
             return "bust"
 
-        # Sound für Rundenende (nur bei X01)
-        if len(player.throws) == 3 and self.options.name in (
-            "301",
-            "501",
-            "701",
-        ):
-            # Unpack the 3-tuple, ignoring coords
-            round_score = sum(self.get_score(r, s) for r, s, _ in player.throws)
-            score_sounds = {
-                180: "score_180",
-                160: "score_160",
-                140: "score_140",
-                120: "score_120",
-                100: "score_100",
-            }
-            if sound := score_sounds.get(round_score):
-                return sound
+        # Frage die Spiellogik nach einem spezifischen Sound (z.B. für 180er).
+        # Wenn die Logik None zurückgibt, wird der Standard-Sound verwendet.
+        if hasattr(self.game, "get_sound_for_throw"):
+            if specific_sound := self.game.get_sound_for_throw(player):
+                return specific_sound
 
         # Standard-Treffer-Sound
         hit_sounds = {"Bullseye": "bullseye", "Bull": "bull", "Miss": "miss"}

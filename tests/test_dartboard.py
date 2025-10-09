@@ -16,8 +16,10 @@
 
 import pytest
 import math
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock, patch
 from core.dartboard import DartBoard
+from core.player import Player
+from core.throw_result import ThrowResult
 
 
 @pytest.fixture
@@ -31,6 +33,10 @@ def dartboard_instance(tk_root_session):
     mock_game = Mock()
     mock_game.options.name = "Test"
     mock_game.root = tk_root_session
+    # Mock den on_throw_processed Callback, der von der Game-Klasse übergeben wird
+    mock_game.on_throw_processed = MagicMock()
+    # Mock den aktuellen Spieler
+    mock_game.current_player.return_value = MagicMock(spec=Player, throws=[])
 
     # Erstelle die DartBoard-Instanz. Der __init__-Konstruktor ruft
     # _create_board auf, was die notwendigen Attribute wie `canvas`,
@@ -123,3 +129,109 @@ def test_hit_detection_precision(
 
     assert ring == expected_ring, f"Fehler bei '{description}': Falscher Ring"
     assert segment == expected_segment, f"Fehler bei '{description}': Falsches Segment"
+
+
+@pytest.mark.ui
+class TestDartboardInteractions:
+    """Testet die UI-Interaktionen des Dartboards wie Button-Klicks und Fenster-Events."""
+
+    def test_on_click_calls_game_throw(self, dartboard_instance):
+        """Testet, ob ein Klick auf das Canvas die throw-Methode des Spiels aufruft."""
+        db = dartboard_instance
+        mock_game = db.spiel
+
+        # Simuliere einen Klick-Event
+        mock_event = MagicMock()
+        mock_event.x = 300
+        mock_event.y = 150
+
+        # Mocke die Treffererkennung, um den Test zu isolieren
+        db.get_ring_segment = MagicMock(return_value=("Triple", 20))
+
+        db.on_click(mock_event)
+
+        # Überprüfe, ob spiel.throw mit den korrekten, normalisierten Koordinaten aufgerufen wurde
+        canvas_width = db.canvas.winfo_width()
+        canvas_height = db.canvas.winfo_height()
+        expected_norm_x = 300 / canvas_width
+        expected_norm_y = 150 / canvas_height
+
+        mock_game.throw.assert_called_once_with(
+            "Triple", 20, (expected_norm_x, expected_norm_y)
+        )
+
+    def test_quit_game_when_game_is_over(self, dartboard_instance):
+        """Testet, ob das Fenster ohne Nachfrage schließt, wenn das Spiel bereits beendet ist."""
+        db = dartboard_instance
+        db.spiel.end = True  # Spiel ist vorbei
+
+        with patch("core.dartboard.ui_utils.ask_question") as mock_ask:
+            db.quit_game()
+            mock_ask.assert_not_called()
+            db.spiel.destroy.assert_called_once()
+
+    def test_quit_game_save_confirmed(self, dartboard_instance):
+        """Testet den "Speichern und Beenden"-Pfad."""
+        db = dartboard_instance
+        db.spiel.end = False
+        db.spiel.is_tournament_match = False
+
+        with patch("core.dartboard.ui_utils.ask_question", return_value=True) as mock_ask, patch(
+            "core.dartboard.SaveLoadManager.save_state", return_value=True
+        ) as mock_save:
+            db.quit_game()
+
+            mock_ask.assert_called_once()
+            mock_save.assert_called_once()
+            db.spiel.destroy.assert_called_once()
+
+    def test_quit_game_no_save_confirmed(self, dartboard_instance):
+        """Testet den "Nicht Speichern und Beenden"-Pfad."""
+        db = dartboard_instance
+        db.spiel.end = False
+        db.spiel.is_tournament_match = False
+
+        with patch("core.dartboard.ui_utils.ask_question", return_value=False) as mock_ask, patch(
+            "core.dartboard.SaveLoadManager.save_state"
+        ) as mock_save:
+            db.quit_game()
+
+            mock_ask.assert_called_once()
+            mock_save.assert_not_called()
+            db.spiel.destroy.assert_called_once()
+
+    def test_quit_game_cancelled(self, dartboard_instance):
+        """Testet, was passiert, wenn der Benutzer den Dialog abbricht."""
+        db = dartboard_instance
+        db.spiel.end = False
+        db.spiel.is_tournament_match = False
+
+        with patch("core.dartboard.ui_utils.ask_question", return_value=None) as mock_ask:
+            db.quit_game()
+            mock_ask.assert_called_once()
+            db.spiel.destroy.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "num_throws, turn_is_over, game_is_over, expected_done_state, expected_undo_state",
+        [
+            (0, False, False, "disabled", "disabled"),  # Rundenstart
+            (1, False, False, "disabled", "normal"),  # Ein Wurf gemacht
+            (2, False, False, "disabled", "normal"),  # Zwei Würfe gemacht
+            (3, False, False, "normal", "normal"),  # Drei Würfe gemacht
+            (2, True, False, "normal", "normal"),  # Bust nach 2 Würfen
+            (2, False, True, "normal", "normal"),  # Spielgewinn nach 2 Würfen
+        ],
+    )
+    def test_update_button_states(
+        self, dartboard_instance, num_throws, turn_is_over, game_is_over, expected_done_state, expected_undo_state
+    ):
+        """Testet die Logik zur Aktivierung/Deaktivierung der Buttons."""
+        db = dartboard_instance
+        db.spiel.end = game_is_over
+        db.spiel.current_player.return_value.throws = [("T", 20, None)] * num_throws
+        db.spiel.current_player.return_value.turn_is_over = turn_is_over
+
+        db.update_button_states()
+
+        assert str(db.done_button.cget("state")) == expected_done_state
+        assert str(db.undo_button.cget("state")) == expected_undo_state

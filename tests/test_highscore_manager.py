@@ -4,6 +4,7 @@ from tkinter import ttk
 from unittest.mock import MagicMock, patch, call, ANY
 from datetime import date
 
+from core.game import HIGHSCORE_MODES
 from core.highscore_manager import HighscoreManager
 
 
@@ -110,14 +111,19 @@ class TestHighscoreManager:
                 "date": date(2023, 1, 2),
             }
         ]
-        self.mock_db_instance.get_scores.side_effect = [
-            mock_scores_301,  # für 301
-            [],  # für 501
-            [],  # für 701
-            mock_scores_cricket,  # für Cricket
-            [],
-            [],  # für Cut Throat, Tactics
-        ]
+
+        # Erstelle eine dynamische Liste von Rückgabewerten für den Mock.
+        # Dies stellt sicher, dass der Test auch bei Hinzufügen neuer Spielmodi funktioniert.
+        side_effect_list = []
+        for mode in HIGHSCORE_MODES:
+            if mode == "301":
+                side_effect_list.append(mock_scores_301)
+            elif mode == "Cricket":
+                side_effect_list.append(mock_scores_cricket)
+            else:
+                side_effect_list.append([])  # Leere Liste für alle anderen Modi
+
+        self.mock_db_instance.get_scores.side_effect = side_effect_list
 
         window = self.highscore_manager.show_highscores_window(self.root)
         self.windows_to_destroy.append(window)
@@ -128,15 +134,20 @@ class TestHighscoreManager:
         notebook = window.winfo_children()[0]
         assert notebook.winfo_class() == "TNotebook"
 
+        # Finde die Indizes der relevanten Tabs dynamisch
+        tab_texts = [notebook.tab(i, "text") for i in range(notebook.index("end"))]
+        idx_301 = tab_texts.index("301")
+        idx_cricket = tab_texts.index("Cricket")
+
         # Überprüfen, ob die Daten im ersten Tab (301) korrekt sind
-        tree_301 = notebook.tabs()[0]
+        tree_301 = notebook.tabs()[idx_301]
         treeview_301 = window.nametowidget(tree_301).winfo_children()[0]
         assert len(treeview_301.get_children()) == 1
         item = treeview_301.item(treeview_301.get_children()[0])
         assert item["values"] == ["1.", "Alice", 18, "2023-01-01"]
 
         # Überprüfen, ob die Daten im Cricket-Tab korrekt sind
-        tree_cricket = notebook.tabs()[3]
+        tree_cricket = notebook.tabs()[idx_cricket]
         treeview_cricket = window.nametowidget(tree_cricket).winfo_children()[0]
         assert len(treeview_cricket.get_children()) == 1
         item_cricket = treeview_cricket.item(treeview_cricket.get_children()[0])

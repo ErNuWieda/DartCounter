@@ -18,6 +18,7 @@
 Dieses Modul enthält den TournamentManager, der die Logik für den
 Turniermodus steuert.
 """
+from .game_options import GameOptions
 from .save_load_manager import SaveLoadManager
 from .tournament_strategies import (
     SingleEliminationStrategy,
@@ -95,6 +96,28 @@ class TournamentManager:
     def record_match_winner(self, match_to_update: dict, winner_name: str):
         """Delegiert die Verarbeitung des Match-Ergebnisses an die Strategie."""
         self.strategy.record_match_winner(match_to_update, winner_name)
+
+    def get_match_game_options(self) -> GameOptions:
+        """
+        Erstellt ein sauberes GameOptions-Objekt für ein einzelnes Turniermatch.
+
+        Diese Methode kapselt die Logik zur Erstellung der Spielregeln für ein
+        Match und stellt sicher, dass immer die korrekten Standardwerte für
+        Turniere verwendet werden (z.B. Single-In/Double-Out, 1 Leg/Set).
+
+        Returns:
+            GameOptions: Ein konfiguriertes GameOptions-Objekt.
+        """
+        return GameOptions(
+            name=self.game_mode,
+            opt_in="Single",  # Standard für Turniere
+            opt_out="Double",  # Standard für Turniere
+            count_to=int(self.game_mode),
+            legs_to_win=1,  # Turnierspiele sind immer einzelne Legs/Sets
+            sets_to_win=1,
+            # Die folgenden Werte sind für X01-Turniere irrelevant, werden aber von der Datenklasse benötigt.
+            opt_atc="Single", lifes=3, rounds=7,
+        )
 
     def to_dict(self) -> dict:
         """Serialisiert den Zustand des Managers in ein Dictionary für das Speichern."""

@@ -345,6 +345,26 @@ def test_get_strategic_target_for_cricket_scoring(cricket_ai_player):
         19,
     ), "KI sollte auf das höchste offene Ziel des Gegners punkten."
 
+def test_get_strategic_target_for_cricket_no_scoring_opportunity(cricket_ai_player):
+    """
+    Testet das Fallback-Verhalten, wenn alle eigenen Ziele geschlossen sind
+    und auch bei den Gegnern keine offenen Ziele zum Punkten mehr existieren.
+    """
+    ai_player, mock_game = cricket_ai_player
+
+    # Alle Spieler haben alle Ziele geschlossen
+    all_targets = mock_game.game.get_targets()
+    for player in mock_game.players:
+        player.state = {"hits": {t: 3 for t in all_targets}}
+        player.hits = player.state["hits"]
+
+    # In diesem Fall gibt es kein sinnvolles Ziel mehr.
+    # Die KI sollte auf ein Fallback-Ziel (Bullseye) ausweichen.
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == (
+        "Bullseye",
+        50,
+    ), "KI sollte auf Bullseye zurückfallen, wenn kein Scoring-Ziel verfügbar ist."
 
 def test_get_strategic_target_for_cricket_defensive_move(cricket_ai_player):
     """Testet, ob die KI defensiv ein gefährliches Ziel des Gegners schließt."""
@@ -424,6 +444,20 @@ def test_killer_ai_avoids_taken_life_segment(killer_ai_player):
     # Da 20 und 19 belegt sind, sollte die KI auf 18 ausweichen.
     assert target == ("Single", 18)
 
+def test_killer_ai_fallback_if_all_preferred_segments_taken(killer_ai_player):
+    """Testet, ob die KI auf ein niedriges Segment zurückfällt, wenn alle bevorzugten vergeben sind."""
+    ai_player, mock_game = killer_ai_player
+    ai_player.state["life_segment"] = None
+
+    # Blockiere alle bevorzugten Segmente
+    preferred_segments = [str(i) for i in range(20, 14, -1)] + ["Bull"]
+    for i, p in enumerate(mock_game.players):
+        if i < len(preferred_segments):
+            p.state["life_segment"] = preferred_segments[i]
+
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Single", 1), "KI sollte auf das Fallback-Ziel '1' ausweichen."
+
 
 def test_killer_ai_becomes_killer(killer_ai_player):
     """Testet, ob die KI auf ihr eigenes Lebensfeld zielt, um Killer zu werden."""
@@ -470,6 +504,31 @@ def test_killer_ai_prioritizes_attacking_other_killers(killer_ai_player):
 
     # Das Lebensfeld von Opponent2 ist '18'.
     assert target == ("Double", 18)
+
+def test_killer_ai_no_opponents_left(killer_ai_player):
+    """Testet das Verhalten, wenn keine Gegner mehr im Spiel sind."""
+    ai_player, mock_game = killer_ai_player
+    ai_player.state["can_kill"] = True
+
+    # Entferne alle anderen Spieler
+    mock_game.players = [ai_player]
+
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Bullseye", 50), "KI sollte auf Bullseye zurückfallen, wenn keine Gegner da sind."
+
+def test_killer_ai_victim_has_no_life_segment(killer_ai_player):
+    """Testet den Fallback, wenn der anzugreifende Gegner kein Lebensfeld hat."""
+    ai_player, mock_game = killer_ai_player
+    ai_player.state["can_kill"] = True
+
+    # Simuliere, dass der beste Gegner (Opponent1) kein Lebensfeld hat
+    mock_game.players[1].state["life_segment"] = None
+    mock_game.players[1].score = 5 # Mache ihn zum Ziel mit den meisten Leben
+
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == (
+        "Bullseye", 50
+    ), "KI sollte auf Bullseye zurückfallen, wenn das Opfer kein Lebensfeld hat."
 
 
 def test_get_strategic_target_for_atc(atc_ai_player):
@@ -641,6 +700,20 @@ def test_parse_target_string(ai_player_with_mocks):
     assert strategy_instance._parse_target_string("INVALID") == ("Triple", 20)
 
 
+def test_x01_strategic_bust_to_avoid_d1(x01_ai_player):
+    """Testet, ob die KI bei 3 oder 2 Rest absichtlich überwirft."""
+    ai_player, _ = x01_ai_player
+    ai_player.difficulty = "Profi"
+
+    # Szenario 1: 3 Rest, mehr als 1 Dart -> Wurf auf S20, um zu busten
+    ai_player.score = 3
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Single", 20)
+
+    # Szenario 2: 2 Rest, mehr als 1 Dart -> Wurf auf S2, um zu busten
+    ai_player.score = 2
+    target = ai_player.strategy.get_target(throw_number=2)
+    assert target == ("Single", 2)
 @patch(
     "core.ai_strategy.CheckoutCalculator.get_checkout_suggestion",
     return_value="-",

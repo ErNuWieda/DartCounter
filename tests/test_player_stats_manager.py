@@ -34,6 +34,7 @@ def stats_manager(mock_db_manager):
     return PlayerStatsManager(mock_db_manager)
 
 
+@pytest.mark.db
 class TestPlayerStatsManagerLogic:
     """
     Testet die reine Daten- und Berechnungslogik des PlayerStatsManager,
@@ -116,7 +117,7 @@ class TestPlayerStatsManagerLogic:
         assert result["best_win_streak"] == expected_streak
 
 
-@pytest.mark.ui
+@pytest.mark.db
 class TestPlayerStatsManagerUI:
     """Testet die UI-Logik des PlayerStatsManager, insbesondere das Statistik-Fenster."""
 
@@ -129,15 +130,15 @@ class TestPlayerStatsManagerUI:
     def setup_method(self, tk_root_session, monkeypatch):
         """Richtet vor jedem Test eine saubere Umgebung mit Mocks ein."""
         # Mocke matplotlib, um die Erstellung echter Diagramme zu verhindern
-        patcher_matplotlib = patch("core.player_stats_manager.MATPLOTLIB_AVAILABLE", True)
+        patcher_matplotlib = patch("core.player_stats_manager.MATPLOTLIB_AVAILABLE", True, create=True)
         self.mock_matplotlib = patcher_matplotlib.start()
         
         # KORREKTUR: Patche die Klassen dort, wo sie herkommen, nicht dort, wo sie importiert werden.
         # Dies ist robuster, besonders wenn der Import fehlschlagen kann (wie im CI-Workflow).
-        patcher_figure = patch("matplotlib.figure.Figure")
+        patcher_figure = patch("matplotlib.figure.Figure", create=True)
         self.mock_figure = patcher_figure.start()
 
-        patcher_canvas = patch("matplotlib.backends.backend_tkagg.FigureCanvasTkAgg")
+        patcher_canvas = patch("matplotlib.backends.backend_tkagg.FigureCanvasTkAgg", create=True)
         self.mock_canvas = patcher_canvas.start()
 
         # Mocke messagebox, um Dialoge abzufangen
@@ -198,23 +199,18 @@ class TestPlayerStatsManagerUI:
         assert list(player_combo["values"]) == expected_players
 
     def test_player_selection_updates_stats(self, setup_method):
-        """
-        Testet, ob die Auswahl eines Spielers in der Combobox die Statistik-Anzeige aktualisiert.
-        """
+        """Testet, ob die Auswahl eines Spielers die DB-Abfrage für dessen Daten auslöst."""
         # 1. Mock-Daten für die DB-Aufrufe vorbereiten
         self.mock_db_manager.get_all_player_names_from_records.return_value = ["Alice", "Bob"]
-        # Die `get_records_for_player` Methode wird von `_update_stats_display` aufgerufen,
-        # die wir hier patchen. Daher müssen wir ihren Return-Value nicht mocken.
+        # Leere Liste für die Spieldaten, da wir nur den Aufruf testen
+        self.mock_db_manager.get_records_for_player.return_value = []
 
         # 2. Fenster öffnen
         win = self.stats_manager.show_stats_window(self.root)
         self.windows_to_destroy.append(win)
         win.update()
 
-        # 3. Die interne Update-Methode patchen, um ihren Aufruf zu überprüfen
-        # KORREKTUR: Wir patchen nicht eine nicht-existente Methode, sondern prüfen,
-        # ob der Event-Handler die korrekte DB-Abfrage auslöst.
-        # 4. Die Combobox finden und die Auswahl eines Spielers simulieren
+        # 3. Die Combobox finden und die Auswahl eines Spielers simulieren
         player_combo = None
         for widget in win.winfo_children():
             if isinstance(widget, ttk.Frame):
@@ -225,11 +221,12 @@ class TestPlayerStatsManagerUI:
             if player_combo:
                 break
         assert player_combo is not None, "Spieler-Combobox konnte nicht gefunden werden."
+
         player_combo.set("Bob")
         # Das Event auslösen, das an die Combobox gebunden ist
         player_combo.event_generate("<<ComboboxSelected>>")
         # UI-Events verarbeiten, damit der Callback ausgeführt wird
         win.update_idletasks()
 
-        # 5. Überprüfen, ob die korrekte DB-Methode aufgerufen wurde
+        # 4. Überprüfen, ob die korrekte DB-Methode aufgerufen wurde
         self.mock_db_manager.get_records_for_player.assert_called_once_with("Bob")

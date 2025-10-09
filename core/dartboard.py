@@ -189,7 +189,7 @@ class DartBoard:
             return  # Do nothing
 
         if response is True:  # Yes -> Save
-            was_saved = SaveLoadManager.save_game_state(self.spiel, self.root)
+            was_saved = SaveLoadManager.save_state(self.spiel, self.root)
             if not was_saved:
                 return  # Speichern fehlgeschlagen oder abgebrochen, also nicht beenden
 
@@ -272,7 +272,6 @@ class DartBoard:
         Args:
             event (tk.Event): Das von Tkinter generierte Event-Objekt.
         """
-        print(f"Klick auf ({event.x}, {event.y})")
         self._process_throw_at_coords(event.x, event.y)
 
     def on_click_simulated(self, x, y):
@@ -301,7 +300,6 @@ class DartBoard:
             self.dart_image_ids_on_canvas.append(dart_id)
 
         ring, segment = self.get_ring_segment(x, y)
-        print(f"ermittelter Treffer {ring} {segment}")
 
         # Schritt 1.5: Normalisiere die Klick-Koordinaten für die Heatmap
         canvas_width = self.canvas.winfo_width()

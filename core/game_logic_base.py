@@ -76,6 +76,13 @@ class GameLogicBase:
         """
         return None
 
+    def get_sound_for_throw(self, player: "Player") -> str | None:
+        """
+        Gibt einen optionalen, spielspezifischen Sound für einen Wurf zurück.
+        Kann von Unterklassen überschrieben werden (z.B. für 180er-Scores in X01).
+        """
+        return None
+
     def _handle_throw(self, player, ring, segment, players):
         """
         Verarbeitet einen einzelnen Wurf. Muss von Unterklassen implementiert werden.

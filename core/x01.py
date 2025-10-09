@@ -95,6 +95,26 @@ class X01(GameLogicBase):
         """
         return 430
 
+    def get_sound_for_throw(self, player: "Player") -> str | None:
+        """Gibt einen Sound für hohe Scores am Ende einer Runde zurück."""
+        if len(player.throws) == 3:
+            round_score = sum(self.game.get_score(r, s) for r, s, _ in player.throws)
+            score_sounds = {
+                180: "score_180",
+                160: "score_160",
+                140: "score_140",
+                120: "score_120",
+                100: "score_100",
+            }
+            return score_sounds.get(round_score)
+        return None
+
+    def get_scoreboard_height(self):
+        """
+        Gibt die spezifische Höhe für X01-Scoreboards zurück (für Stats und Finish-Vorschläge).
+        """
+        return 430
+
     def _is_valid_opening_throw(self, ring: str) -> bool:
         """Prüft, ob ein Wurf die aktuelle Opt-In-Bedingung erfüllt."""
         if self.opt_in == "Single":

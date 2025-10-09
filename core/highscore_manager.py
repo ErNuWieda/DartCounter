@@ -19,6 +19,7 @@ from tkinter import ttk, filedialog, font
 from .database_manager import DatabaseManager
 import csv
 from .settings_manager import get_app_data_dir
+from .game import HIGHSCORE_MODES, CRICKET_MODES
 from . import ui_utils
 
 
@@ -61,9 +62,8 @@ class HighscoreManager:
         if not self.db_manager.is_connected:
             return
 
-        # Nur für definierte Spiele verfolgen
-        valid_modes = ["301", "501", "701", "Cricket", "Cut Throat", "Tactics"]
-        if str(game_mode) not in valid_modes:
+        # Nur für definierte Spiele verfolgen, die auch Highscores haben
+        if str(game_mode) not in HIGHSCORE_MODES:
             return
 
         self.db_manager.add_score(str(game_mode), player_name, score_metric)
@@ -103,15 +103,7 @@ class HighscoreManager:
             return  # User cancelled
 
         all_scores = []
-        highscore_modes = [
-            "301",
-            "501",
-            "701",
-            "Cricket",
-            "Cut Throat",
-            "Tactics",
-        ]
-        for game_mode in highscore_modes:
+        for game_mode in HIGHSCORE_MODES:
             scores = self.db_manager.get_scores(game_mode)
             for score in scores:
                 all_scores.append(
@@ -249,20 +241,12 @@ class HighscoreManager:
         notebook = ttk.Notebook(win)
         notebook.pack(expand=True, fill="both", padx=10, pady=10)
 
-        highscore_modes = [
-            "301",
-            "501",
-            "701",
-            "Cricket",
-            "Cut Throat",
-            "Tactics",
-        ]
-        for game_mode in highscore_modes:
+        for game_mode in HIGHSCORE_MODES:
             frame = ttk.Frame(notebook, padding="10")
             notebook.add(frame, text=f"{game_mode}")
 
             # Spaltenüberschrift dynamisch anpassen
-            score_header = "MPR" if game_mode in ("Cricket", "Cut Throat", "Tactics") else "Darts"
+            score_header = "MPR" if game_mode in CRICKET_MODES else "Darts"
 
             tree = ttk.Treeview(
                 frame,
@@ -297,9 +281,7 @@ class HighscoreManager:
                 # Score-Wert korrekt formatieren
                 score_value = score["score_metric"]
                 formatted_score = (
-                    f"{score_value:.2f}"
-                    if game_mode in ("Cricket", "Cut Throat", "Tactics")
-                    else int(score_value)
+                    f"{score_value:.2f}" if game_mode in CRICKET_MODES else int(score_value)
                 )
 
                 player_name = score["player_name"]

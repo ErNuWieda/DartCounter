@@ -272,7 +272,7 @@ class KillerAIStrategy(AIStrategy):
                     # Korrektur: Um die Chance zu maximieren, das Bull-Segment zu treffen,
                     # sollte auf das Bullseye gezielt werden.
                     return ("Bullseye", 50) if target == "Bull" else ("Single", int(target))
-            return "Single", 1  # Fallback
+            return ("Single", 1)  # Fallback
 
         # Phase 2: Killer werden
         if not player_state.get("can_kill"):
@@ -287,19 +287,16 @@ class KillerAIStrategy(AIStrategy):
         # Phase 3: Als Killer agieren
         opponents = [p for p in self.game.players if p != self.ai_player and p.score > 0]
         if not opponents:
-            return "Bullseye", 50  # Keine Gegner mehr
-
-        # Wenn keine Gegner mehr übrig sind, hat die KI gewonnen.
-        if not opponents:
-            return "Bullseye", 50  # Kein Ziel mehr nötig, Spiel ist vorbei.
+            return "Bullseye", 50
 
         # Priorisiere Gegner, die ebenfalls Killer sind.
         killer_opponents = [p for p in opponents if p.state.get("can_kill")]
 
+        victim = None
         if killer_opponents:
             # Unter den Killern, greife den mit den meisten Leben an.
             victim = max(killer_opponents, key=lambda p: p.score)
-        else:
+        elif opponents:
             # Wenn es keine anderen Killer gibt, greife den Spieler mit den meisten Leben an.
             victim = max(opponents, key=lambda p: p.score)
 

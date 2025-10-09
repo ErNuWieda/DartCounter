@@ -95,44 +95,30 @@ class Killer(GameLogicBase):
 
     # --- UNDO LOGIK ---
 
-    def _undo_set_life_segment(self, log_entry):
-        """Macht das Setzen eines Lebensfeldes rückgängig."""
-        player = log_entry["player"]
-        player.state["life_segment"] = None
-        return ("info", f"Lebensfeld für {player.name} zurückgesetzt.")
-
-    def _undo_become_killer(self, log_entry):
-        """Macht das Werden zum Killer rückgängig."""
-        player = log_entry["player"]
-        player.state["can_kill"] = False
-        return ("info", f"{player.name} ist kein Killer mehr.")
-
-    def _undo_take_life(self, log_entry):
-        """Macht das Nehmen eines Lebens von einem Opfer (oder sich selbst) rückgängig."""
-        victim = log_entry["victim"]
-        if victim.score < self.game.options.lifes:
-            victim.score += 1
-            victim.sb.set_score_value(victim.score)
-            return ("info", f"Leben für {victim.name} wiederhergestellt.")
-        return ("ok", None)
-
     def _handle_throw_undo(self, player, ring, segment, players):
         """
         Macht einen Wurf rückgängig, indem die letzte protokollierte Aktion umgekehrt wird.
         """
         if not self.turn_log:
-            player.sb.update_score(player.score)
             return ("ok", None)
 
         last_action = self.turn_log.pop()
         action_type = last_action.get("action")
 
-        if action_type == "set_life_segment":
-            return self._undo_set_life_segment(last_action)
-        elif action_type == "become_killer":
-            return self._undo_become_killer(last_action)
-        elif action_type == "take_life":
-            return self._undo_take_life(last_action)
+        match action_type:
+            case "set_life_segment":
+                player.state["life_segment"] = None
+                return ("info", f"Lebensfeld für {player.name} zurückgesetzt.")
+            case "become_killer":
+                player.state["can_kill"] = False
+                return ("info", f"{player.name} ist kein Killer mehr.")
+            case "take_life":
+                victim = last_action["victim"]
+                if victim.score < self.game.options.lifes:
+                    victim.score += 1
+                    victim.sb.set_score_value(victim.score)
+                    return ("info", f"Leben für {victim.name} wiederhergestellt.")
+                return ("ok", None)
 
         player.sb.update_score(player.score)
 

@@ -414,6 +414,74 @@ def test_update_profile_handles_integrity_error(db_manager_setup, mock_logger):
     mock_logger.warning.assert_called_once()
 
 
+@pytest.mark.db
+class TestDatabaseOperations:
+    """Tests for CRUD operations and error handling in DatabaseManager."""
+
+    def test_get_scores_handles_sqlalchemy_error(self, db_manager_setup, mock_logger):
+        """Testet, dass get_scores bei einem DB-Fehler eine leere Liste zurückgibt und loggt."""
+        db_manager, _, mock_session = db_manager_setup
+        # Simuliere einen Fehler beim Ausführen der Query
+        mock_session.query.side_effect = SQLAlchemyError("DB connection lost")
+
+        result = db_manager.get_scores("501")
+
+        assert result == []
+        mock_logger.error.assert_called_once()
+        assert "Fehler beim Abrufen der Highscores" in mock_logger.error.call_args[0][0]
+
+    def test_get_personal_bests_handles_sqlalchemy_error(self, db_manager_setup, mock_logger):
+        """Testet die Fehlerbehandlung beim Abrufen persönlicher Bestleistungen."""
+        db_manager, _, mock_session = db_manager_setup
+        mock_session.query.side_effect = SQLAlchemyError("Query failed")
+
+        result = db_manager.get_personal_bests_for_mode("Cricket")
+
+        assert result == {}
+        mock_logger.error.assert_called_once()
+        assert (
+            "Fehler beim Abrufen der persönlichen Bestleistungen"
+            in mock_logger.error.call_args[0][0]
+        )
+
+    def test_add_profile_handles_sqlalchemy_error(self, db_manager_setup, mock_logger):
+        """Testet die Fehlerbehandlung beim Hinzufügen eines Profils."""
+        db_manager, _, mock_session = db_manager_setup
+        mock_session.commit.side_effect = SQLAlchemyError("Commit failed")
+
+        result = db_manager.add_profile("Tester", "/path", "#ff0000")
+
+        assert not result
+        mock_session.rollback.assert_called_once()
+        mock_logger.error.assert_called_once()
+        assert "Fehler beim Hinzufügen des Profils" in mock_logger.error.call_args[0][0]
+
+    def test_update_profile_handles_sqlalchemy_error(self, db_manager_setup, mock_logger):
+        """Testet die Fehlerbehandlung beim Aktualisieren eines Profils."""
+        db_manager, _, mock_session = db_manager_setup
+        mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = MagicMock()
+        mock_session.commit.side_effect = SQLAlchemyError("Update failed")
+
+        result = db_manager.update_profile(1, "NewName", "/path", "#0000ff", False, None, None)
+
+        assert not result
+        mock_session.rollback.assert_called_once()
+        mock_logger.error.assert_called_once()
+        assert "Fehler beim Aktualisieren des Profils" in mock_logger.error.call_args[0][0]
+
+    def test_update_profile_accuracy_model_handles_error(self, db_manager_setup, mock_logger):
+        """Testet die Fehlerbehandlung beim Speichern des Genauigkeitsmodells."""
+        db_manager, _, mock_session = db_manager_setup
+        mock_session.query.return_value.filter_by.return_value.one_or_none.return_value = MagicMock()
+        mock_session.commit.side_effect = SQLAlchemyError("Model save failed")
+
+        result = db_manager.update_profile_accuracy_model("Tester", {"T20": {}})
+
+        assert not result
+        mock_session.rollback.assert_called_once()
+        mock_logger.error.assert_called_once()
+        assert "Fehler beim Speichern des Genauigkeitsmodells" in mock_logger.error.call_args[0][0]
+
 def test_update_profile_accuracy_model(db_manager_setup):
     """Testet das Aktualisieren des Genauigkeitsmodells."""
     db_manager, _, mock_session = db_manager_setup

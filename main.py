@@ -86,6 +86,7 @@ class App:
         # Einmal erstellen und an die abhängigen Manager weitergeben, um doppelte
         # Verbindungen und Log-Ausgaben zu vermeiden.
         self.db_manager = DatabaseManager()
+
         self.highscore_manager = HighscoreManager(self.db_manager)
         self.player_stats_manager = PlayerStatsManager(self.db_manager)
         self.profile_manager = PlayerProfileManager(self.db_manager)
@@ -391,19 +392,8 @@ class App:
         if self.tournament_view and self.tournament_view.winfo_exists():
             self.tournament_view.withdraw()
 
-        # Erstelle ein sauberes GameOptions-Objekt, das genau auf die Turnierregeln zugeschnitten ist.
-        # Dies entfernt den unnötigen Ballast aus dem TournamentManager.
-        game_options = GameOptions(
-            name=self.tournament_manager.game_mode,
-            opt_in="Single",  # Standard für Turniere
-            opt_out="Double",  # Standard für Turniere
-            count_to=int(self.tournament_manager.game_mode),  # type: ignore
-            opt_atc="Single",
-            lifes=3,
-            rounds=7,  # Irrelevant, aber von der Datenklasse benötigt
-            legs_to_win=1,
-            sets_to_win=1,  # Turnierspiele sind einzelne Legs/Sets
-        )
+        # Hole die Spieloptionen direkt vom TournamentManager.
+        game_options = self.tournament_manager.get_match_game_options()
         player_names = [match["player1"], match["player2"]]
         self.game_instance = self._initialize_game_session(
             game_options, player_names, is_tournament_match=True
