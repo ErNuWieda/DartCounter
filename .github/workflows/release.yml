@@ -32,14 +32,18 @@ jobs:
       - name: 4. Install Python Dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          # Für moderne Linux-Runner, die PEP 668 durchsetzen,
-          # müssen wir pip anweisen, die systemverwaltete Umgebung zu ignorieren.
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            pip install -r requirements.txt -r requirements-dev.txt --break-system-packages
-          else
-            pip install -r requirements.txt -r requirements-dev.txt
-          fi
-          pip install pyinstaller
+
+      - name: 4a. Install Python Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install -r requirements.txt -r requirements-dev.txt --break-system-packages
+          python -m pip install pyinstaller --break-system-packages
+
+      - name: 4b. Install Python Dependencies (Windows/macOS)
+        if: runner.os != 'Linux'
+        run: |
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m pip install pyinstaller
 
       - name: 5. Run Build Script
         # Das build.py Skript führt Tests aus, baut die App und erstellt das ZIP-Archiv

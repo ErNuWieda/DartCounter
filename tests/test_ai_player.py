@@ -449,11 +449,28 @@ def test_killer_ai_fallback_if_all_preferred_segments_taken(killer_ai_player):
     ai_player, mock_game = killer_ai_player
     ai_player.state["life_segment"] = None
 
-    # Blockiere alle bevorzugten Segmente
+    # Die bevorzugten Segmente, die die KI versucht zu belegen
     preferred_segments = [str(i) for i in range(20, 14, -1)] + ["Bull"]
-    for i, p in enumerate(mock_game.players):
-        if i < len(preferred_segments):
-            p.state["life_segment"] = preferred_segments[i]
+
+    # Wir brauchen exakt so viele Gegner, wie es bevorzugte Segmente gibt,
+    # um sicherzustellen, dass keines davon für die KI frei ist.
+    all_players_with_segments = [mock_game.players[1], mock_game.players[2]]  # opponent1, opponent2
+    
+    # Erstelle die fehlenden 5 Gegner (für insgesamt 7 bevorzugte Segmente)
+    needed = len(preferred_segments) - len(all_players_with_segments)
+    for i in range(needed):
+        opp = Mock(spec=Player)
+        opp.name = f"Opponent{i+3}"
+        opp.score = 3
+        opp.state = {"life_segment": None, "can_kill": False}
+        all_players_with_segments.append(opp)
+
+    # Füge diese neuen Gegner zur Spielerliste des Spiels hinzu
+    mock_game.players = [ai_player] + all_players_with_segments
+
+    # Weise jedem dieser Spieler ein bevorzugtes Lebensfeld zu
+    for i, segment in enumerate(preferred_segments):
+        all_players_with_segments[i].state["life_segment"] = segment
 
     target = ai_player.strategy.get_target(throw_number=1)
     assert target == ("Single", 1), "KI sollte auf das Fallback-Ziel '1' ausweichen."

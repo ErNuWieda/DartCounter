@@ -67,7 +67,7 @@ class X01AIStrategy(AIStrategy):
         Gibt ein Ziel zurück, wenn eine Regel zutrifft, sonst None.
         """
         is_high_skill = self.ai_player.difficulty in ("Profi", "Champion")
-        if not (is_high_skill and self.game.game.opt_out == "Double"):
+        if not (is_high_skill and self.game.options.opt_out == "Double"):
             return None
 
         # Regel 1: Aggressives 1-Dart-Finish bei geradem Score <= 40
@@ -101,7 +101,7 @@ class X01AIStrategy(AIStrategy):
         Gibt das erste Ziel des Pfades zurück oder None, wenn kein Pfad existiert.
         """
         checkout_path_str = CheckoutCalculator.get_checkout_suggestion(
-            score, self.game.game.opt_out, darts_left, preferred_double=preferred_double
+            score, self.game.options.opt_out, darts_left, preferred_double=preferred_double
         )
         if checkout_path_str and checkout_path_str != "-":
             first_target_str = checkout_path_str.split(", ")[0]
@@ -125,7 +125,7 @@ class X01AIStrategy(AIStrategy):
                 remainder = score - throw_value
                 if (
                     CheckoutCalculator.get_checkout_suggestion(
-                        remainder, self.game.game.opt_out, darts_left - 1
+                        remainder, self.game.options.opt_out, darts_left - 1
                     )
                     != "-"
                 ):
@@ -133,7 +133,7 @@ class X01AIStrategy(AIStrategy):
                     if (
                         (darts_left - 1) > 0
                         and remainder == 2
-                        and self.game.game.opt_out == "Double"
+                        and self.game.options.opt_out == "Double"
                     ):
                         continue
                     return ring, segment
@@ -258,13 +258,19 @@ class KillerAIStrategy(AIStrategy):
 
     def get_target(self, throw_number: int) -> tuple[str, int]:
         player_state = self.ai_player.state
+        is_killer = bool(player_state.get("can_kill"))
+        my_segment = player_state.get("life_segment")
 
-        # Phase 1: Lebensfeld bestimmen
-        if not player_state.get("life_segment"):
+        def normalize_segment(s):
+            val = str(s)
+            return "Bull" if val in ("Bull", "25", "50", "Bullseye") else val
+
+        # Phase 1: Lebensfeld bestimmen (Nur wenn wir noch keins haben und kein Killer sind)
+        if not is_killer and not my_segment:
             taken = {
-                p.state.get("life_segment")
+                normalize_segment(p.state.get("life_segment"))
                 for p in self.game.players
-                if p != self.ai_player and p.state.get("life_segment")
+                if p.state.get("life_segment")
             }
             preferred = [str(i) for i in range(20, 14, -1)] + ["Bull"]
             for target in preferred:
@@ -275,19 +281,18 @@ class KillerAIStrategy(AIStrategy):
             return ("Single", 1)  # Fallback
 
         # Phase 2: Killer werden
-        if not player_state.get("can_kill"):
-            my_segment = player_state["life_segment"]
+        if not is_killer:
             # Korrektur: Wenn das Lebensfeld "Bull" ist, ziele auf das größere Bullseye,
             # da sowohl Bull als auch Bullseye als Treffer zählen. Ansonsten wird versucht,
             # int("Bull") zu konvertieren, was fehlschlägt.
             if my_segment == "Bull":
-                return "Bullseye", 50
+                return ("Bullseye", 50)
             return "Double", int(my_segment)
 
         # Phase 3: Als Killer agieren
         opponents = [p for p in self.game.players if p != self.ai_player and p.score > 0]
         if not opponents:
-            return "Bullseye", 50
+            return ("Bullseye", 50)
 
         # Priorisiere Gegner, die ebenfalls Killer sind.
         killer_opponents = [p for p in opponents if p.state.get("can_kill")]
@@ -303,11 +308,11 @@ class KillerAIStrategy(AIStrategy):
         victim_segment = victim.state.get("life_segment")
         if not victim_segment:
             # Fallback, falls ein Gegner aus irgendeinem Grund kein Lebensfeld hat
-            return "Bullseye", 50
+            return ("Bullseye", 50)
 
         # Korrektur: Wenn das Ziel "Bull" ist, ziele auf das größere Bullseye,
         # da sowohl Bull als auch Bullseye als Treffer zählen.
-        return ("Bullseye", 50) if victim_segment == "Bull" else ("Double", int(victim_segment))
+        return ("Bullseye", 50) if normalize_segment(victim_segment) == "Bull" else ("Double", int(victim_segment))
 
 
 class ShanghaiAIStrategy(AIStrategy):
