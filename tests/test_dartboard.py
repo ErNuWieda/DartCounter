@@ -148,17 +148,16 @@ class TestDartboardInteractions:
         # Mocke die Treffererkennung, um den Test zu isolieren
         db.get_ring_segment = MagicMock(return_value=("Triple", 20))
 
-        db.on_click(mock_event)
+        # Verwende patch.object für verlässliches Mocking von Widget-Methoden in CI
+        with patch.object(db.canvas, "winfo_width", return_value=600), \
+             patch.object(db.canvas, "winfo_height", return_value=300):
+            
+            db.on_click(mock_event)
 
-        # Überprüfe, ob spiel.throw mit den korrekten, normalisierten Koordinaten aufgerufen wurde
-        canvas_width = db.canvas.winfo_width()
-        canvas_height = db.canvas.winfo_height()
-        expected_norm_x = 300 / canvas_width
-        expected_norm_y = 150 / canvas_height
-
-        mock_game.throw.assert_called_once_with(
-            "Triple", 20, (expected_norm_x, expected_norm_y)
-        )
+            # Erwartete normalisierte Koordinaten: 300/600 = 0.5, 150/300 = 0.5
+            mock_game.throw.assert_called_once_with(
+                "Triple", 20, (0.5, 0.5)
+            )
 
     def test_quit_game_when_game_is_over(self, dartboard_instance):
         """Testet, ob das Fenster ohne Nachfrage schließt, wenn das Spiel bereits beendet ist."""

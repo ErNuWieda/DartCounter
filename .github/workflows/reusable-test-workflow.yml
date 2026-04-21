@@ -80,6 +80,4 @@ jobs:
         env:
           CI: "true"
         run: |
-          $env:TCL_LIBRARY = Join-Path $env:pythonLocation 'tcl\tcl8.6'
-          $env:TK_LIBRARY = Join-Path $env:pythonLocation 'tcl\tk8.6'
           python -m pytest ${{ inputs.pytest-marker != '' && format('-m "{0}"', inputs.pytest-marker) || '' }}

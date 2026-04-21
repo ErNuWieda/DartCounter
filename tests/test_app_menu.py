@@ -23,23 +23,13 @@ from core.app_menu import AppMenu
 
 
 @pytest.fixture
-def tk_root():
-    """Fixture zum Erstellen und Zerstören eines tk-Root-Fensters."""
-    root = tk.Tk()
-    root.withdraw()  # Fenster ausblenden
-    yield root
-    if root.winfo_exists():
-        root.destroy()
-
-
-@pytest.fixture
-def menu_setup(tk_root):
+def menu_setup(tk_root_session):
     """Richtet die AppMenu mit einem Mock-Controller für den Test ein."""
     # Erstelle einen Mock-Controller mit allen Methoden, die das Menü aufrufen wird
     mock_controller = MagicMock()
     # Instanziiere die AppMenu mit der echten Wurzel und dem Mock-Controller
-    AppMenu(tk_root, mock_controller, db_available=True)
-    yield tk_root, mock_controller
+    AppMenu(tk_root_session, mock_controller, db_available=True)
+    yield tk_root_session, mock_controller
 
 
 class TestAppMenu:

@@ -7,18 +7,7 @@ from core.game_settings_dialog import GameSettingsDialog
 
 
 @pytest.fixture
-def tk_root():
-    """Fixture to create and destroy a tk root window."""
-    root = tk.Tk()
-    # Verhindert, dass das Hauptfenster angezeigt wird
-    root.withdraw()
-    yield root
-    if root and root.winfo_exists():
-        root.destroy()
-
-
-@pytest.fixture
-def dialog_setup(tk_root, monkeypatch, mock_settings_manager, mock_profile_manager):
+def dialog_setup(tk_root_session, monkeypatch, mock_settings_manager, mock_profile_manager):
     """
     Setzt für jeden Test einen neuen Dialog in einer Test-Umgebung auf.
     Verwendet die zentralen Fixtures aus conftest.py für die Manager-Mocks,
@@ -70,7 +59,7 @@ def dialog_setup(tk_root, monkeypatch, mock_settings_manager, mock_profile_manag
     ]  # für last_player_names
 
     # Instanziiere den Dialog mit der echten, aber versteckten Wurzel
-    dialog = GameSettingsDialog(tk_root, mock_settings_manager, mock_profile_manager)
+    dialog = GameSettingsDialog(tk_root_session, mock_settings_manager, mock_profile_manager)
     # update() ist notwendig, damit die Widgets gezeichnet und ihre Werte gesetzt werden
     # Setze Standardwerte, um ValueErrors zu vermeiden
     dialog.count_to_var.set("301")
