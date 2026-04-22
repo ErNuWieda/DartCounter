@@ -76,8 +76,9 @@ def run_tests():
         print(f"FEHLER: Die Test-Suite ist mit Exit-Code {e.returncode} fehlgeschlagen.")
         print("Die pytest-Ausgabe sollte direkt über dieser Nachricht sichtbar sein.")
         print("Bitte beheben Sie die fehlschlagenden Tests.")
-        print("Stellen Sie sicher, dass Sie alle Entwicklungs-Abhängigkeiten installiert haben:")
+        print("Stellen Sie sicher, dass Sie alle Abhängigkeiten installiert haben:")
         print("  pip install -r requirements-dev.txt")
+        print("  pip install -r requirements-db.txt")
         print("=" * 50 + "\n")
         return False
 
@@ -143,6 +144,8 @@ def main():
         f"--name={APP_NAME}",
         # Notwendig, damit PyInstaller die Brücke zwischen Pillow und Tkinter korrekt einbindet.
         "--hidden-import=PIL._tkinter_finder",
+        # PostgreSQL-Treiber (wird über Connection-String geladen und sonst oft übersehen)
+        "--hidden-import=psycopg2",
     ]
 
     # Plattformspezifisches Icon hinzufügen (sauberere Logik)
