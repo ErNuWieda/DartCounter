@@ -79,6 +79,14 @@ class Elimination(GameLogicBase):
         score_to_undo = self.game.get_score(ring, segment)
         player.update_score_value(score_to_undo, subtract=True)
 
+    def to_dict(self) -> dict:
+        """Serialisiert das Eliminierungs-Protokoll für das Speichern."""
+        return {"elimination_log": self.elimination_log}
+
+    def restore_from_dict(self, data: dict):
+        """Stellt das Eliminierungs-Protokoll aus geladenen Daten wieder her."""
+        self.elimination_log = data.get("elimination_log", [])
+
     def _handle_throw(self, player, ring, segment, players):
         score = self.game.get_score(ring, segment)
         result_event = ("ok", None)  # Standard-Rückgabewert

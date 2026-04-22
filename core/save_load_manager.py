@@ -245,6 +245,9 @@ class SaveLoadManager:
         """
         game.round = data["round"]
         game.current = data["current_player_index"]
+        game.shanghai_finish = data.get("shanghai_finish", False)
+        game.shanghai_finish_round = data.get("shanghai_finish_round", None)
+        game.is_tournament_match = data.get("is_tournament_match", False)
         for i, p_data in enumerate(data["players"]):
             if i < len(game.players):
                 player = game.players[i]
@@ -253,6 +256,8 @@ class SaveLoadManager:
                 player.id = p_data.get("id", player.id)
                 player.score = p_data.get("score", player.score)
                 player.throws = p_data.get("throws", [])
+                player.all_game_throws = p_data.get("all_game_throws", [])
+                player.turn_is_over = p_data.get("turn_is_over", False)
                 player.stats = p_data.get("stats", {})
                 # Spielspezifischen Zustand wiederherstellen
                 player.state.update(p_data.get("state", {}))

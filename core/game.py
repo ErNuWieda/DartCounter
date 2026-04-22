@@ -106,6 +106,7 @@ class Game:
         self.current = 0
         self.round = 1
         self.shanghai_finish = False
+        self.shanghai_finish_round = None  # Neu: Speichert die Runde, in der ein Shanghai-Finish erzielt wurde
         self.is_tournament_match = is_tournament_match  # type: ignore
         self.end = False
         self.winner = None
@@ -213,6 +214,7 @@ class Game:
         if self.end:
             self.end = False
             self.winner = None
+            self.shanghai_finish_round = None # Auch die Runde zurücksetzen
             self.shanghai_finish = False
         player = self.current_player()
         if player and player.throws:
@@ -430,6 +432,16 @@ class Game:
             elif self.options.name in ("Cricket", "Cut Throat", "Tactics"):
                 mpr = winner.get_mpr()
                 self.highscore_manager.add_score(self.options.name, winner.name, mpr)
+            # Für Shanghai: Priorisiere frühe Shanghai-Finishes
+            elif self.options.name == "Shanghai":
+                if self.shanghai_finish and self.shanghai_finish_round is not None:
+                    # Bonus für frühes Finish: Je früher, desto höher die Punktzahl.
+                    # Addiere den aktuellen Score als Tie-Breaker.
+                    score_metric = (self.options.rounds - self.shanghai_finish_round + 1) * 1000 + winner.score
+                else:
+                    # Wenn kein Shanghai-Finish, einfach den Endscore verwenden.
+                    score_metric = winner.score
+                self.highscore_manager.add_score(self.options.name, winner.name, score_metric)
 
     def throw(self, ring, segment, coords=None):
         """
@@ -516,6 +528,8 @@ class Game:
                 "id": p.id,
                 "score": p.score,
                 "throws": p.throws,
+                "all_game_throws": p.all_game_throws,
+                "turn_is_over": p.turn_is_over,
                 "stats": p.stats,
                 "state": p.state,
             }
@@ -525,6 +539,9 @@ class Game:
             **self.options.to_dict(),
             "current_player_index": self.current,
             "round": self.round,
+            "shanghai_finish": self.shanghai_finish,
+            "shanghai_finish_round": self.shanghai_finish_round,
+            "is_tournament_match": self.is_tournament_match,
             "players": players_data,
         }
 

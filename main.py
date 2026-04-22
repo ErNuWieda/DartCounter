@@ -465,7 +465,7 @@ class App:
             "von Martin Hehl (airnooweeda)\n\n"
             "Ein besonderer Dank geht an Gemini Code Assist\n"
             "für die unschätzbare Hilfe bei der Entwicklung.\n\n"
-            "© 2025 Martin Hehl"
+            "© 2026 Martin Hehl"
         )
         ui_utils.show_message("info", f"Dartcounter {self.version}", about_text, parent=self.root)
 

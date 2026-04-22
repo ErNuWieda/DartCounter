@@ -261,7 +261,11 @@ class DatabaseManager:
             return []
         try:
             with self.Session() as session:
-                sort_func = desc if game_mode in ("Cricket", "Cut Throat", "Tactics") else asc
+                # Spiele, bei denen eine hohe Punktzahl besser ist (DESC)
+                if game_mode in ("Cricket", "Cut Throat", "Tactics", "Split Score", "Shanghai"):
+                    sort_func = desc
+                else:  # X01 (ASC) oder ATC (ASC - weniger Darts sind besser)
+                    sort_func = asc
 
                 results = (
                     session.query(Highscore)
@@ -295,7 +299,7 @@ class DatabaseManager:
             return {}
 
         # Bestimme die Aggregationsfunktion basierend auf dem Spielmodus
-        if game_mode in ("Cricket", "Cut Throat", "Tactics"):
+        if game_mode in ("Cricket", "Cut Throat", "Tactics", "Split Score", "Shanghai"):
             agg_func = func.max(Highscore.score_metric)
         else:  # X01
             agg_func = func.min(Highscore.score_metric)

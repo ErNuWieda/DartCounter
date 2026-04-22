@@ -122,6 +122,34 @@ class Killer(GameLogicBase):
 
         player.sb.update_score(player.score)
 
+    def to_dict(self) -> dict:
+        """Serialisiert das Aktions-Protokoll für das Speichern."""
+        serializable_log = []
+        for entry in self.turn_log:
+            # Kopie erstellen, um das Original-Protokoll nicht zu verändern
+            clean_entry = entry.copy()
+            if "player" in clean_entry:
+                clean_entry["player_id"] = clean_entry.pop("player").id
+            if "victim" in clean_entry:
+                clean_entry["victim_id"] = clean_entry.pop("victim").id
+            serializable_log.append(clean_entry)
+        return {"turn_log": serializable_log}
+
+    def restore_from_dict(self, data: dict):
+        """Stellt das Aktions-Protokoll aus geladenen Daten wieder her."""
+        self.turn_log = []
+        # Da die players Liste im Game-Controller bereits wiederhergestellt wurde,
+        # können wir die IDs hier wieder den Objekten zuordnen.
+        for entry in data.get("turn_log", []):
+            new_entry = entry.copy()
+            if "player_id" in new_entry:
+                pid = new_entry.pop("player_id")
+                new_entry["player"] = next((p for p in self.game.players if p.id == pid), None)
+            if "victim_id" in new_entry:
+                vid = new_entry.pop("victim_id")
+                new_entry["victim"] = next((p for p in self.game.players if p.id == vid), None)
+            self.turn_log.append(new_entry)
+
     # --- THROW HANDLING LOGIK ---
 
     def _handle_life_segment_phase(self, player, ring, segment, players):
