@@ -17,6 +17,14 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.3.3] - 2026-04-22
 
 ### ✨ Features & Verbesserungen
+
+### 🐛 Bugfixes & Stabilität
+
+---
+
+## [1.3.3] - 2026-04-22
+
+### ✨ Features & Verbesserungen
 *   **CI/CD-Integration:** Der Release-Workflow wurde finalisiert, um PostgreSQL-Abhängigkeiten (`requirements-db.txt`) plattformübergreifend korrekt in die Binaries einzubinden.
 *   **Release-Automatisierung:** Optimierung der GitHub Actions für konsistente Builds auf Linux, Windows und macOS.
 

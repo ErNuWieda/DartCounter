@@ -1,4 +1,4 @@
- # Release Checklist für Dartcounter vX.Y.Z
+ # Release Checklist für Dartcounter v1.3.3
 
 Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-Prozess sicher.
 
@@ -12,7 +12,7 @@ Diese Checkliste stellt einen reibungslosen und qualitativ hochwertigen Release-
 - [ ] **CI-Pipeline prüfen:** Sicherstellen, dass die CI-Pipeline (GitHub Actions) auf dem Release-Branch erfolgreich durchläuft.
 - [ ] **Datenbank-Migrationen finalisieren:** Sicherstellen, dass alle Modell-Änderungen in einer Alembic-Migration erfasst sind.
   ```bash
-  alembic revision --autogenerate -m "Final changes for vX.Y.Z"
+  alembic revision --autogenerate -m "Final changes for v1.3.3"
   ```
 - [ ] **Alle Tests ausführen:** Die gesamte Test-Suite ausführen und sicherstellen, dass alle Tests erfolgreich sind.
   ```bash
