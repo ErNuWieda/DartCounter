@@ -37,6 +37,16 @@ def get_application_root_dir() -> Path:
         return Path(__file__).resolve().parent.parent
 
 
+def get_bundle_dir() -> Path:
+    """
+    Gibt das Verzeichnis zurück, in dem die Programmdateien liegen.
+    Im gepackten Zustand (PyInstaller) ist dies der temporäre Ordner (_MEIPASS).
+    """
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS)
+    return get_application_root_dir()
+
+
 def get_app_data_dir() -> Path:
     """
     Gibt das plattformspezifische Anwendungsdaten-Verzeichnis zurück.

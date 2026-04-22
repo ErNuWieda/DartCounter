@@ -39,7 +39,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from alembic.config import Config
 from alembic import command
-from .settings_manager import get_app_data_dir, get_application_root_dir
+from .settings_manager import get_app_data_dir, get_application_root_dir, get_bundle_dir
 from .db_models import Highscore, PlayerProfileORM, GameRecord
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ class DatabaseManager:
             logger.info(f"Lade Datenbank-Konfiguration von: {root_config_path}")
         else:
             # Fallback: Versuche, die Beispiel-Konfiguration zu kopieren
-            example_config_path = app_root_path / "config.ini.example"
+            example_config_path = get_bundle_dir() / "config.ini.example"
             if example_config_path.exists():
                 try:
                     shutil.copy(example_config_path, user_config_path)
@@ -191,7 +191,7 @@ class DatabaseManager:
             return
         try:
             # Der Pfad zur alembic.ini relativ zum Projekt-Root
-            alembic_ini_path = get_application_root_dir() / "alembic.ini"
+            alembic_ini_path = get_bundle_dir() / "alembic.ini"
             logger.info("Prüfe und führe Datenbank-Migrationen aus...")
 
             # Erstelle eine Alembic-Konfiguration und setze den Pfad zur .ini-Datei
@@ -203,10 +203,10 @@ class DatabaseManager:
             alembic_cfg.set_main_option("sqlalchemy.url", str(self.engine.url))
 
             # Führe den 'upgrade head'-Befehl aus
-            # command.upgrade(alembic_cfg, "head")
+            command.upgrade(alembic_cfg, "head")
 
             logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
-        except SQLAlchemyError as e:
+        except Exception as e:
             # Fängt Fehler ab, die während der Migration auftreten können
             logger.error(f"Fehler während der Datenbank-Migration: {e}", exc_info=True)
             self.is_connected = False
@@ -229,7 +229,7 @@ class DatabaseManager:
 
             try:
                 # Pfad zur JSON-Datei relativ zu diesem Skript
-                json_path = get_application_root_dir() / "assets" / "default_profiles.json"
+                json_path = get_bundle_dir() / "assets" / "default_profiles.json"
                 with open(json_path, "r", encoding="utf-8") as f:
                     default_profiles = json.load(f)
 

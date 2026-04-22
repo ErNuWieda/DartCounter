@@ -1,58 +1,36 @@
 import sys
 from logging.config import fileConfig
-
-from sqlalchemy import create_engine
-from alembic import context
-
-# --- Alembic/Projekt-Integration START ---
-
-# Füge das Hauptverzeichnis des Projekts zum Python-Pfad hinzu,
-# damit wir die 'core'-Module importieren können. # noqa: E402
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
 
-from core.db_models import Base  # noqa: E402
+from alembic import context
 
-# --- Alembic/Projekt-Integration END ---
+# 1. WICHTIG: Projekt-Root zum Pfad hinzufügen, damit die Imports funktionieren
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# 2. WICHTIG: Importiere die Base deiner Modelle für Autogenerate
+from core.db_models import Base
+
+# Das Alembic Config Objekt
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Logging konfigurieren (liest aus alembic.ini)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# Hier weisen wir Alembic an, unsere Modelle für den autogenerate-Prozess zu verwenden.
+# 3. WICHTIG: Setze target_metadata für Autogenerate
+# Hier greift Alembic auf alle Modelle zu, die von Base erben (Highscore, GameRecord, etc.)
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
-
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+    """Migrationen im 'Offline'-Modus ausführen.
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
+    Hier wird lediglich ein SQL-Skript generiert, anstatt die DB direkt zu ändern.
+    Die URL wird aus der Config (gesetzt durch den DatabaseManager) gelesen.
     """
-    db_config = config.get_section("postgresql")
-    url = (
-        f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"
-        f"@{db_config['host']}/{db_config['database']}"
-    )
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,21 +43,33 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+    """Migrationen im 'Online'-Modus ausführen.
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
+    Hier wird eine Engine erstellt und die Migrationen direkt auf der DB ausgeführt.
     """
-    # Nutze die 'sqlalchemy.url', die vom DatabaseManager gesetzt wird.
-    # Dies ist der robusteste Weg, um die Konfiguration zu übergeben.
-    db_url = config.get_main_option("sqlalchemy.url")
-    if db_url is None:
-        raise ValueError("Die Datenbank-URL wurde nicht in der Alembic-Konfiguration gesetzt.")
-    connectable = create_engine(db_url)
+    # Erstelle die Konfiguration für die Engine.
+    # Wir nutzen die Sektion aus alembic.ini, aber die URL wurde 
+    # dynamisch vom DatabaseManager via alembic_cfg.set_main_option gesetzt.
+    configuration = config.get_section(config.config_ini_section, {})
+    
+    # Falls die URL nicht in der Sektion steht (weil sie dynamisch gesetzt wurde),
+    # ziehen wir sie explizit aus dem Haupt-Optionen-Pool.
+    if "sqlalchemy.url" not in configuration:
+        configuration["sqlalchemy.url"] = config.get_main_option("sqlalchemy.url")
+
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection, 
+            target_metadata=target_metadata,
+            # Verhindert, dass Alembic versucht, System-Tabellen zu löschen
+            compare_type=True 
+        )
 
         with context.begin_transaction():
             context.run_migrations()
