@@ -27,7 +27,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk python3-pil.imagetk xvfb
+          sudo apt-get install -y python3-tk python3-pil.imagetk xvfb libpq-dev
 
       - name: 4. Install Python Dependencies
         run: |

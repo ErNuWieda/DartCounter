@@ -216,25 +216,16 @@ def main():
             shutil.copy(src, release_dir)
 
     # --- Schritt 4 & 5: Finalisieren (ZIP oder für Installer vorbereiten) ---
-    # Im CI-Kontext auf Windows überspringen wir das Zippen und Aufräumen,
-    # damit der Installer-Workflow auf die erstellten Dateien zugreifen kann.
-    if system == "Windows" and os.getenv("CI"):
-        print(
-            "\n>>> Schritt 4 & 5: CI-Umgebung (Windows) erkannt. Überspringe "
-            "ZIP-Erstellung und Cleanup."
-        )
-        print(f">>> Die Build-Artefakte sind bereit für den Installer in: '{release_dir}'")
-    else:
-        # --- Schritt 4: ZIP-Archiv erstellen (lokaler Build) ---
-        print(f"\n>>> Schritt 4: ZIP-Archiv '{release_dir}.zip' erstellen...")
-        shutil.make_archive(str(release_dir), "zip", root_dir=".", base_dir=str(release_dir))
+    # --- Schritt 4: ZIP-Archiv erstellen ---
+    print(f"\n>>> Schritt 4: ZIP-Archiv '{release_dir}.zip' erstellen...")
+    shutil.make_archive(str(release_dir), "zip", root_dir=".", base_dir=str(release_dir))
 
-        # --- Schritt 5: Temporäre Build-Artefakte bereinigen (lokaler Build) ---
-        print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
-        shutil.rmtree(BUILD_DIR)
-        shutil.rmtree(DIST_DIR)
-        SPEC_FILE.unlink(missing_ok=True)
-        shutil.rmtree(release_dir)
+    # --- Schritt 5: Temporäre Build-Artefakte bereinigen ---
+    print("\n>>> Schritt 5: Temporäre Build-Artefakte bereinigen...")
+    shutil.rmtree(BUILD_DIR)
+    shutil.rmtree(DIST_DIR)
+    SPEC_FILE.unlink(missing_ok=True)
+    shutil.rmtree(release_dir)
 
     print(f"\n{'='*50}")
     print("✅ Build-Prozess erfolgreich abgeschlossen.")
