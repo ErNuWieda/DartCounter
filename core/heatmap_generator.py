@@ -30,7 +30,7 @@ class HeatmapGenerator:
     def create_heatmap(
         coordinates: list[tuple[float, float]],
         target_size: tuple[int, int],
-        point_radius=10,
+        point_radius=None,
         point_opacity=128,
     ):
         """
@@ -53,6 +53,10 @@ class HeatmapGenerator:
 
         # Skaliere das Dartboard-Bild auf die gewünschte Zielgröße
         board_img = board_img_original.resize(target_size, Image.Resampling.LANCZOS)
+
+        # Dynamischer Punkt-Radius basierend auf der Bildgröße (ca. 1% der Höhe)
+        if point_radius is None:
+            point_radius = max(3, int(target_size[1] * 0.01))
 
         width, height = board_img.size  # Dies ist jetzt die Zielgröße
         overlay = Image.new("RGBA", (width, height), (255, 255, 255, 0))

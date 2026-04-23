@@ -95,8 +95,12 @@ class DartBoard:
         try:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")
+
+            # Skaliere den Dart proportional zur Board-Größe (Basis: 75px bei Originalgröße 2200)
+            scale = self.skaliert["outer_edge"] / DartboardGeometry.RADIEN["outer_edge"]
+            dart_size = max(20, int(75 * scale))
             self.resized_dart_mask_pil = self.original_dart_mask_pil.resize(
-                (75, 75), Image.Resampling.LANCZOS
+                (dart_size, dart_size), Image.Resampling.LANCZOS
             )
             self.update_dart_image("#ff0000")
         except FileNotFoundError:  # pragma: no cover
@@ -376,8 +380,9 @@ class DartBoard:
         # Bild skalieren
         new_size = (int(image.width * SCALE), int(image.height * SCALE))
         # Berechne den Mittelpunkt einmalig und korrigiere ihn mit dem Offset.
-        self.center_x = (new_size[0] // 2) + self.BOARD_CENTER_OFFSET[0]
-        self.center_y = (new_size[1] // 2) + self.BOARD_CENTER_OFFSET[1]
+        # Der Offset muss proportional zur Skalierung mitwachsen.
+        self.center_x = (new_size[0] // 2) + int(self.BOARD_CENTER_OFFSET[0] * SCALE)
+        self.center_y = (new_size[1] // 2) + int(self.BOARD_CENTER_OFFSET[1] * SCALE)
         resized = image.resize(new_size, Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(resized)
         # Canvas erstellen

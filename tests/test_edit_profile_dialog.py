@@ -131,9 +131,9 @@ class TestEditProfileDialog:
         dialog.is_ai_var.set(True)
         dialog._on_player_type_change()
         dialog.update_idletasks()  # Erzwinge UI-Update
-        # Jetzt: KI -> AI-Settings sichtbar, Double-Out versteckt
+        # Jetzt: KI -> AI-Settings sichtbar, Double-Out bleibt sichtbar (für KI-Strategie)
         assert dialog.ai_settings_frame.grid_info(), "AI-Einstellungs-Frame sollte nach Umschalten sichtbar sein."
-        assert not dialog.double_out_frame.grid_info(), "Double-Out-Frame sollte nach Umschalten versteckt sein."
+        assert dialog.double_out_frame.grid_info(), "Double-Out-Frame sollte auch für KI sichtbar bleiben."
 
         dialog.destroy()
 

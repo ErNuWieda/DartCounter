@@ -65,8 +65,11 @@ class DartboardGeometry:
         if dist <= DartboardGeometry.RADIEN["bull"]:
             return "Bull"
 
-        angle = (math.degrees(math.atan2(center - y, x - center)) + 360) % 360
-        idx = int((angle + 9) // 18) % 20
+        # atan2 gibt Winkel gegen den Uhrzeigersinn (CCW) zurück.
+        # Da unsere SEGMENTS-Liste im Uhrzeigersinn (CW) bei 3 Uhr (0°) startet,
+        # müssen wir den Winkel invertieren, um den korrekten Index zu finden.
+        angle_ccw = (math.degrees(math.atan2(center - y, x - center)) + 360) % 360
+        idx = int((360 - angle_ccw + 9) // 18) % 20
         return str(DartboardGeometry.SEGMENTS[idx])
 
     @staticmethod
@@ -98,7 +101,7 @@ class DartboardGeometry:
         # Die SEGMENTS-Liste ist im Uhrzeigersinn definiert. Mathematische Winkel
         # (und atan2) verlaufen jedoch gegen den Uhrzeigersinn. Um dies zu korrigieren, muss
         # der Winkel negativ sein, um im Uhrzeigersinn zu laufen.
-        angle_deg = -(9 + (segment_index * 18))
+        angle_deg = -(segment_index * 18)
 
         # Datengesteuerte Radienberechnung
         radius_keys_map = {

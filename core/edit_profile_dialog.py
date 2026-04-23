@@ -284,14 +284,14 @@ class EditProfileDialog(tk.Toplevel):
 
     def _on_player_type_change(self):
         """Zeigt oder verbirgt die KI-Einstellungen basierend auf der Auswahl."""
+        # Das bevorzugte Double-Out ist für beide Spielertypen sinnvoll (Mensch und KI).
+        self.double_out_frame.grid(sticky=tk.EW)
         if self.is_ai_var.get():
             # Zeige die AI-Einstellungen
-            self.double_out_frame.grid_remove()
             self.ai_settings_frame.grid(sticky=tk.EW)
             self._on_difficulty_change()  # Update adaptive visibility
         else:
             # Verberge die AI-Einstellungen
-            self.double_out_frame.grid(sticky=tk.EW)
             self.ai_settings_frame.grid_remove()
 
     def _on_difficulty_change(self, event=None):
@@ -314,11 +314,12 @@ class EditProfileDialog(tk.Toplevel):
 
         is_ai = self.is_ai_var.get()
         difficulty = self.difficulty_var.get() if is_ai else None
-        accuracy_model_to_save = None
+        # Bestehendes Modell beibehalten, sofern es nicht durch eine neue Vorlage überschrieben wird.
+        accuracy_model_to_save = self.profile_to_edit.accuracy_model if self.profile_to_edit else None
 
         # Konvertiere die Auswahl des Double-Outs in einen Integer oder None
         pref_double_str = self.preferred_double_var.get()
-        if is_ai or pref_double_str == "Keine":
+        if pref_double_str == "Keine":
             preferred_double = None
         elif pref_double_str == "Bull":
             preferred_double = 25

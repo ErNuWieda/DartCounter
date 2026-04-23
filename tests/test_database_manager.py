@@ -95,10 +95,12 @@ def config_test_setup(monkeypatch):
     with patch("core.database_manager.configparser.ConfigParser") as MockConfigParser, \
          patch("core.database_manager.shutil.copy") as mock_shutil_copy, \
          patch("core.database_manager.create_engine") as mock_create_engine, \
+         patch("core.database_manager.get_bundle_dir") as mock_get_bundle_dir, \
          patch("core.database_manager.DatabaseManager._run_migrations") as mock_run_migrations, \
          patch("core.database_manager.DatabaseManager._seed_default_profiles") as mock_seed_profiles:
 
         mock_create_engine.return_value.connect.return_value.__enter__.return_value = MagicMock()
+        mock_get_bundle_dir.return_value = Path("/fake/root/dir")
 
         # 1. Setze das Singleton vor jedem Test zurück.
         reset_db_manager_singleton()

@@ -236,11 +236,11 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
     assert target == ("Double", 20)
     mock_get_suggestion.assert_not_called()  # Wichtig: Der Calculator wird NICHT aufgerufen.
 
-    # Fall B: Anfänger-KI nutzt den Calculator
+    # Fall B: Auch die Anfänger-KI erkennt jetzt direkte Finishes (Phase 0.5) ohne Calculator
     ai_player.difficulty = "Anfänger"
     target = ai_player.strategy.get_target(throw_number=2)
     assert target == ("Double", 20)
-    mock_get_suggestion.assert_called_with(40, "Double", 2, preferred_double=None)
+    mock_get_suggestion.assert_not_called()
 
 
 @patch(
@@ -613,7 +613,7 @@ def test_execute_throw_uses_adaptive_logic_when_set(ai_player_with_mocks):
     auf "Adaptiv" gesetzt ist und ein Profil mit Modell existiert.
     """
     ai_player, mock_game = ai_player_with_mocks
-    ai_player.difficulty = "Adaptive"
+    ai_player.difficulty = "Adaptiv"
     # Erstelle ein Profil mit einem leeren Genauigkeitsmodell
     ai_player.profile = PlayerProfile(name="Human", accuracy_model={"T20": {}})
 
@@ -639,7 +639,7 @@ def test_adaptive_ai_falls_back_if_no_model(ai_player_with_mocks):
     existiert.
     """
     ai_player, mock_game = ai_player_with_mocks
-    ai_player.difficulty = "Adaptive"
+    ai_player.difficulty = "Adaptiv"
     # Erstelle ein Profil OHNE Genauigkeitsmodell
     ai_player.profile = PlayerProfile(name="Human", accuracy_model=None)
 
@@ -659,7 +659,7 @@ def test_adaptive_ai_falls_back_if_no_model(ai_player_with_mocks):
 def test_adaptive_ai_uses_specific_model(ai_player_with_mocks):
     """Testet, ob die adaptive KI das spezifische Modell für ein Ziel verwendet."""
     ai_player, _ = ai_player_with_mocks
-    ai_player.difficulty = "Adaptive"
+    ai_player.difficulty = "Adaptiv"
 
     # Ein detailliertes Modell für T20
     ai_player.profile.accuracy_model = {
@@ -683,7 +683,7 @@ def test_adaptive_ai_uses_specific_model(ai_player_with_mocks):
 def test_adaptive_ai_fallback_if_no_specific_model(ai_player_with_mocks):
     """Testet, ob die adaptive KI auf Standardwerte zurückfällt, wenn kein spezifisches Modell existiert."""
     ai_player, _ = ai_player_with_mocks
-    ai_player.difficulty = "Adaptive"
+    ai_player.difficulty = "Adaptiv"
     ai_player.profile.accuracy_model = {
         "T20": {
             "mean_offset_x": 10,

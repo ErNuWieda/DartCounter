@@ -144,7 +144,7 @@ class AIPlayer(Player):
             tuple[int, int]: Die simulierten Wurfkoordinaten.
         """
         # Lade das vollständige Genauigkeitsmodell aus dem Profil.
-        accuracy_model = self.profile.accuracy_model if self.profile else {}
+        accuracy_model = (self.profile.accuracy_model or {}) if self.profile else {}
         target_stats = accuracy_model.get(target_name)
 
         if target_stats:
@@ -231,7 +231,7 @@ class AIPlayer(Player):
             )
 
         # --- Wurf-Simulation basierend auf Schwierigkeit (Standard vs. Adaptiv) ---
-        if self.difficulty == "Adaptive" and self.profile and self.profile.accuracy_model:
+        if self.difficulty == "Adaptiv" and self.profile and self.profile.accuracy_model is not None:
             throw_x, throw_y = self._get_adaptive_throw_coords((target_x, target_y), target_name)
         else:
             # Standard-Logik mit kreisförmiger Streuung

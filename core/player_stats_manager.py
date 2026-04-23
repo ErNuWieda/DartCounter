@@ -72,6 +72,13 @@ class PlayerStatsManager:
         game_stats["date"] = datetime.now()
         self.db_manager.add_game_record(player_name, game_stats)
 
+    def delete_last_records_for_players(self, players):
+        """Löscht die letzten Datenbank-Einträge für eine Liste von Spielern (bei Undo)."""
+        if not self.db_manager.is_connected:
+            return
+        for p in players:
+            self.db_manager.delete_last_game_record(p.name)
+
     def get_all_player_names(self):
         """Gibt eine Liste aller Spieler zurück, für die Statistiken in der DB existieren."""
         if not self.db_manager.is_connected:

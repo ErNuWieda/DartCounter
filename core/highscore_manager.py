@@ -68,6 +68,12 @@ class HighscoreManager:
 
         self.db_manager.add_score(str(game_mode), player_name, score_metric)
 
+    def delete_last_score(self, game_mode: str, player_name: str):
+        """Löscht den letzten Highscore-Eintrag (bei Undo)."""
+        if not self.db_manager.is_connected:
+            return
+        self.db_manager.delete_last_highscore(game_mode, player_name)
+
     def export_highscores_to_csv(self, parent):
         """
         Exportiert alle Highscores aus der Datenbank in eine CSV-Datei.

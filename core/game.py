@@ -212,6 +212,23 @@ class Game:
         # Wenn das Spiel beendet war, müssen alle Gewinn-Flags zurückgesetzt werden,
         # bevor die Logik des Wurfs selbst rückgängig gemacht wird.
         if self.end:
+            msg = (
+                "Das Spiel ist bereits beendet und die Ergebnisse wurden gespeichert.\n\n"
+                "Möchtest du den Sieg wirklich rückgängig machen? "
+                "Dies löscht die aktuellen Einträge in der Statistik und der Highscore-Liste."
+            )
+            # Modaler Dialog am Dartboard-Fenster ausrichten
+            parent = self.dartboard.root if self.dartboard else self.root
+            if not ui_utils.ask_question("yesno", "Sieg rückgängig machen", msg, parent=parent):
+                return
+
+            # NEU: Bereits gespeicherte Statistiken und Highscores aus der DB entfernen
+            if self.player_stats_manager:
+                self.player_stats_manager.delete_last_records_for_players(self.players)
+            
+            if self.highscore_manager and self.winner:
+                self.highscore_manager.delete_last_score(self.options.name, self.winner.name)
+
             self.end = False
             self.winner = None
             self.shanghai_finish_round = None # Auch die Runde zurücksetzen

@@ -69,17 +69,40 @@ class X01AIStrategy(AIStrategy):
         is_high_skill = self.ai_player.difficulty in ("Profi", "Champion")
         if not (is_high_skill and self.game.options.opt_out == "Double"):
             return None
-
-        # Regel 1: Aggressives 1-Dart-Finish bei geradem Score <= 40
-        if score <= 40 and score % 2 == 0 and score != 2:
-            return "Double", score // 2
-
         # Regel 2: Strategischer Bust, um ein Finish auf D1 zu vermeiden
         if score == 3 and darts_left > 1:
             return "Single", 20  # Wurf auf S20 führt zum Bust
         if score == 2 and darts_left > 1:
             return "Single", 2  # Wurf auf S2 führt zum Bust
 
+        return None
+
+    def _get_finishing_target(self, score: int) -> tuple[str, int] | None:
+        """
+        Checkt, ob der aktuelle Score direkt mit einem Dart beendet werden kann.
+        Berücksichtigt die Opt-Out-Regel (Double, Masters, Single).
+        """
+        opt_out = self.game.options.opt_out
+
+        if opt_out == "Double":
+            if score <= 40 and score % 2 == 0:
+                return "Double", score // 2
+            if score == 50:
+                return "Bullseye", 50
+        elif opt_out == "Masters":
+            if score <= 40 and score % 2 == 0:
+                return "Double", score // 2
+            if score <= 60 and score % 3 == 0:
+                return "Triple", score // 3
+            if score == 50:
+                return "Bullseye", 50
+        elif opt_out == "Single":
+            if score <= 20:
+                return "Single", score
+            if score == 25:
+                return "Bull", 25
+            if score == 50:
+                return "Bullseye", 50
         return None
 
     def _get_power_scoring_target(self, score: int, darts_left: int) -> tuple[str, int] | None:
@@ -108,7 +131,7 @@ class X01AIStrategy(AIStrategy):
             return self._parse_target_string(first_target_str)
         return None
 
-    def _get_setup_target(self, score: int, darts_left: int) -> tuple[str, int]:
+    def _get_setup_target(self, score: int, darts_left: int, preferred_double: int | None) -> tuple[str, int]:
         """
         Bestimmt ein intelligentes Setup-Ziel, wenn kein direkter Checkout möglich ist.
         """
@@ -125,7 +148,7 @@ class X01AIStrategy(AIStrategy):
                 remainder = score - throw_value
                 if (
                     CheckoutCalculator.get_checkout_suggestion(
-                        remainder, self.game.options.opt_out, darts_left - 1
+                        remainder, self.game.options.opt_out, darts_left - 1, preferred_double=preferred_double
                     )
                     != "-"
                 ):
@@ -141,6 +164,13 @@ class X01AIStrategy(AIStrategy):
         # Fall B: Setup für die NÄCHSTE Runde (letzter Dart or kein Setup in dieser Runde gefunden)
         # Ziel: Eine "gute" gerade Zahl hinterlassen. Geworfen wird auf sichere Single-Felder.
         safe_targets = list(range(20, 0, -1))
+
+        # Priorität B.1: Versuche das bevorzugte Double exakt zu stellen
+        if preferred_double:
+            double_value = 50 if preferred_double == 25 else preferred_double * 2
+            for segment_value in safe_targets:
+                if score - segment_value == double_value:
+                    return "Single", segment_value
 
         # Priorisiere Würfe, die einen geraden Rest hinterlassen.
         for segment_value in safe_targets:
@@ -171,6 +201,10 @@ class X01AIStrategy(AIStrategy):
         if target := self._get_high_skill_target(score, darts_left):
             return target
 
+        # Phase 0.5: Direkter Finish-Check (für alle Skill-Level)
+        if target := self._get_finishing_target(score):
+            return target
+
         # Phase 1: Power-Scoring bei sehr hohem Punktestand
         if target := self._get_power_scoring_target(score, darts_left):
             return target
@@ -180,7 +214,7 @@ class X01AIStrategy(AIStrategy):
             return target
 
         # Phase 3: Intelligentes Setup, wenn kein direkter Checkout möglich ist
-        return self._get_setup_target(score, darts_left)
+        return self._get_setup_target(score, darts_left, preferred_double)
 
 
 class CricketAIStrategy(AIStrategy):
@@ -226,7 +260,7 @@ class CricketAIStrategy(AIStrategy):
         das bei einem Gegner noch offen ist.
         """
         for target in targets:
-            if any(opp.hits.get(target, 0) < 3 for opp in opponents):
+            if self.ai_player.hits.get(target, 0) >= 3 and any(opp.hits.get(target, 0) < 3 for opp in opponents):
                 if target == "Bull":
                     return "Bullseye", 50
                 ring = "Triple" if self.ai_player.difficulty in ("Profi", "Champion") else "Single"
@@ -242,11 +276,32 @@ class CricketAIStrategy(AIStrategy):
         if target := self._get_defensive_target(targets, opponents):
             return target
 
-        # Phase 2: Offensive - Schließe eigene Ziele.
+        # Bestimme, ob wir Punkte benötigen, um die Führung zu übernehmen oder zu halten
+        current_score = self.ai_player.score
+        is_cut_throat = self.game.options.name == "Cut Throat"
+
+        # Bestimme, ob wir Punkte benötigen (Failsafe für Tests/Solo-Spiele)
+        valid_opponents = [opp for opp in opponents if hasattr(opp, "score")]
+        
+        if not valid_opponents:
+            needs_points = False
+        elif is_cut_throat:
+            # In Cut Throat braucht man Punkte (für Gegner), wenn man nicht den niedrigsten Score hat.
+            needs_points = current_score > min(opp.score for opp in valid_opponents)
+        else:
+            # In Cricket/Tactics brauchen wir Punkte, wenn wir nicht führen.
+            needs_points = current_score < max(opp.score for opp in valid_opponents)
+
+        # Phase 2: Scoring (nur wenn nötig) - Punkte sammeln auf bereits geschlossenen Feldern.
+        if needs_points:
+            if target := self._get_scoring_target(targets, opponents):
+                return target
+
+        # Phase 3: Offensive - Schließe eigene Ziele.
         if target := self._get_offensive_target(targets):
             return target
 
-        # Phase 3: Scoring - Erziele Punkte auf offenen Zielen.
+        # Phase 4: Scoring (Fallback) - Erziele Punkte auf offenen Zielen, wenn alles andere erledigt ist.
         if target := self._get_scoring_target(targets, opponents):
             return target
 
