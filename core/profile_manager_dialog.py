@@ -41,8 +41,10 @@ class ProfileManagerDialog(tk.Toplevel):
 
         # UI aktualisieren, damit Tkinter die benötigte Breite berechnen kann
         self.update_idletasks()
-        # Die berechnete Breite verwenden und eine feste Höhe beibehalten
-        self.geometry(f"{self.winfo_reqwidth()}x425")
+        # Fenstergröße dynamisch an den Inhalt anpassen
+        width = self.winfo_reqwidth()
+        height = self.winfo_reqheight()
+        self.geometry(f"{width}x{height}")
         self.grab_set()
 
     def _setup_widgets(self):
