@@ -38,7 +38,7 @@ from sqlalchemy import create_engine, desc, asc, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from alembic.config import Config
-from alembic import command
+from alembic import command # type: ignore
 from .settings_manager import get_app_data_dir, get_application_root_dir, get_bundle_dir
 from .db_models import Highscore, PlayerProfileORM, GameRecord
 

@@ -68,8 +68,6 @@ class GameOptions:
                         filtered_data[field] = 1
                     if field == "sets_to_win":
                         filtered_data[field] = 1
-                    if field == "opt_split_score_target":
-                        filtered_data[field] = 60
 
         return cls(**filtered_data)
 

@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import TYPE_CHECKING
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -33,10 +34,12 @@ try:
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.dates import DateFormatter
-
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
+
+if TYPE_CHECKING:
+    from .player import Player
 
 
 class PlayerStatsManager:
@@ -72,7 +75,7 @@ class PlayerStatsManager:
         game_stats["date"] = datetime.now()
         self.db_manager.add_game_record(player_name, game_stats)
 
-    def delete_last_records_for_players(self, players):
+    def delete_last_records_for_players(self, players: list["Player"]):
         """Löscht die letzten Datenbank-Einträge für eine Liste von Spielern (bei Undo)."""
         if not self.db_manager.is_connected:
             return

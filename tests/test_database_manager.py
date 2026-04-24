@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import configparser
-from pathlib import Path
+from pathlib import Path # type: ignore
 from core.database_manager import DatabaseManager
 from core.db_models import Highscore, PlayerProfileORM
 

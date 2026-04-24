@@ -130,7 +130,7 @@ class TestPlayerStatsManagerUI:
     def setup_method(self, tk_root_session, monkeypatch):
         """Richtet vor jedem Test eine saubere Umgebung mit Mocks ein."""
         # Mocke matplotlib, um die Erstellung echter Diagramme zu verhindern
-        patcher_matplotlib = patch("core.player_stats_manager.MATPLOTLIB_AVAILABLE", True, create=True)
+        patcher_matplotlib = patch("core.player_stats_manager.MATPLOTLIB_AVAILABLE", True)
         self.mock_matplotlib = patcher_matplotlib.start()
         
         # KORREKTUR: Patche die Klassen dort, wo sie herkommen, nicht dort, wo sie importiert werden.

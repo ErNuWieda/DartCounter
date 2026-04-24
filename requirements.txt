@@ -3,4 +3,5 @@ sv-ttk==2.5.5
 Pillow==10.4.0
 matplotlib==3.9.1
 numpy==2.0.0
+pyttsx3==2.90
 setuptools<81

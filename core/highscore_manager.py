@@ -68,7 +68,7 @@ class HighscoreManager:
 
         self.db_manager.add_score(str(game_mode), player_name, score_metric)
 
-    def delete_last_score(self, game_mode: str, player_name: str):
+    def delete_last_score(self, game_mode: str, player_name: str): # type: ignore
         """Löscht den letzten Highscore-Eintrag (bei Undo)."""
         if not self.db_manager.is_connected:
             return

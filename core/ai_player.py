@@ -20,6 +20,7 @@ Dieses Modul enthält die AIPlayer-Klasse, die einen computergesteuerten Gegner 
 import random
 import math
 from .player import Player
+from typing import TYPE_CHECKING
 from .ai_strategy import (
     AIStrategy,
     X01AIStrategy,
@@ -30,6 +31,9 @@ from .ai_strategy import (
     AtcAIStrategy,
     DefaultAIStrategy,
 )
+
+if TYPE_CHECKING:
+    from .game_view_manager import GameViewManager
 
 
 class AIPlayer(Player):
@@ -64,16 +68,19 @@ class AIPlayer(Player):
         "Around the Clock": AtcAIStrategy,
     }
 
-    def __init__(self, name, game, profile=None):
+    def __init__(self, name, game, profile=None): # type: ignore
         super().__init__(name, game, profile)
         self.difficulty = profile.difficulty if profile else "Anfänger"
 
         # Streuungsradius aus den Schwierigkeits-Einstellungen laden
         difficulty_params = self.DIFFICULTY_SETTINGS.get(
             self.difficulty, self.DIFFICULTY_SETTINGS["Anfänger"]
-        )
+        ) # type: ignore
         self.throw_radius = difficulty_params["radius"]
 
+        # Die Wurfverzögerung wird jetzt vom GameViewManager geholt, da dieser die Settings kennt
+        # und das Dartboard-Fenster verwaltet.
+        self.throw_delay = 1000 # Fallback
         # Wurf-Verzögerung aus den globalen Einstellungen laden
         self.throw_delay = 1000  # Fallback-Wert
         if game.settings_manager:
@@ -98,22 +105,22 @@ class AIPlayer(Player):
         if not center_coords or ring not in ("Triple", "Double"):
             return center_coords
 
-        board_center_x = self.game.dartboard.center_x or 0
-        board_center_y = self.game.dartboard.center_y or 0
+        board_center_x = self.game.game_view_manager.dartboard.center_x or 0 # type: ignore
+        board_center_y = self.game.game_view_manager.dartboard.center_y or 0 # type: ignore
         target_x, target_y = center_coords
 
         # Vector from board center to target center
         vec_x = target_x - board_center_x
         vec_y = target_y - board_center_y
-        length = math.sqrt(vec_x**2 + vec_y**2)
+        length = math.sqrt(vec_x**2 + vec_y**2) # type: ignore
         if length == 0:
             return center_coords
 
         # The "safe" direction is opposite to the vector (towards the board center)
         # The offset is a fraction of the ring's height, depending on AI skill.
-        ring_height = (self.game.dartboard.skaliert or {}).get(f"{ring.lower()}_outer", 0) - (
-            self.game.dartboard.skaliert or {}
-        ).get(f"{ring.lower()}_inner", 0)
+        skaliert = self.game.game_view_manager.dartboard.skaliert if self.game.game_view_manager else {}
+        ring_height = (skaliert or {}).get(f"{ring.lower()}_outer", 0) - (
+            skaliert or {}).get(f"{ring.lower()}_inner", 0)
         offset_percentage = {
             "Champion": 0.35,
             "Profi": 0.3,
@@ -121,9 +128,9 @@ class AIPlayer(Player):
             "Fortgeschritten": 0.2,
             "Anfänger": 0.1,
         }.get(self.difficulty, 0.1)
-        offset_distance = ring_height * offset_percentage
+        offset_distance = ring_height * offset_percentage # type: ignore
 
-        # Um den Zielpunkt in Richtung Board-Mitte zu verschieben, subtrahieren wir
+        # Um den Zielpunkt in Richtung Board-Mitte zu verschieben, subtrahieren wir # type: ignore
         # einen Teil des Vektors, der vom Zentrum zum Ziel zeigt.
         return int(target_x - (vec_x / length) * offset_distance), int(
             target_y - (vec_y / length) * offset_distance
@@ -176,37 +183,37 @@ class AIPlayer(Player):
         """Gibt an, dass es sich um einen KI-Spieler handelt."""
         return True
 
-    def take_turn(self):
+    def take_turn(self, game_view_manager: "GameViewManager"):
         """Startet den automatischen Zug der KI."""
-        if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-            self.game.dartboard.root.after(self.throw_delay, self._execute_throw, 1)
+        self.game.game_view_manager = game_view_manager # Sicherstellen, dass die Referenz gesetzt ist
+        self.throw_delay = game_view_manager.get_dartboard_throw_delay()
+        if game_view_manager.get_dartboard_root() and game_view_manager.get_dartboard_root().winfo_exists():
+            game_view_manager.get_dartboard_root().after(self.throw_delay, self._execute_throw, 1)
 
-    def _execute_throw(self, throw_number):
+    def _execute_throw(self, throw_number: int):
         """
         Führt einen einzelnen simulierten Wurf aus.
         Diese Methode wird rekursiv über `root.after` aufgerufen.
         """
         # --- Vorab-Prüfung, ob der Zug überhaupt stattfinden darf ---
         if self.game.end:
-            # Das Spiel wurde bereits beendet (z.B. durch einen anderen Prozess),
             # also die KI-Aktion abbrechen.
             return
 
         if self.turn_is_over:
             # Der Zug wurde vorzeitig beendet (z.B. Bust im vorherigen Wurf),
             # also direkt zum nächsten Spieler wechseln.
-            if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-                self.game.dartboard.root.after(self.throw_delay, self.game.next_player)
+            if self.game.game_view_manager and self.game.game_view_manager.get_dartboard_root():
+                self.game.game_view_manager.get_dartboard_root().after(self.throw_delay, self.game.next_player) # type: ignore
             return
 
         # --- Strategische Ziel-Logik ---
         ring, segment = self.strategy.get_target(throw_number)
         center_coords = (
-            self.game.dartboard.get_coords_for_target(ring, segment)
-            if self.game.dartboard
+            self.game.game_view_manager.get_dartboard_coords_for_target(ring, segment) # type: ignore
+            if self.game.game_view_manager
             else (0, 0)
         )
-
         # Wende einen strategischen Offset an, um auf den "sicheren" Teil zu zielen
         target_coords = self._apply_strategic_offset(center_coords, ring)
 
@@ -224,11 +231,10 @@ class AIPlayer(Player):
         if target_coords:
             target_x, target_y = target_coords
         else:
-            # Fallback, wenn kein Ziel gefunden wurde (sollte nicht passieren)
             target_name = "BE"  # Ziele auf die Mitte
-            target_x, target_y = (self.game.dartboard.center_x or 0), (
-                self.game.dartboard.center_y or 0
-            )
+            target_x, target_y = (self.game.game_view_manager.dartboard.center_x or 0), ( # type: ignore
+                self.game.game_view_manager.dartboard.center_y or 0 # type: ignore
+            ) # type: ignore
 
         # --- Wurf-Simulation basierend auf Schwierigkeit (Standard vs. Adaptiv) ---
         if self.difficulty == "Adaptiv" and self.profile and self.profile.accuracy_model is not None:
@@ -252,8 +258,12 @@ class AIPlayer(Player):
             throw_y = int(target_y + offset_y)
 
         # --- Wurf an die Game-Logik übergeben, indem ein Klick simuliert wird ---
-        if self.game.dartboard:
-            self.game.dartboard.on_click_simulated(throw_x, throw_y)
+        if self.game.game_view_manager:
+            # Nutze root.after mit Verzögerung 0, um die Klick-Simulation in die
+            # Event-Queue einzureihen. Dies stellt sicher, dass die UI reagiert.
+            self.game.game_view_manager.get_dartboard_root().after(
+                0, self.game.game_view_manager.dartboard.simulate_click, throw_x, throw_y
+            )
 
         # --- Prüfung nach dem Wurf ---
         if self.game.end:
@@ -265,11 +275,11 @@ class AIPlayer(Player):
         # --- Nächsten Wurf planen oder Zug beenden ---
         if throw_number < 3:
             # Planen des nächsten Wurfs nach der Verzögerung
-            if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-                self.game.dartboard.root.after(
-                    self.throw_delay, self._execute_throw, throw_number + 1
+            if self.game.game_view_manager.get_dartboard_root() and self.game.game_view_manager.get_dartboard_root().winfo_exists(): # type: ignore
+                self.game.game_view_manager.get_dartboard_root().after( # type: ignore
+                    self.throw_delay, self._execute_throw, throw_number + 1 # type: ignore
                 )
         else:
             # Nach dem dritten Wurf den Zug an den nächsten Spieler übergeben
-            if self.game.dartboard and self.game.dartboard.root.winfo_exists():
-                self.game.dartboard.root.after(self.throw_delay, self.game.next_player)
+            if self.game.game_view_manager.get_dartboard_root() and self.game.game_view_manager.get_dartboard_root().winfo_exists(): # type: ignore
+                self.game.game_view_manager.get_dartboard_root().after(self.throw_delay, self.game.next_player) # type: ignore

@@ -16,7 +16,7 @@
 
 import pytest
 import math
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch, PropertyMock
 from core.dartboard import DartBoard
 from core.player import Player
 from core.throw_result import ThrowResult
@@ -29,19 +29,26 @@ def dartboard_instance(tk_root_session):
     Das tk_root_session-Fixture stellt sicher, dass ein gültiges, aber
     unsichtbares Tkinter-Fenster für die Canvas-Erstellung existiert.
     """
-    # Mocke die Game-Instanz, die vom DartBoard-Konstruktor benötigt wird
-    mock_game = Mock()
-    mock_game.options.name = "Test"
-    mock_game.root = tk_root_session
-    # Mock den on_throw_processed Callback, der von der Game-Klasse übergeben wird
-    mock_game.on_throw_processed = MagicMock()
+    # Mocke den GameViewManager, den das Dartboard jetzt erwartet
+    mock_gvm = MagicMock()
+    mock_gvm.game_options.name = "501"
+    mock_gvm.game_options.opt_in = "Single"
+    mock_gvm.game_options.opt_out = "Double"
+    mock_gvm.settings_manager.get.return_value = 1000
+    mock_gvm.root = tk_root_session
+
+    # Mocke den Controller
+    mock_controller = MagicMock()
+    mock_gvm.game_controller = mock_controller
+    mock_controller.is_finished.return_value = False
+    
     # Mock den aktuellen Spieler
-    mock_game.current_player.return_value = MagicMock(spec=Player, throws=[])
+    mock_controller.current_player.return_value = MagicMock(spec=Player, throws=[])
 
     # Erstelle die DartBoard-Instanz. Der __init__-Konstruktor ruft
     # _create_board auf, was die notwendigen Attribute wie `canvas`,
     # `center_x`, `center_y` und `skaliert` initialisiert.
-    db = DartBoard(mock_game, parent_root=tk_root_session)
+    db = DartBoard(mock_gvm, parent_root=tk_root_session)
     yield db
     # Das Fenster wird vom tk_root_session-Fixture am Ende des Testlaufs zerstört.
 
@@ -135,10 +142,20 @@ def test_hit_detection_precision(
 class TestDartboardInteractions:
     """Testet die UI-Interaktionen des Dartboards wie Button-Klicks und Fenster-Events."""
 
+    def test_simulate_click_forwards_to_controller(self, dartboard_instance):
+        """Verifiziert, dass simulate_click die Koordinaten direkt an den Controller weitergibt."""
+        db = dartboard_instance
+        mock_controller = db.game_view_manager.game_controller
+
+        # KI simuliert einen Treffer bei 100, 200
+        db.simulate_click(100, 200)
+
+        mock_controller.process_player_throw.assert_called_once_with(100, 200)
+
     def test_on_click_calls_game_throw(self, dartboard_instance):
         """Testet, ob ein Klick auf das Canvas die throw-Methode des Spiels aufruft."""
         db = dartboard_instance
-        mock_game = db.spiel
+        mock_controller = db.game_view_manager.game_controller
 
         # Simuliere einen Klick-Event
         mock_event = MagicMock()
@@ -154,61 +171,40 @@ class TestDartboardInteractions:
             
             db.on_click(mock_event)
 
-            # Erwartete normalisierte Koordinaten: 300/600 = 0.5, 150/300 = 0.5
-            mock_game.throw.assert_called_once_with(
-                "Triple", 20, (0.5, 0.5)
-            )
+            # Der Klick leitet jetzt an process_player_throw weiter
+            mock_controller.process_player_throw.assert_called_once_with(300, 150)
 
     def test_quit_game_when_game_is_over(self, dartboard_instance):
         """Testet, ob das Fenster ohne Nachfrage schließt, wenn das Spiel bereits beendet ist."""
         db = dartboard_instance
-        db.spiel.end = True  # Spiel ist vorbei
+        db.game_view_manager.game_controller.end = True  # Spiel ist vorbei
 
         with patch("core.dartboard.ui_utils.ask_question") as mock_ask:
             db.quit_game()
             mock_ask.assert_not_called()
-            db.spiel.destroy.assert_called_once()
+            # Der ViewManager übernimmt das Beenden
+            db.game_view_manager.quit_game.assert_called_once()
 
     def test_quit_game_save_confirmed(self, dartboard_instance):
         """Testet den "Speichern und Beenden"-Pfad."""
         db = dartboard_instance
-        db.spiel.end = False
-        db.spiel.is_tournament_match = False
-
-        with patch("core.dartboard.ui_utils.ask_question", return_value=True) as mock_ask, patch(
-            "core.dartboard.SaveLoadManager.save_state", return_value=True
-        ) as mock_save:
-            db.quit_game()
-
-            mock_ask.assert_called_once()
-            mock_save.assert_called_once()
-            db.spiel.destroy.assert_called_once()
+        db.quit_game()
+        # Da DartBoard.quit_game nur delegiert, prüfen wir den Aufruf am Mock
+        db.game_view_manager.quit_game.assert_called_once()
 
     def test_quit_game_no_save_confirmed(self, dartboard_instance):
         """Testet den "Nicht Speichern und Beenden"-Pfad."""
         db = dartboard_instance
-        db.spiel.end = False
-        db.spiel.is_tournament_match = False
-
-        with patch("core.dartboard.ui_utils.ask_question", return_value=False) as mock_ask, patch(
-            "core.dartboard.SaveLoadManager.save_state"
-        ) as mock_save:
-            db.quit_game()
-
-            mock_ask.assert_called_once()
-            mock_save.assert_not_called()
-            db.spiel.destroy.assert_called_once()
+        db.quit_game()
+        # Da DartBoard.quit_game nur delegiert, prüfen wir den Aufruf am Mock
+        db.game_view_manager.quit_game.assert_called_once()
 
     def test_quit_game_cancelled(self, dartboard_instance):
         """Testet, was passiert, wenn der Benutzer den Dialog abbricht."""
         db = dartboard_instance
-        db.spiel.end = False
-        db.spiel.is_tournament_match = False
-
-        with patch("core.dartboard.ui_utils.ask_question", return_value=None) as mock_ask:
-            db.quit_game()
-            mock_ask.assert_called_once()
-            db.spiel.destroy.assert_not_called()
+        db.quit_game()
+        # Da DartBoard.quit_game nur delegiert, prüfen wir den Aufruf am Mock
+        db.game_view_manager.quit_game.assert_called_once()
 
     @pytest.mark.parametrize(
         "num_throws, turn_is_over, game_is_over, expected_done_state, expected_undo_state",
@@ -226,11 +222,12 @@ class TestDartboardInteractions:
     ):
         """Testet die Logik zur Aktivierung/Deaktivierung der Buttons."""
         db = dartboard_instance
-        db.spiel.end = game_is_over
-        db.spiel.current_player.return_value.throws = [("T", 20, None)] * num_throws
-        db.spiel.current_player.return_value.turn_is_over = turn_is_over
+        db.game_view_manager.game_controller.end = game_is_over
+        mock_player = db.game_view_manager.game_controller.current_player.return_value
+        mock_player.throws = [("T", 20, None)] * num_throws
+        mock_player.turn_is_over = turn_is_over
 
-        db.update_button_states()
+        db.update_button_states(mock_player, game_is_over)
 
         assert str(db.done_button.cget("state")) == expected_done_state
         assert str(db.undo_button.cget("state")) == expected_undo_state

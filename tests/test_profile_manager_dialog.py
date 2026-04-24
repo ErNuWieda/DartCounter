@@ -46,6 +46,8 @@ def dialog(tk_root_session, mock_managers, monkeypatch):
     monkeypatch.setattr("core.profile_manager_dialog.EditProfileDialog", MagicMock())
     # Patch für messagebox, um Bestätigungsdialoge abzufangen
     monkeypatch.setattr("core.profile_manager_dialog.messagebox", MagicMock())
+    # Patch PhotoImage, damit es einen validen (leeren) String für Tkinter zurückgibt
+    monkeypatch.setattr("core.profile_manager_dialog.ImageTk.PhotoImage", MagicMock(return_value=""))
     # Patch für wait_window, um zu verhindern, dass der Test auf einen gemockten Dialog wartet.
     # Dies ist die Ursache für den TclError.
     monkeypatch.setattr("core.profile_manager_dialog.ProfileManagerDialog.wait_window", MagicMock())

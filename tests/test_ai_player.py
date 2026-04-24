@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, PropertyMock, ANY
 from core.ai_player import AIPlayer
 from core.player_profile import PlayerProfile
+from core.throw_result import ThrowResult
 from core.player import Player
 from core.game import Game
 from core.ai_strategy import AIStrategy
@@ -37,33 +38,45 @@ def ai_player_with_mocks():
     """
     Eine pytest-Fixture, die eine AIPlayer-Instanz mit allen notwendigen Mocks einrichtet.
     """
-    mock_game = Mock(spec=Game)
-    mock_game.dartboard = Mock()
+    mock_game = MagicMock() # Controller-Ebene
 
     # Erstelle einen Mock für das Tkinter-Root-Fenster.
-    # Dies ist entscheidend, um GUI-Interaktionen in den Tests zu simulieren.
     mock_root = MagicMock()
-    # Die `after`-Methode wird gemockt, aber der Callback wird NICHT automatisch ausgeführt.
-    # Dies verhindert unerwünschte Rekursion in den Tests und ermöglicht eine präzise
-    # Überprüfung, ob die Methode korrekt aufgerufen wurde.
     mock_root.after = MagicMock()
-    mock_game.dartboard.root = mock_root
 
-    mock_game.dartboard.skaliert = {
+    # --- Neue Architektur-Struktur im Mock aufbauen ---
+    mock_gvm = MagicMock()
+    mock_game.game_view_manager = mock_gvm
+    # Wichtig: Der GVM muss auf den Controller zurückverweisen
+    type(mock_gvm).game_controller = PropertyMock(return_value=mock_game)
+    
+    # Dartboard-Struktur simulieren
+    mock_db = MagicMock(name="mock.game_view_manager.dartboard")
+    mock_gvm.dartboard = mock_db
+    mock_game.dartboard = mock_db  # Für Rückwärtskompatibilität in alten Tests
+
+    # Announcer-Mock hinzufügen
+    mock_announcer = MagicMock(name="mock.game_view_manager.announcer")
+    mock_gvm.announcer = mock_announcer
+
+    mock_gvm.get_dartboard_root.return_value = mock_root
+    mock_gvm.get_dartboard_throw_delay.return_value = 1000
+    mock_gvm.get_dartboard_coords_for_target.return_value = (300, 300)
+
+    mock_db.center_x = 250
+    mock_db.center_y = 250
+    mock_db.skaliert = {
         "triple_outer": 520,
         "triple_inner": 470,
         "double_outer": 835,
         "double_inner": 785,
     }
-    mock_game.dartboard.center_x = 250
-    mock_game.dartboard.center_y = 250
-    mock_game.dartboard.get_coords_for_target.return_value = (300, 300)
 
     # FIX: Füge das fehlende settings_manager-Attribut hinzu, das vom AIPlayer-Konstruktor benötigt wird.
     mock_game.settings_manager = MagicMock(get=MagicMock(return_value=1000)) # type: ignore
 
     mock_game.targets = []  # Fehlendes Attribut hinzufügen
-    
+
     # Mock die get_score Methode, da die Strategie sie verwendet
     def mock_get_score(ring, segment):
         if ring == "Triple":
@@ -80,8 +93,23 @@ def ai_player_with_mocks():
 
     mock_game.get_score.side_effect = mock_get_score
 
-    mock_game.game = Mock()
-    mock_game.end = False
+    # Logik-Ebene initialisieren
+    mock_logic = MagicMock()
+    mock_game.game = mock_logic
+    mock_logic.is_finished.return_value = False
+
+    # Radikaler Reset für Spielzustand-Guards auf Controller- und Logik-Ebene
+    for obj in [mock_game, mock_game.game]:
+        obj.end = False
+        obj.is_finished.return_value = False
+        # Sicherstellen, dass der Mock im Boolean-Kontext (if obj.is_finished:) 
+        # als False gewertet wird, falls er nicht aufgerufen wird.
+        obj.is_finished.__bool__.return_value = False
+        # Auch den aktuellen Spieler auf beiden Ebenen synchronisieren
+        obj.current_player.return_value = None 
+
+    mock_game.is_tournament_match = False
+    mock_game.game.is_tournament_match = False
     mock_game.options = Mock()  # Wichtig für die Strategie-Logik
 
     ai_profile = PlayerProfile(name="RoboCop", is_ai=True, difficulty="Fortgeschritten")
@@ -90,6 +118,7 @@ def ai_player_with_mocks():
     ai_player.score = 501
     ai_player.turn_is_over = False
 
+    ai_player.throw_delay = 1000 # Setze den throw_delay für den Test
     mock_game.players = [ai_player]
 
     return ai_player, mock_game
@@ -213,25 +242,29 @@ def test_get_strategic_target_for_x01_checkout_path(mock_get_suggestion, x01_ai_
     ai_player, mock_game = x01_ai_player
     # KORREKTUR: Der Mock muss am Pfad gesetzt werden, den die Strategie tatsächlich verwendet.
     # Die Strategie greift auf `self.game.game.opt_out` zu, was im Test `mock_game.game.opt_out` entspricht.
+    mock_game.options.opt_out = "Double"
     mock_game.game.opt_out = "Double"
 
+    ai_player.game.current_player.return_value = ai_player
+
     # Szenario 1: 100 Rest, 3 Darts -> T20, D20
-    mock_get_suggestion.reset_mock()
     ai_player.difficulty = "Anfänger"
+    ai_player.profile.difficulty = "Anfänger"
     ai_player.score = 100
     mock_get_suggestion.return_value = "T20, D20"
     target = ai_player.strategy.get_target(throw_number=1)
     assert target == ("Triple", 20)
     mock_get_suggestion.assert_called_with(100, "Double", 3, preferred_double=None)
 
+    mock_get_suggestion.reset_mock()
     # Szenario 2: 40 Rest, 2 Darts -> D20.
     # Hier müssen wir zwei Fälle testen: die aggressive Profi-Logik und die Standard-Logik.
-    mock_get_suggestion.reset_mock()
     ai_player.score = 40
     mock_get_suggestion.return_value = "D20"
 
     # Fall A: Profi-KI umgeht den Calculator
     ai_player.difficulty = "Profi"
+    ai_player.profile.difficulty = "Profi"
     target = ai_player.strategy.get_target(throw_number=2)
     assert target == ("Double", 20)
     mock_get_suggestion.assert_not_called()  # Wichtig: Der Calculator wird NICHT aufgerufen.
@@ -745,8 +778,12 @@ def test_execute_throw_simulates_click(
     ai_player, mock_game = ai_player_with_mocks
     mock_game.options.name = "501"  # Setze einen Spielmodus, um die Logik zu steuern
 
+    # WICHTIG: Strategie mocken, damit sie ein entpackbares Ziel liefert
+    ai_player.strategy = MagicMock()
+    ai_player.strategy.get_target.return_value = ("Triple", 20)
+
     # Konfiguriert die Mocks für vorhersagbare "Zufälligkeit"
-    mock_uniform.side_effect = [1.5708, 10]  # Winkel = pi/2, Distanz = 10px
+    mock_uniform.side_effect = [1.570796, 10]  # Winkel = pi/2, Distanz = 10px
     mock_cos.return_value = 0  # cos(pi/2) ≈ 0
     mock_sin.return_value = 1  # sin(pi/2) = 1
 
@@ -759,11 +796,52 @@ def test_execute_throw_simulates_click(
         "_apply_strategic_offset",
         side_effect=lambda coords, ring: coords,
     ):
-        # Führt den Wurf aus
+        # Grundvoraussetzungen für den Wurf:
+        ai_player.turn_is_over = False
+        mock_game.end = False
+        mock_game.game.end = False
+        mock_game.is_finished.return_value = False
+        mock_game.game.is_finished.return_value = False
+        mock_game.is_tournament_match = False
+
+        # KI als aktuellen Spieler auf allen Ebenen setzen
+        mock_game.current_player.return_value = ai_player
+        mock_game.game.current_player.return_value = ai_player
+
         ai_player._execute_throw(1)
 
-    # Verifiziert, dass die Klick-Simulation des Dartboards mit den korrekten Koordinaten aufgerufen wurde
-    mock_game.dartboard.on_click_simulated.assert_called_once_with(expected_x, expected_y)
+    # Verifiziert, dass die Klick-Simulation asynchron eingeplant wurde
+    mock_root = mock_game.game_view_manager.get_dartboard_root()
+    mock_simulate_click = mock_game.game_view_manager.dartboard.simulate_click
+
+    mock_root.after.assert_any_call(
+        0, mock_simulate_click, expected_x, expected_y
+    )
+
+
+def test_execute_throw_announces_score(ai_player_with_mocks):
+    """Testet, ob ein Wurf asynchron den Announcer triggert."""
+    ai_player, mock_game = ai_player_with_mocks
+    mock_game.options.name = "501"
+    ai_player.strategy = MagicMock()
+    ai_player.strategy.get_target.return_value = ("Triple", 20)
+    
+    # Wurf am Spieler protokollieren, damit display_throw_feedback einen Treffer findet
+    ai_player.throws = [("Triple", 20, (0.5, 0.5))]
+
+    # KI als am Zug markieren
+    mock_game.current_player.return_value = ai_player
+    mock_game.game.current_player.return_value = ai_player
+
+    # KORREKTUR: Wir rufen die ECHTE Methode auf dem Mock-Objekt auf, damit die Logik läuft
+    from core.game_view_manager import GameViewManager
+    res = ThrowResult(status="ok", message="60", sound="hit")
+    # Patch ui_utils, um einen Absturz zu verhindern, falls show_message_for_throw_result fehlt
+    with patch("core.game_view_manager.ui_utils"):
+        GameViewManager.display_throw_feedback(mock_game.game_view_manager, res, ai_player, 1000)
+
+    # Verifiziert, dass der Announcer den Score erhalten hat
+    mock_game.game_view_manager.announcer.announce_score.assert_called_with(60)
 
 
 def test_execute_throw_stops_on_bust(ai_player_with_mocks):
@@ -774,9 +852,9 @@ def test_execute_throw_stops_on_bust(ai_player_with_mocks):
     ai_player._execute_throw(1)  # Versucht, den ersten Wurf auszuführen
 
     # Die KI sollte keinen Klick simulieren
-    mock_game.dartboard.on_click_simulated.assert_not_called()
+    mock_game.game_view_manager.dartboard.simulate_click.assert_not_called()
     # Die KI sollte sofort den nächsten Spieler aufrufen
-    mock_game.dartboard.root.after.assert_called_once_with(
+    mock_game.game_view_manager.get_dartboard_root().after.assert_called_once_with(
         ai_player.throw_delay, mock_game.next_player
     )
 
@@ -784,8 +862,8 @@ def test_execute_throw_stops_on_bust(ai_player_with_mocks):
 def test_take_turn_initiates_sequence(ai_player_with_mocks):
     """Testet, ob take_turn die Wurfsequenz startet."""
     ai_player, mock_game = ai_player_with_mocks
-    ai_player.take_turn()
+    ai_player.take_turn(mock_game.game_view_manager)
     # Es sollte der erste Wurf geplant werden
-    mock_game.dartboard.root.after.assert_called_once_with(
+    mock_game.game_view_manager.get_dartboard_root().after.assert_called_once_with(
         ai_player.throw_delay, ai_player._execute_throw, 1
     )

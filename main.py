@@ -28,12 +28,14 @@ from core.logger_setup import setup_logging
 import pathlib
 from core.game_options import GameOptions
 from core.game_settings_dialog import GameSettingsDialog
-from core.game import Game
-from core.save_load_manager import SaveLoadManager
+from core.game_controller import GameController
+from core.game_view_manager import GameViewManager
 from core.sound_manager import SoundManager
+from core.announcer import Announcer
 from core.player_stats_manager import PlayerStatsManager
 from core.highscore_manager import HighscoreManager
 from core.database_manager import DatabaseManager
+from core.save_load_manager import SaveLoadManager
 from core.player_profile_manager import PlayerProfileManager
 from core.profile_manager_dialog import ProfileManagerDialog
 from core.settings_dialog import AppSettingsDialog
@@ -81,6 +83,7 @@ class App:
         # Manager-Instanzen als Instanzvariablen
         self.settings_manager = SettingsManager()
         self.sound_manager = SoundManager(self.settings_manager, self.root)
+        self.announcer = Announcer(self.settings_manager)
 
         # --- Dependency Injection für DatabaseManager ---
         # Einmal erstellen und an die abhängigen Manager weitergeben, um doppelte
@@ -90,7 +93,7 @@ class App:
         self.highscore_manager = HighscoreManager(self.db_manager)
         self.player_stats_manager = PlayerStatsManager(self.db_manager)
         self.profile_manager = PlayerProfileManager(self.db_manager)
-
+        self.save_load_manager = SaveLoadManager() # SaveLoadManager benötigt keine DB-Referenz mehr
         self.game_instance = None
         self.tournament_manager = None
         self.tournament_view = None
@@ -155,7 +158,7 @@ class App:
         Gibt True zurück, wenn fortgefahren werden kann, sonst False.
         """
         activity_running = (self.game_instance and not self.game_instance.end) or (
-            self.tournament_manager and not self.tournament_manager.is_finished
+            self.tournament_manager and not self.tournament_manager.is_finished()
         )
 
         if activity_running:
@@ -163,10 +166,10 @@ class App:
                 return False  # User cancelled
 
             # Close any active game session
-            if self.game_instance:
-                self.game_instance.destroy()
+            if self.game_instance and self.game_instance.game_view_manager:
+                self.game_instance.game_view_manager.destroy()
                 self.game_instance = None
-
+            
             # Close any active tournament session
             if self.tournament_manager:
                 if self.tournament_view and self.tournament_view.winfo_exists():
@@ -175,75 +178,67 @@ class App:
                 self.tournament_view = None
         return True
 
-    def _on_throw_processed(self, result: ThrowResult, player):
+    def _on_game_end(self):
         """
-        Callback-Funktion, die von der Game-Instanz aufgerufen wird.
-        Verarbeitet das UI-Feedback für einen Wurf (Sounds, Nachrichten).
+        Callback, der vom GameViewManager aufgerufen wird, wenn das Spiel-Fenster
+        geschlossen wird. Dies signalisiert der App, dass das Hauptfenster
+        wieder sichtbar gemacht werden kann.
         """
-        # Sound abspielen, falls einer definiert wurde
-        if result.sound and self.sound_manager:
-            # Ruft dynamisch die passende play_... Methode auf (z.B. self.sound_manager.play_bust())
-            sound_method = getattr(self.sound_manager, f"play_{result.sound}", None)
-            if sound_method and callable(sound_method):
-                sound_method()
+        self.root.deiconify()
 
-        auto_close_ms = 0 if not player.is_ai() else player.throw_delay * 2
+    def _on_throw_processed_by_controller(self, result: ThrowResult, player):
+        """
+        Callback-Funktion, die vom GameController aufgerufen wird, um die App
+        über das Ergebnis eines Wurfs zu informieren (z.B. für globale Sounds).
+        Die UI-spezifischen Feedbacks werden vom GameViewManager direkt behandelt.
+        """
+        # Hier könnten globale Sounds oder andere App-weite Logik ausgelöst werden.
+        # Aktuell ist die Sound-Logik in GameViewManager verschoben.
+        pass
 
-        # Nachricht anzeigen, falls eine vorhanden ist
-        if result.message and self.game_instance and self.game_instance.dartboard:
-            if result.status == "win":
-                # Bei einem Sieg wird eine spezielle, blockierende Routine gestartet
-                def show_win_and_close():
-                    ui_utils.show_message(
-                        "info",
-                        "Spielende",
-                        result.message,
-                        parent=self.game_instance.dartboard.root,
-                        auto_close_for_ai_after_ms=auto_close_ms,
-                    )
-                    # Nach der Nachricht das Spielfenster automatisch schließen.
-                    if self.game_instance:
-                        self.game_instance.destroy()
-
-                # Verzögere die Nachricht, damit der letzte Dart-Sound noch hörbar ist
-                self.root.after(500, show_win_and_close)
-            else:
-                # Für alle anderen Nachrichten (Bust, Info, etc.)
-                title_map = {
-                    "info": "Info",
-                    "warning": "Warnung",
-                    "error": "Fehler",
-                    "bust": "Bust",
-                    "invalid_open": "Ungültiger Wurf",
-                    "invalid_target": "Falsches Ziel",
-                }
-                msg_type = (
-                    "error"
-                    if result.status in ("bust", "invalid_open", "invalid_target", "error")
-                    else "info"
-                )
-                title = title_map.get(result.status, "Info")
-                ui_utils.show_message(
-                    msg_type,
-                    title,
-                    result.message,
-                    parent=self.game_instance.dartboard.root,
-                    auto_close_for_ai_after_ms=auto_close_ms,
-                )
-
-    def _initialize_game_session(self, game_options, player_names, is_tournament_match=False):
-        """Erstellt die Game-Instanz, die ihre eigene UI initialisiert."""
-        return Game(
+    def _initialize_game_session(
+        self, game_options, player_names, is_tournament_match=False
+    ):
+        """
+        Erstellt die GameController- und GameViewManager-Instanzen
+        und verbindet sie miteinander.
+        """
+        # Zuerst den GameController erstellen (ohne UI-Referenzen)
+        game_controller = GameController(
             root=self.root,
             game_options=game_options,
             player_names=player_names,
-            on_throw_processed_callback=self._on_throw_processed,
+            on_throw_processed_callback=self._on_throw_processed_by_controller,
             highscore_manager=self.highscore_manager,
             player_stats_manager=self.player_stats_manager,
             profile_manager=self.profile_manager,
             settings_manager=self.settings_manager,
             is_tournament_match=is_tournament_match,
         )
+
+        # Dann den GameViewManager erstellen und den Controller übergeben
+        game_view_manager = GameViewManager(
+            root=self.root,
+            game_controller=game_controller,
+            game_options=game_options,
+            players=game_controller.players,
+            sound_manager=self.sound_manager,
+            settings_manager=self.settings_manager,
+            is_tournament_match=is_tournament_match,
+            on_game_end_callback=self._on_game_end,
+            announcer=self.announcer,
+        )
+
+        # Den ViewManager dem Controller bekannt machen
+        game_controller.game_view_manager = game_view_manager
+
+        # Die Scoreboards werden jetzt vom GameViewManager erstellt und dem Controller bekannt gemacht
+        # damit die Spieler-Objekte ihre Scoreboard-Referenz erhalten.
+        game_controller.scoreboards = game_view_manager.scoreboards
+        for p_idx, player in enumerate(game_controller.players):
+            player.sb = game_controller.scoreboards[p_idx]
+
+        return game_controller
 
     def _start_game_workflow(self, game_data: dict, is_loaded_game: bool = False):
         """
@@ -263,7 +258,7 @@ class App:
         game_instance = self._initialize_game_session(game_options, player_names)
 
         if is_loaded_game:
-            SaveLoadManager.restore_game_state(game_instance, game_data)
+            self.save_load_manager.restore_game_state(game_instance, game_data)
 
         self.game_instance = game_instance
         self.game_instance.announce_current_player_turn()
@@ -301,7 +296,7 @@ class App:
         ):
             return
 
-        data = SaveLoadManager.load_game_data(self.root)
+        data = self.save_load_manager.load_game_data(self.root)
         if data:
             self._start_game_workflow(data, is_loaded_game=True)
 
@@ -335,7 +330,7 @@ class App:
             self._start_tournament_workflow(tournament_manager)
 
     def load_tournament(self):
-        """Startet den Workflow zum Laden eines gespeicherten Turniers."""
+        """Startet den Workflow zum Laden eines gespeicherten Turniers.""" # type: ignore
         if not self._ensure_no_active_session(
             "Turnier laden",
             "Eine andere Aktivität läuft bereits. Möchtest du sie beenden und ein "
@@ -343,7 +338,7 @@ class App:
         ):
             return
 
-        data = SaveLoadManager.load_tournament_data(self.root)
+        data = self.save_load_manager.load_tournament_data(self.root)
         if data:
             # Erstelle eine neue, leere Turnierinstanz mit den Metadaten aus der Speicherdatei.
             tournament_manager = TournamentManager(
@@ -358,8 +353,8 @@ class App:
 
     def save_tournament(self):
         """Speichert den Zustand des aktuell laufenden Turniers."""
-        if self.tournament_manager and not self.tournament_manager.is_finished:
-            SaveLoadManager.save_state(self.tournament_manager, self.root)
+        if self.tournament_manager and not self.tournament_manager.is_finished():
+            self.save_load_manager.save_state(self.tournament_manager, self.root)
         else:
             title = "Turnier speichern"
             message = "Es läuft kein aktives Turnier, das gespeichert werden könnte."
@@ -403,14 +398,14 @@ class App:
         self.game_instance.announce_current_player_turn()
 
         # Warten, bis das Spielfenster geschlossen wird
-        self.root.wait_window(self.game_instance.dartboard.root)
+        self.root.wait_window(self.game_instance.game_view_manager.get_dartboard_root()) # type: ignore
 
         # Delegiere die gesamte Nachbearbeitung an die neue Methode
         self._finalize_tournament_match(match)
 
     def open_settings_dialog(self):
         """Öffnet einen Dialog für globale Anwendungseinstellungen."""
-        dialog = AppSettingsDialog(self.root, self.settings_manager, self.sound_manager)
+        dialog = AppSettingsDialog(self.root, self.settings_manager, self.sound_manager, self.announcer)
         self.root.wait_window(dialog)
 
     def open_profile_manager(self):
@@ -421,8 +416,8 @@ class App:
     def save_game(self):
         """Speichert den Zustand des aktuell laufenden Spiels."""
         # Spiel kann nur gespeichert werden, wenn eine Instanz existiert, das Spiel nicht beendet ist UND das Dartboard noch existiert.
-        if self.game_instance and not self.game_instance.end:
-            SaveLoadManager.save_state(self.game_instance, self.root)
+        if self.game_instance and not self.game_instance.end and self.game_instance.game_view_manager:
+            self.save_load_manager.save_state(self.game_instance, self.root)
         else:  # pragma: no cover
             ui_utils.show_message(
                 "info",
@@ -454,8 +449,8 @@ class App:
             # --- Zentrales Schließen der Datenbankverbindung ---
             if self.db_manager and self.db_manager.is_connected:
                 self.db_manager.close_connection()
-            if self.game_instance:
-                self.game_instance.destroy()  # Explizit die Ressourcen des Spiels freigeben
+            if self.game_instance and self.game_instance.game_view_manager:
+                self.game_instance.game_view_manager.destroy()  # Explizit die Ressourcen des Spiels freigeben
             self.root.quit()
 
     def about(self):

@@ -115,3 +115,26 @@ def ask_question(buttons: str, title: str, message: str, default=None, parent=No
     if ask_func:
         return ask_func(title, message, default=default, parent=parent)
     return None
+
+
+def show_message_for_throw_result(result, parent, auto_close_for_ai_after_ms=0):
+    """
+    Hilfsmethode zur Anzeige von Nachrichten basierend auf einem ThrowResult.
+    Mappt den Status auf den passenden MessageBox-Typ.
+    """
+    if not result.message:
+        return
+
+    msg_type = "info"
+    if result.status in ("bust", "invalid_open", "invalid_target"):
+        msg_type = "warning"
+    elif result.status == "error":
+        msg_type = "error"
+
+    show_message(
+        msg_type=msg_type,
+        title="Wurf-Info",
+        message=result.message,
+        parent=parent,
+        auto_close_for_ai_after_ms=auto_close_for_ai_after_ms,
+    )

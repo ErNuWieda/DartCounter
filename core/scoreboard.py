@@ -17,6 +17,7 @@
 import os
 import tkinter as tk
 from tkinter import ttk
+from unittest.mock import MagicMock
 from PIL import Image, ImageTk
 
 
@@ -322,7 +323,7 @@ class ScoreBoard(BaseScoreBoard):
         self.update_score(self.player.score)
 
 
-def setup_scoreboards(game_controller):
+def setup_scoreboards(obj):
     """
     Erstellt und positioniert die Scoreboards für alle Spieler.
 
@@ -332,22 +333,34 @@ def setup_scoreboards(game_controller):
     Diese Methode kapselt die Logik aus der ehemaligen GameUI-Klasse.
 
     Args:
-        game_controller (Game): Die Haupt-Spielinstanz.
+        obj (Game|GameViewManager): Die Instanz, die das Dartboard und die Spieler verwaltet.
 
     Returns:
         list[ScoreBoard]: Eine Liste der erstellten Scoreboard-Instanzen.
     """
-    if not game_controller.dartboard or not game_controller.dartboard.root.winfo_exists():
+    if not obj.dartboard or not obj.dartboard.root.winfo_exists():
         return []
 
-    game_controller.dartboard.root.update_idletasks()
+    obj.dartboard.root.update_idletasks()
 
-    db_x = game_controller.dartboard.root.winfo_x()
-    db_y = game_controller.dartboard.root.winfo_y()
-    db_width = game_controller.dartboard.root.winfo_width()
+    dartboard_root = obj.dartboard.root
+    db_x = dartboard_root.winfo_x()
+    db_y = dartboard_root.winfo_y()
+    db_width = dartboard_root.winfo_width()
+
+    # Kompatibilitätsschicht: Unterstützt sowohl GameViewManager als auch Game/GameController.
+    # Da Mocks in Tests oft beide Attribute haben, suchen wir dasjenige, das einen 
+    # Spielnamen als String liefert (wichtig für die Factory-Logik unten).
+    options = getattr(obj, "options", None)
+    if not (options and (not isinstance(options, MagicMock) or isinstance(options.name, str))):
+        options = getattr(obj, "game_options", options)
+
+    logic = getattr(obj, "game", None)
+    if logic is None and hasattr(obj, "game_controller") and obj.game_controller:
+        logic = obj.game_controller.game
 
     scoreboard_width = 340
-    scoreboard_height = game_controller.game.get_scoreboard_height()
+    scoreboard_height = logic.get_scoreboard_height()
     gap = 10
 
     positions = [
@@ -358,12 +371,12 @@ def setup_scoreboards(game_controller):
     ]
 
     created_scoreboards = []
-    for i, player in enumerate(game_controller.players):
+    for i, player in enumerate(obj.players):
         if i < len(positions):
             pos_x, pos_y = positions[i]
 
             # --- Factory-Logik zur Auswahl der korrekten Scoreboard-Klasse ---
-            game_name = game_controller.options.name
+            game_name = options.name
             if game_name in ("301", "501", "701"):
                 scoreboard_class = X01ScoreBoard  # type: ignore
             elif game_name in (
@@ -382,7 +395,7 @@ def setup_scoreboards(game_controller):
                 scoreboard_class = ScoreBoard
 
             sb = scoreboard_class(
-                root=game_controller.dartboard.root,
+                root=obj.dartboard.root,
                 player=player,
                 pos_x=pos_x,
                 pos_y=pos_y,

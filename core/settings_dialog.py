@@ -25,18 +25,20 @@ class AppSettingsDialog(tk.Toplevel):
     Kapselt die UI-Logik für Sound- und Theme-Einstellungen.
     """
 
-    def __init__(self, parent, settings_manager, sound_manager):
+    def __init__(self, parent, settings_manager, sound_manager, announcer=None):
         super().__init__(parent)
         self.settings_manager = settings_manager
         self.sound_manager = sound_manager
+        self.announcer = announcer
 
         self.title("Globale Einstellungen")
-        self.geometry("320x350")
+        self.geometry("320x550")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
 
         self._create_sound_settings(self)
+        self._create_voice_settings(self)
         self._create_theme_settings(self)
         self._create_ai_settings(self)
         ttk.Button(self, text="Schließen", command=self.destroy).pack(side="bottom", pady=15)
@@ -77,6 +79,67 @@ class AppSettingsDialog(tk.Toplevel):
     def _on_sound_toggle(self):
         """Callback-Methode, die aufgerufen wird, wenn der Sound-Checkbutton umgeschaltet wird."""
         self.sound_manager.toggle_sounds(self.sound_enabled_var.get())
+
+    def _create_voice_settings(self, parent):
+        voice_frame = ttk.LabelFrame(parent, text="Sprachansage (Caller)")
+        voice_frame.pack(fill="x", padx=15, pady=10)
+
+        self.voice_enabled_var = tk.BooleanVar(value=self.settings_manager.get("voice_enabled", True))
+        ttk.Checkbutton(
+            voice_frame,
+            text="Caller aktivieren",
+            variable=self.voice_enabled_var,
+            command=lambda: self.settings_manager.set("voice_enabled", self.voice_enabled_var.get()),
+        ).pack(pady=5, padx=10, anchor="w")
+
+        # --- Volume ---
+        vol_frame = ttk.Frame(voice_frame)
+        vol_frame.pack(fill="x", padx=10, pady=2)
+        ttk.Label(vol_frame, text="Lautstärke:").pack(side="left")
+        self.v_vol_label = ttk.Label(vol_frame, text="")
+        self.v_vol_label.pack(side="right")
+
+        self.v_vol_var = tk.IntVar(value=self.settings_manager.get("voice_volume", 100))
+        self.v_vol_label.config(text=f"{self.v_vol_var.get()}%")
+
+        ttk.Scale(
+            voice_frame, from_=0, to=100, orient=tk.HORIZONTAL,
+            variable=self.v_vol_var,
+            command=self._on_voice_volume_change
+        ).pack(fill="x", padx=10)
+
+        # --- Speed ---
+        speed_frame = ttk.Frame(voice_frame)
+        speed_frame.pack(fill="x", padx=10, pady=(10, 2))
+        ttk.Label(speed_frame, text="Geschwindigkeit:").pack(side="left")
+        self.v_speed_label = ttk.Label(speed_frame, text="")
+        self.v_speed_label.pack(side="right")
+
+        self.v_speed_var = tk.IntVar(value=self.settings_manager.get("voice_speed", 150))
+        self.v_speed_label.config(text=f"{self.v_speed_var.get()}")
+
+        ttk.Scale(
+            voice_frame, from_=50, to=300, orient=tk.HORIZONTAL,
+            variable=self.v_speed_var,
+            command=self._on_voice_speed_change
+        ).pack(fill="x", padx=10)
+
+        # --- Test Button ---
+        ttk.Button(voice_frame, text="Stimme testen", command=self._test_voice).pack(pady=10)
+
+    def _on_voice_volume_change(self, val):
+        v = int(float(val))
+        self.v_vol_label.config(text=f"{v}%")
+        self.settings_manager.set("voice_volume", v)
+
+    def _on_voice_speed_change(self, val):
+        v = int(float(val))
+        self.v_speed_label.config(text=str(v))
+        self.settings_manager.set("voice_speed", v)
+
+    def _test_voice(self):
+        if self.announcer:
+            self.announcer.announce("One hundred and eighty!")
 
     def _create_theme_settings(self, parent):
         theme_frame = ttk.LabelFrame(parent, text="Design")

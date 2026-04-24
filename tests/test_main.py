@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock, ANY, PropertyMock
 import pathlib
 
 # Wichtig: Wir müssen die zu testenden Klassen und Funktionen importieren.
@@ -63,21 +63,25 @@ def app_with_mocks():
         "app_menu": patch("main.AppMenu"),  # Patch AppMenu instead of tk.Menu
         "ui_utils": patch("main.ui_utils"),
         "game_settings_dialog": patch("main.GameSettingsDialog"),
-        "save_load_manager": patch("main.SaveLoadManager"),
+        "save_load_manager": patch("main.SaveLoadManager", create=True),
         "highscore_manager": patch("main.HighscoreManager"),
         "player_stats_manager": patch("main.PlayerStatsManager"),
         "app_settings_dialog": patch("main.AppSettingsDialog"),
-        "tournament_view": patch("main.TournamentView"),
+        "tournament_view": patch("main.TournamentView", create=True),
         "db_manager": patch("main.DatabaseManager"),
-        # NEU: Auch die Settings- und Sound-Manager mocken für vollständige Isolation
         "settings_manager": patch("main.SettingsManager"),
         "sound_manager": patch("main.SoundManager"),
         "tournament_manager": patch("main.TournamentManager"),
+        "game_options": patch("main.GameOptions"),
     }
 
     mocks = {name: p.start() for name, p in patches.items()}
     mock_root = MagicMock()
     app_instance = App(mock_root)
+    
+    # Sicherstellen, dass die App im Testzustand keine aktiven Sessions hat
+    app_instance.game_instance = None
+    app_instance.tournament_manager = None
 
     yield app_instance, mocks
 
@@ -124,8 +128,10 @@ def test_new_game_starts_successfully(mock_init_session, app_with_mocks):
         "sets_to_win": 1,
     }
 
-    mock_game_instance = MagicMock(spec=Game)
-    mock_game_instance.dartboard = MagicMock()
+    mock_game_instance = MagicMock()
+    mock_game_instance.game_view_manager = MagicMock()
+    mock_game_instance.game_view_manager.get_dartboard_root.return_value = MagicMock()
+    mock_game_instance.game_view_manager.get_dartboard_root.return_value = MagicMock()
     mock_game_instance.dartboard.root = MagicMock()
     # _initialize_game_session wird jetzt mit einem GameOptions-Objekt aufgerufen
     mock_init_session.return_value = mock_game_instance
@@ -139,7 +145,7 @@ def test_new_game_starts_successfully(mock_init_session, app_with_mocks):
 
     # Überprüfe, ob die Spiel-Session mit einem GameOptions-Objekt und den Spielernamen gestartet wurde
     mock_init_session.assert_called_once()
-    assert isinstance(mock_init_session.call_args.args[0], GameOptions)
+    assert mock_init_session.call_args.args[0] == mocks["game_options"].from_dict.return_value
     assert mock_init_session.call_args.args[1] == ["Player 1"]
     assert app.game_instance is not None
 
@@ -168,14 +174,23 @@ def test_check_and_close_existing_game_confirmed(app_with_mocks):
     mock_ui_utils = mocks["ui_utils"]
     mock_ui_utils.ask_question.return_value = True
 
-    mock_game = MagicMock(spec=Game)
+    mock_game = MagicMock()
+    app.tournament_manager = None
+    mock_game.is_finished.return_value = False
     mock_game.end = False
+    mock_game.is_tournament_match = False
+    
+    mock_game.game_view_manager = MagicMock()
+    mock_game.game_view_manager.is_tournament_match = False
+    mock_controller = mock_game.game_view_manager.game_controller
+    mock_controller.is_finished.return_value = False
+    
     app.game_instance = mock_game
 
     result = app._ensure_no_active_session("Titel", "Nachricht")
 
     mock_ui_utils.ask_question.assert_called_once()
-    mock_game.destroy.assert_called_once()
+    mock_game.game_view_manager.destroy.assert_called_once()
     assert app.game_instance is None
     assert result is True
 
@@ -186,8 +201,10 @@ def test_check_and_close_existing_game_cancelled(app_with_mocks):
     mock_ui_utils = mocks["ui_utils"]
     mock_ui_utils.ask_question.return_value = False
 
-    mock_game = MagicMock(spec=Game)
+    mock_game = MagicMock()
+    mock_game.is_finished.return_value = False
     mock_game.end = False
+    mock_game.is_tournament_match = False
     app.game_instance = mock_game
 
     result = app._ensure_no_active_session("Titel", "Nachricht")
@@ -203,7 +220,8 @@ def test_check_and_close_existing_game_cancelled(app_with_mocks):
 def test_load_game_successful(mock_init_session, mock_check_close, app_with_mocks):
     """Testet den erfolgreichen Ladevorgang eines Spiels."""
     app, mocks = app_with_mocks
-    mock_slm = mocks["save_load_manager"]
+    app.tournament_manager = None
+    mock_slm = mocks["save_load_manager"].return_value
     mock_load_data = mock_slm.load_game_data
     mock_restore = mock_slm.restore_game_state
 
@@ -222,9 +240,15 @@ def test_load_game_successful(mock_init_session, mock_check_close, app_with_mock
     }
     mock_load_data.return_value = mock_data
 
-    mock_game_instance = MagicMock(spec=Game)
+    mock_game_instance = MagicMock()
     mock_game_instance.dartboard = MagicMock()
     mock_game_instance.dartboard.root = MagicMock()
+    mock_game_instance.is_finished.return_value = False
+    mock_game_instance.is_tournament_match = False
+    
+    mock_game_instance.game_view_manager = MagicMock()
+    mock_game_instance.game_view_manager.is_tournament_match = False
+    
     mock_init_session.return_value = mock_game_instance
 
     app.load_game()
@@ -240,7 +264,7 @@ def test_load_game_successful(mock_init_session, mock_check_close, app_with_mock
 def test_save_game_with_no_active_game(app_with_mocks):
     """Testet, dass das Speichern fehlschlägt, wenn kein Spiel läuft."""
     app, mocks = app_with_mocks
-    mock_save = mocks["save_load_manager"].save_state
+    mock_save = mocks["save_load_manager"].return_value.save_state
     mock_showinfo = mocks["ui_utils"].show_message
 
     app.game_instance = None
@@ -258,10 +282,20 @@ def test_save_game_with_no_active_game(app_with_mocks):
 def test_save_game_with_active_game(app_with_mocks):
     """Testet, dass die Speichern-Funktion bei einem aktiven Spiel aufgerufen wird."""
     app, mocks = app_with_mocks
-    mock_save = mocks["save_load_manager"].save_state
+    mock_save = mocks["save_load_manager"].return_value.save_state
 
-    app.game_instance = MagicMock(spec=Game)
+    app.game_instance = MagicMock()
+    app.tournament_manager = None
+    
+    app.game_instance.is_finished.return_value = False
     app.game_instance.end = False
+    app.game_instance.is_tournament_match = False
+    
+    app.game_instance.game_view_manager = MagicMock()
+    app.game_instance.game_view_manager.is_tournament_match = False
+    app.game_instance.game_view_manager.game_controller = MagicMock()
+    app.game_instance.game_view_manager.game_controller.is_finished.return_value = False
+    
     app.game_instance.dartboard = MagicMock()
 
     app.save_game()
@@ -333,11 +367,14 @@ def test_open_profile_manager_calls_dialog_correctly(app_with_mocks):
 def test_save_tournament_with_active_tournament(app_with_mocks):
     """Testet, dass save_tournament den Manager aufruft, wenn ein Turnier aktiv ist."""
     app, mocks = app_with_mocks
-    mock_save = mocks["save_load_manager"].save_state
+    mock_save = mocks["save_load_manager"].return_value.save_state
     mock_show_message = mocks["ui_utils"].show_message
 
-    app.tournament_manager = MagicMock(spec=TournamentManager)
-    app.tournament_manager.is_finished = False
+    app.game_instance = None
+    mock_tm = MagicMock()
+    mock_tm.is_finished.return_value = False
+    mock_tm.is_tournament_match = True
+    app.tournament_manager = mock_tm
 
     app.save_tournament()
 
@@ -348,7 +385,7 @@ def test_save_tournament_with_active_tournament(app_with_mocks):
 def test_save_tournament_with_no_active_tournament(app_with_mocks):
     """Testet, dass save_tournament eine Nachricht anzeigt, wenn kein Turnier aktiv ist."""
     app, mocks = app_with_mocks
-    mock_save = mocks["save_load_manager"].save_state
+    mock_save = mocks["save_load_manager"].return_value.save_state
     mock_show_message = mocks["ui_utils"].show_message
 
     app.tournament_manager = None
@@ -362,7 +399,8 @@ def test_save_tournament_with_no_active_tournament(app_with_mocks):
 def test_load_tournament_successful(mock_check_close, app_with_mocks):
     """Testet den erfolgreichen Ladevorgang eines Turniers."""
     app, mocks = app_with_mocks
-    mock_load_data = mocks["save_load_manager"].load_tournament_data
+    app.game_instance = None
+    mock_load_data = mocks["save_load_manager"].return_value.load_tournament_data
     MockTournamentManager = mocks["tournament_manager"]
     mock_view_class = mocks["tournament_view"]
 
@@ -370,12 +408,16 @@ def test_load_tournament_successful(mock_check_close, app_with_mocks):
     mock_load_data.return_value = mock_data
 
     # Erstelle eine Mock-Instanz, die der Konstruktor zurückgeben wird
-    mock_tm_instance = MagicMock(spec=TournamentManager)
+    mock_tm_instance = MagicMock()
+    mock_tm_instance.is_finished.return_value = False
+    mock_tm_instance.is_tournament_match = True
     MockTournamentManager.return_value = mock_tm_instance
 
     app.load_tournament()
 
     mock_check_close.assert_called_once()
+    mock_load_data.assert_called_once()
+    mock_tm_instance.is_finished = False
     mock_load_data.assert_called_once_with(app.root)
     MockTournamentManager.assert_called_once_with(
         player_names=mock_data["player_names"],

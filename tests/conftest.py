@@ -19,11 +19,10 @@ import sys
 import logging
 import tkinter as tk
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from core.game_options import GameOptions
-
-# Wichtig: Wir müssen die zu testenden Klassen importieren.
-from core.game import Game
+from core.game_controller import GameController
+from core.player_profile_manager import PlayerProfileManager
 
 # --- One-time setup for all tests, executed by pytest before test collection ---
 
@@ -68,16 +67,21 @@ def pytest_configure(config):
 @pytest.fixture
 def mock_game():
     """
-    Eine Fixture, die eine generische, gemockte Game-Instanz bereitstellt.
-    Ersetzt die setUp-Logik aus der alten GameLogicTestBase.
+    Eine Fixture, die eine generische, gemockte GameController-Instanz bereitstellt.
     """
-    game = MagicMock(spec=Game)
+    game = MagicMock(spec=GameController)
     game.round = 1
     game.end = False
     game.highscore_manager = MagicMock()
-    game.sound_manager = MagicMock()
+    game.player_stats_manager = MagicMock()
+    game.profile_manager = MagicMock()
+    game.settings_manager = MagicMock()
+
+    # Architektur-Update: UI-bezogene Mocks befinden sich jetzt im ViewManager
+    game.game_view_manager = MagicMock()
+    game.game_view_manager.sound_manager = MagicMock()
+
     game.targets = []  # Standard-Fallback
-    # Füge das gemockte options-Objekt hinzu, das nach dem Refactoring erforderlich ist.
     # Wichtig: Die Attribute müssen konkrete Werte haben, um TypeErrors zu vermeiden.
     game.options = MagicMock()
     game.options.name = "Test Game"
@@ -143,6 +147,22 @@ def mock_settings_manager():
     mock_manager.get.return_value = []
     return mock_manager
 
+@pytest.fixture(autouse=True, scope="session")
+def mock_engine():
+    """
+    Mocks the entire pyttsx3 module for the entire test session.
+    This prevents actual pyttsx3 initialization issues during test collection or execution.
+    """
+    mock_engine_instance = MagicMock()
+    mock_pyttsx3 = MagicMock()
+    mock_pyttsx3.init.return_value = mock_engine_instance
+    
+    # Wir patchen sys.modules UND das Modul-Attribut direkt, falls es bereits importiert wurde.
+    with patch.dict(sys.modules, {'pyttsx3': mock_pyttsx3}), \
+         patch('core.announcer.pyttsx3', mock_pyttsx3, create=True):
+        yield mock_engine_instance # Yield the mock engine for tests that need to assert calls on it
+
+
 @pytest.fixture(scope="session")
 def tk_root_session():
     """Erstellt eine einzige, versteckte Tk-Wurzel für die gesamte Test-Session."""
@@ -169,24 +189,28 @@ def game_factory(tk_root_session, monkeypatch):
         # Mock managers
         mock_highscore_manager = MagicMock()
         mock_player_stats_manager = MagicMock()
-        mock_profile_manager = MagicMock()
+        mock_profile_manager = MagicMock(spec=PlayerProfileManager)
         mock_profile_manager.get_profile_by_name.return_value = None  # Default behavior
-
-        # Mock UI components that Game creates
-        monkeypatch.setattr("core.game.DartBoard", MagicMock())
-        monkeypatch.setattr("core.game.setup_scoreboards", MagicMock(return_value=[]))
+        mock_settings_manager = MagicMock()
 
         game_options = GameOptions.from_dict(game_options_dict)
 
-        game = Game(
+        game = GameController(
             root=tk_root_session,
             game_options=game_options,
             player_names=player_names,
             on_throw_processed_callback=MagicMock(),
             highscore_manager=mock_highscore_manager,
             player_stats_manager=mock_player_stats_manager,
-            profile_manager=mock_profile_manager
+            profile_manager=mock_profile_manager,
+            settings_manager=mock_settings_manager
         )
+
+        # Simuliere die ViewManager-Referenz und Scoreboards für Integrationstests,
+        # da der Controller diese nicht mehr selbst erstellt.
+        game.game_view_manager = MagicMock()
+        game.scoreboards = []
+
         created_games.append(game)
         return game
 

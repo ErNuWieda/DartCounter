@@ -15,11 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk, ImageColor
 import math
 import pathlib
-from .save_load_manager import SaveLoadManager
+from typing import TYPE_CHECKING
+
+from .save_load_manager import SaveLoadManager # Wird für quit_game benötigt
 from . import ui_utils
 from .dartboard_geometry import DartboardGeometry
 
@@ -43,7 +45,7 @@ class DartBoard:
                                         korrekte Erkennung.
 
     Attributes:
-        spiel (Game): Eine Referenz auf die übergeordnete Spielinstanz.
+        game_view_manager (GameViewManager): Eine Referenz auf den GameViewManager.
         root (tk.Toplevel): Das Fenster, in dem das Dartboard angezeigt wird.
         canvas (tk.Canvas): Das Canvas-Widget, das das Dartboard-Bild enthält.
     """
@@ -59,7 +61,10 @@ class DartBoard:
     # Ein positiver y-Offset bedeutet, dass das visuelle Zentrum nach UNTEN verschoben ist.
     BOARD_CENTER_OFFSET = (-8, -7)
 
-    def __init__(self, spiel, parent_root):
+    if TYPE_CHECKING:
+        from .game_view_manager import GameViewManager
+
+    def __init__(self, game_view_manager: "GameViewManager", parent_root: tk.Tk):
         """
         Initialisiert das Dartboard-Fenster.
 
@@ -70,21 +75,22 @@ class DartBoard:
             spiel (Game): Die Instanz des laufenden Spiels.
             parent_root (tk.Tk | tk.Toplevel): Das übergeordnete Fenster.
         """
-        self.spiel = spiel
+        self.game_view_manager = game_view_manager
         self.dartboard_path = DartBoard.DARTBOARD_PATH
         self.dart_path = DartBoard.DART_PATH
         self.skaliert = None
         self.center_x = None
         self.center_y = None
         self.canvas = None  # Wird in _create_board gesetzt
+        self.throw_delay = self.game_view_manager.settings_manager.get("ai_throw_delay", 1000) # Für KI-Würfe
         self.root = tk.Toplevel(parent_root)
-        if len(self.spiel.options.name) == 3:  # = x01-Spiele
-            title = f"{self.spiel.options.name} - {self.spiel.options.opt_in}-in, "
-            title += f"{self.spiel.options.opt_out}-out"
-        elif self.spiel.options.name == "Around the Clock":
-            title = f"{self.spiel.options.name} - {self.spiel.options.opt_atc}"
+        if len(self.game_view_manager.game_options.name) == 3:  # = x01-Spiele
+            title = f"{self.game_view_manager.game_options.name} - {self.game_view_manager.game_options.opt_in}-in, "
+            title += f"{self.game_view_manager.game_options.opt_out}-out"
+        elif self.game_view_manager.game_options.name == "Around the Clock":
+            title = f"{self.game_view_manager.game_options.name} - {self.game_view_manager.game_options.opt_atc}"
         else:
-            title = f"{self.spiel.options.name}"
+            title = f"{self.game_view_manager.game_options.name}"
         self.root.title(title)
         self.root.protocol("WM_DELETE_WINDOW", self.quit_game)
         self.root.resizable(False, False)
@@ -161,46 +167,21 @@ class DartBoard:
             self.canvas.delete(dart_id)
 
     def quit_game(self):
+        """Delegiert die Anfrage zum Beenden des Spiels an den GameViewManager."""
+        self.game_view_manager.quit_game()
+
+    def display_dart_on_canvas(self, x: int, y: int):
         """
-        Zeigt einen Dialog mit den Optionen Speichern, Beenden oder Abbrechen.
-        Nutzt die zentrale `ask_question'-Methode der ui_utils.
+        Zeigt ein Dart-Bild auf dem Canvas an den angegebenen Koordinaten an.
         """
-        # Wenn das Spiel bereits beendet ist (z.B. durch einen Sieg),
-        # schließe das Fenster einfach, ohne zu fragen. Dies löst den
-        # `wait_window`-Aufruf in der Hauptanwendung aus.
-        if self.spiel.end:
-            self.spiel.destroy()
-            return
+        if self._dart_photo_image and self.canvas:
+            # Die -5 und -20 sind Offsets, um die Spitze des Darts auf die Klickposition zu setzen.
+            dart_id = self.canvas.create_image(x - 5, y - 20, image=self._dart_photo_image)
+            self.dart_image_ids_on_canvas.append(dart_id)
 
-        # Wenn es sich um ein laufendes Turnierspiel handelt, kann es nicht beendet werden.
-        if self.spiel.is_tournament_match:
-            ui_utils.show_message(
-                "warning",
-                "Laufendes Turnierspiel",
-                "Ein Turnierspiel muss beendet werden.\n\n" "Bitte spiele das Match zu Ende.",
-                parent=self.root,
-            )
-            return  # Verhindert das Schließen des Fensters
-        # 'askyesnocancel' gibt True für Ja, False für Nein und None für Abbrechen zurück.
-        response = ui_utils.ask_question(
-            "yesnocancel",
-            "Spiel beenden",
-            "Möchtest du den aktuellen Spielstand speichern, bevor du beendest?",
-            "no",
-        )
-
-        if response is None:  # Cancel
-            return  # Do nothing
-
-        if response is True:  # Yes -> Save
-            was_saved = SaveLoadManager.save_state(self.spiel, self.root)
-            if not was_saved:
-                return  # Speichern fehlgeschlagen oder abgebrochen, also nicht beenden
-
-        # Wenn 'response' False (No) ist oder True war und das Speichern erfolgreich war,
-        # wird das Spiel beendet.
-        if self.spiel:
-            self.spiel.destroy()
+    def get_coords_for_target(self, ring: str, segment: int) -> tuple[int, int] | None:
+        """Ermittelt die idealen (x, y)-Koordinaten für ein bestimmtes Ziel auf dem Board."""
+        return DartboardGeometry.get_target_coords_scaled(ring, segment, self.canvas, self.skaliert)
 
     def polar_angle(self, x, y):
         """
@@ -269,39 +250,28 @@ class DartBoard:
             return "Miss", 0
 
     def on_click(self, event):
-        """
-        Event-Handler, der bei einem Mausklick auf das Canvas ausgelöst wird.
-        Delegiert die Verarbeitung an die zentrale Logik-Methode.
+        """Event-Handler für Mausklicks, leitet an den GameController weiter."""
+        self.game_view_manager.game_controller.process_player_throw(event.x, event.y)
 
-        Args:
-            event (tk.Event): Das von Tkinter generierte Event-Objekt.
+    def simulate_click(self, x: int, y: int):
         """
-        self._process_throw_at_coords(event.x, event.y)
+        Simuliert einen Klick auf das Dartboard an den gegebenen Koordinaten (x, y).
+        Diese Methode wird von KI-Spielern verwendet, um einen Wurf auszuführen.
+        """
+        self.game_view_manager.game_controller.process_player_throw(x, y)
 
-    def on_click_simulated(self, x, y):
+    def _process_throw_at_coords(self, x: int, y: int):
         """
-        Verarbeitet einen simulierten Klick von der KI.
-        Delegiert die Verarbeitung an die zentrale Logik-Methode.
+        Diese Methode ist jetzt privat und wird nur noch intern vom DartBoard
+        aufgerufen, um die Koordinaten zu verarbeiten und an den GameController
+        weiterzuleiten.
+        """
+        # Zuerst das Dart-Bild auf dem Canvas anzeigen
+        self.display_dart_on_canvas(x, y)
 
-        Args:
-            x (int): Die simulierte x-Koordinate.
-            y (int): Die simulierte y-Koordinate.
-        """
-        self._process_throw_at_coords(x, y)
-
-    def _process_throw_at_coords(self, x, y):
-        """
-        Zentrale Logik zur Verarbeitung eines Wurfs an bestimmten Koordinaten.
-        Wird sowohl von echten als auch von simulierten Klicks aufgerufen.
-
-        Args:
-            x (int): Die x-Koordinate des Wurfs.
-            y (int): Die y-Koordinate des Wurfs.
-        """
-        # Neues Dart-Bild auf dem Canvas platzieren, falls das Bild geladen ist
-        if self._dart_photo_image and self.canvas:
-            dart_id = self.canvas.create_image(x - 5, y - 20, image=self._dart_photo_image)
-            self.dart_image_ids_on_canvas.append(dart_id)
+        # Dann Ring und Segment ermitteln
+        # Die Logik zur Ermittlung von Ring und Segment bleibt hier, da sie direkt
+        # von den Dartboard-Koordinaten abhängt.
 
         ring, segment = self.get_ring_segment(x, y)
 
@@ -313,52 +283,8 @@ class DartBoard:
             normalized_coords = (x / canvas_width, y / canvas_height)
         else:
             normalized_coords = None  # Fallback
-
-        # Schritt 2: Delegiere die gesamte Spiellogik an den Game-Controller.
-        self.spiel.throw(ring, segment, normalized_coords)
-
-    def get_coords_for_target(self, ring: str, segment: int) -> tuple[int, int] | None:
-        """
-        Ermittelt die idealen (x, y)-Koordinaten für ein bestimmtes Ziel auf dem Board.
-        Wird von der KI-Logik verwendet, um Ziele anzuvisieren.
-
-        Args:
-            ring (str): Der Zielring (z.B. "Triple", "Double", "Bullseye").
-            segment (int): Das Zielsegment (z.B. 20 für T20).
-
-        Returns:
-            tuple[int, int] or None: Ein (x, y)-Tupel der Zielkoordinaten oder None,
-                                     wenn das Ziel ungültig ist.
-        """  # noqa
-        # Erstelle den Ziel-String, den die Geometrie-Klasse erwartet (z.B. "T20") # noqa
-        target_str_map = {
-            "Bullseye": "BE",
-            "Bull": "B",
-            "Triple": "T",
-            "Double": "D",
-            "Single": "S",
-        }
-        ring_prefix = target_str_map.get(ring)
-        if not ring_prefix:
-            return None
-
-        target_str = f"{ring_prefix}{segment}" if ring not in ("Bullseye", "Bull") else ring_prefix
-
-        # Hole die unskalierten Original-Koordinaten von der Geometrie-Klasse
-        original_coords = DartboardGeometry.get_target_coords(target_str)
-        if not original_coords:
-            return None
-
-        # Skaliere die Koordinaten auf die aktuelle Canvas-Größe
-        scale_factor = (
-            self.canvas.winfo_width() if self.canvas else 0
-        ) / DartboardGeometry.ORIGINAL_SIZE
-        if scale_factor == 0:
-            return None
-
-        scaled_x = int(original_coords[0] * scale_factor)
-        scaled_y = int(original_coords[1] * scale_factor)
-        return scaled_x, scaled_y
+        # Delegiere die gesamte Spiellogik an den GameController.
+        self.game_view_manager.game_controller.throw(ring, segment, normalized_coords)
 
     def _create_board(self):
         """
@@ -394,43 +320,39 @@ class DartBoard:
         self.canvas.bind("<Button-1>", self.on_click)
 
         # Buttons erstellen
-        btn_frame = tk.Frame(self.root)
+        btn_frame = ttk.Frame(self.root)
         btn_frame.pack(side="bottom", fill="x", pady=5)
-        self.undo_button = ttk.Button(btn_frame, text=" Zurück  ", command=self.spiel.undo)
+        self.undo_button = ttk.Button(btn_frame, text=" Zurück  ", command=self.game_view_manager.game_controller.undo)
         self.undo_button.pack(pady=5)
         self.done_button = ttk.Button(
             btn_frame,
             text=" Weiter  ",
             style="Accent.TButton",
-            command=self.spiel.next_player,
+            command=self.game_view_manager.game_controller.next_player,
         )
         self.done_button.pack(pady=5)
         quit_button = ttk.Button(btn_frame, text="Beenden", command=self.quit_game)
         quit_button.pack(pady=5)
-        self.done_button.bind("<Return>", lambda event: self.spiel.next_player())
+        self.done_button.bind("<Return>", lambda event: self.game_view_manager.game_controller.next_player())
         self.canvas.create_window(new_size[0], new_size[1], window=btn_frame, anchor="se")
 
         # Fenster zentrieren, nachdem alle Widgets hinzugefügt wurden
         self.root.update_idletasks()
         window_width = self.root.winfo_reqwidth()
         window_height = self.root.winfo_reqheight()
-        pos_x = (screen_width // 2) - (window_width // 2)
-        pos_y = (screen_height // 2) - (window_height // 2)
+        pos_x = (screen_width // 2) - (window_width // 2) # type: ignore
+        pos_y = (screen_height // 2) - (window_height // 2) # type: ignore
         self.root.geometry(f"{window_width}x{window_height}+{pos_x}+{pos_y}")
 
-    def update_button_states(self):
+    def update_button_states(self, player: "Player", game_ended: bool):
         """
         Aktualisiert den Zustand der 'Weiter'- und 'Zurück'-Buttons basierend
         auf der Anzahl der Würfe des aktuellen Spielers und dem Spielstatus.
-        """
-        if not self.spiel or not self.spiel.current_player():
-            return
-
-        player = self.spiel.current_player()
+        """ # type: ignore
         num_throws = len(player.throws)
         # 'Weiter'-Button: Aktiv, wenn 3 Würfe gemacht wurden, der Zug durch
         # einen Bust beendet ist oder das Spiel insgesamt zu Ende ist.
-        if num_throws >= 3 or player.turn_is_over or self.spiel.end:
+        if num_throws >= 3 or player.turn_is_over or game_ended:
             self.done_button.focus_set()
             self.done_button.config(state=tk.NORMAL)
         else:

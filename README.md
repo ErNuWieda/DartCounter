@@ -29,7 +29,9 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     *   **Wurf-Analyse:** Visualisiere deine Treffsicherheit mit einer persönlichen Wurf-Heatmap.
 *   **Moderne Benutzeroberfläche:**
     *   Interaktives, klickbares Dartboard zur einfachen Eingabe der Würfe.
+    *   **High-DPI aware:** Automatische Skalierung der Overlays und Icons für 4K- und Retina-Monitore.
     *   Helles und dunkles Design wählbar.
+    *   **Statistik-Integrität:** Intelligente Undo-Funktion, die auch bei Spiel-Ende die Datenbank-Einträge (Highscores/Stats) sauber bereinigt.
 *   **Speichern & Laden:** Laufende Spiele und Turniere können jederzeit gespeichert und später fortgesetzt werden.
 *   **Einfache Einrichtung & Wartung:** Dank automatischer Datenbank-Migrationen werden Tabellen beim ersten Start selbstständig angelegt und bei zukünftigen Updates aktualisiert.
 *   **Individuelle Scoreboards:** Für jeden Spieler mit allen relevanten Informationen.

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from core.game import Game
+from core.game_controller import GameController
 from core.game_options import GameOptions
 
 

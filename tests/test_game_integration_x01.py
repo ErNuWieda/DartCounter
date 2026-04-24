@@ -1,12 +1,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from core.game import Game
+from core.game_controller import GameController
 from core.game_options import GameOptions
 from core.player import Player
 from core.save_load_manager import SaveLoadManager
 from core.tournament_manager import TournamentManager
-
 
 @pytest.fixture
 def _x01_game_factory(game_factory):
@@ -76,7 +75,7 @@ def leg_set_game(_x01_game_factory):
 
 class TestGameWithX01:
 
-    def test_initial_state(self, x01_game: Game):
+    def test_initial_state(self, x01_game: GameController):
         """Testet den korrekten Anfangszustand des Spiels."""
         game = x01_game  # Use a local variable
         assert game.options.name == "301"
@@ -86,7 +85,7 @@ class TestGameWithX01:
         for player in game.players:
             assert player.score == 301
 
-    def test_full_turn_and_next_player(self, x01_game: Game):
+    def test_full_turn_and_next_player(self, x01_game: GameController):
         """Simuliert einen vollen Zug und einen kompletten Rundenwechsel."""
         game = x01_game  # Use a local variable
         alice = game.current_player()
@@ -116,7 +115,7 @@ class TestGameWithX01:
         assert game.current_player().name == "Alice"
         assert game.round == 2, "Nach einem vollen Durchlauf sollte eine neue Runde beginnen."
 
-    def test_remove_player(self, x01_game: Game):
+    def test_remove_player(self, x01_game: GameController):
         """Testet das Entfernen von Spielern aus dem Spiel."""
         game = x01_game  # Use a local variable
         # Anfangszustand: [Alice, Bob, Charlie], current=0 (Alice)
@@ -138,7 +137,7 @@ class TestGameWithX01:
         assert game.players[0].name == "Bob"
         assert game.current_player().name == "Bob", "Der nächste Spieler sollte nun am Zug sein."
 
-    def test_undo_dispatches_to_logic_handler(self, x01_game: Game):
+    def test_undo_dispatches_to_logic_handler(self, x01_game: GameController):
         """Testet, ob game.undo() den Aufruf an den Spiellogik-Handler weiterleitet."""
         game = x01_game  # Use a local variable
         player = game.current_player()
@@ -153,9 +152,9 @@ class TestGameWithX01:
         # Überprüfen, ob die Undo-Methode des Logik-Handlers aufgerufen wurde
         game.game._handle_throw_undo.assert_called_once_with(player, "Triple", 20, game.players)
         # Überprüfen, ob die clear-Methode des Dartboards aufgerufen wurde
-        game.dartboard.clear_last_dart_image_from_canvas.assert_called_once()
+        game.game_view_manager.clear_last_dart_image.assert_called_once()
 
-    def test_undo_on_empty_turn(self, x01_game: Game):
+    def test_undo_on_empty_turn(self, x01_game: GameController):
         """Testet, dass undo() bei einem leeren Zug keinen Fehler verursacht und den Zustand nicht ändert."""
         game = x01_game  # Use a local variable
         alice = game.current_player()
@@ -172,7 +171,7 @@ class TestGameWithX01:
         assert game.round == initial_round, "Die Runde sollte sich nicht ändern."
         game.game._handle_throw_undo.assert_not_called(), "Die Undo-Logik sollte nicht aufgerufen werden, wenn keine Würfe vorhanden sind."
 
-    def test_undo_multiple_throws_in_turn(self, x01_game: Game):
+    def test_undo_multiple_throws_in_turn(self, x01_game: GameController):
         """Testet das mehrmalige Rückgängigmachen von Würfen innerhalb eines Zugs."""
         game = x01_game  # Use a local variable
         alice = game.current_player()
@@ -193,7 +192,7 @@ class TestGameWithX01:
         ), "Score sollte nach dem zweiten Undo auf den Startwert zurückgesetzt werden."
         assert len(alice.throws) == 0, "Die Wurfliste sollte nach allen Undos leer sein."
 
-    def test_stat_recording_on_win(self, x01_game: Game):
+    def test_stat_recording_on_win(self, x01_game: GameController):
         """Testet, ob Statistiken bei einem Sieg korrekt erfasst werden."""
         game = x01_game  # Use a local variable
         mock_player_stats_manager = game.player_stats_manager  # type: ignore
@@ -330,7 +329,7 @@ class TestGameWithX01:
             game.game.leg_start_player_index == 1
         ), "Leg start index should NOT be affected by a player leaving"
 
-    def test_leg_stats_reset_after_win(self, leg_set_game: Game):
+    def test_leg_stats_reset_after_win(self, leg_set_game: GameController):
         """# noqa
         Tests that leg-specific stats are reset after a leg win, while match stats are preserved.
         """
@@ -354,7 +353,7 @@ class TestGameWithX01:
         assert p1.stats["total_score_thrown"] == 0, "Score Thrown should be reset"
         assert p1.stats["highest_finish"] == 120, "Highest Finish should be preserved across legs"
 
-    def test_leg_and_set_win_flow(self, leg_set_game: Game):
+    def test_leg_and_set_win_flow(self, leg_set_game: GameController):
         """# noqa: E501
         Simuliert ein komplettes Match im "Legs & Sets"-Modus, um den korrekten
         Ablauf und die Zustandsübergänge zu verifizieren.

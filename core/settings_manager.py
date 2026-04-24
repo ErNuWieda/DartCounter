@@ -140,6 +140,9 @@ class SettingsManager:
             "last_tournament_players": [],
             "ai_throw_delay": 1000,
             "sound_volume": 0.5,
+            "voice_enabled": True,
+            "voice_volume": 100,
+            "voice_speed": 150,
         }
 
     def _load_settings(self, filepath):

@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 """
 Dieses Modul implementiert das Strategy-Pattern für die KI-Zielauswahl.
 Jede Klasse repräsentiert eine spezifische Strategie für einen Spielmodus.
