@@ -32,7 +32,6 @@ class AppSettingsDialog(tk.Toplevel):
         self.announcer = announcer
 
         self.title("Globale Einstellungen")
-        self.geometry("320x550")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
@@ -42,6 +41,12 @@ class AppSettingsDialog(tk.Toplevel):
         self._create_theme_settings(self)
         self._create_ai_settings(self)
         ttk.Button(self, text="Schließen", command=self.destroy).pack(side="bottom", pady=15)
+
+        # Fenstergröße dynamisch an den Inhalt anpassen
+        self.update_idletasks()
+        width = 340  # Etwas breiter für eine bessere Lesbarkeit der Slider
+        height = self.winfo_reqheight()
+        self.geometry(f"{width}x{height}")
 
     def _create_sound_settings(self, parent):
         sound_frame = ttk.LabelFrame(parent, text="Sound")
