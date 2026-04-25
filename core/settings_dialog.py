@@ -45,7 +45,7 @@ class AppSettingsDialog(tk.Toplevel):
         # Fenstergröße dynamisch an den Inhalt anpassen
         self.update_idletasks()
         width = 340  # Etwas breiter für eine bessere Lesbarkeit der Slider
-        height = self.winfo_reqheight()
+        height = self.winfo_reqheight() + 20 # Puffer angepasst
         self.geometry(f"{width}x{height}")
 
     def _create_sound_settings(self, parent):
@@ -96,6 +96,17 @@ class AppSettingsDialog(tk.Toplevel):
             variable=self.voice_enabled_var,
             command=lambda: self.settings_manager.set("voice_enabled", self.voice_enabled_var.get()),
         ).pack(pady=5, padx=10, anchor="w")
+
+        # --- Voice Gender ---
+        gender_frame = ttk.Frame(voice_frame)
+        gender_frame.pack(fill="x", padx=10, pady=5)
+        ttk.Label(gender_frame, text="Stimme:").pack(side="left")
+        self.gender_combo = ttk.Combobox(gender_frame, values=["Männlich", "Weiblich"], state="readonly", width=12)
+        self.gender_combo.pack(side="right")
+        current_gender = self.settings_manager.get("voice_gender", "Weiblich")
+        self.gender_combo.set(current_gender)
+        self.gender_combo.bind("<<ComboboxSelected>>", 
+                               lambda e: self.settings_manager.set("voice_gender", self.gender_combo.get()))
 
         # --- Volume ---
         vol_frame = ttk.Frame(voice_frame)

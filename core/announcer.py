@@ -17,6 +17,7 @@
 import pyttsx3
 import threading
 import queue
+import time
 import logging
 from typing import Optional, TYPE_CHECKING
 
@@ -51,6 +52,7 @@ class Announcer:
             logger.error(f"Fehler bei der Initialisierung von pyttsx3: {e}")
             return
 
+        current_voice_id = None
         while not self.stop_event.is_set():
             try:
                 # Holen der nächsten Nachricht (blockierend mit Timeout)
@@ -62,16 +64,60 @@ class Announcer:
                 enabled = True
                 volume = 1.0
                 rate = 150
+                target_gender = "Weiblich"
 
                 if self.settings_manager:
                     enabled = self.settings_manager.get("voice_enabled", True)
                     volume = float(self.settings_manager.get("voice_volume", 100)) / 100.0
                     rate = int(self.settings_manager.get("voice_speed", 150))
+                    target_gender = self.settings_manager.get("voice_gender", "Weiblich")
 
                 if enabled:
                     try:
+                        # Kurze Pause (600ms), damit der Soundeffekt des Pfeileinschlags
+                        # nicht von der Sprachansage überlagert wird.
+                        time.sleep(0.6)
+
                         engine.setProperty("rate", rate)
                         engine.setProperty("volume", volume)
+
+                        # Verbessertes Scoring-System zur Stimmen-Auswahl (verhindert Comedy-Effekte)
+                        voices = engine.getProperty("voices")
+                        selected_voice_id = None
+                        scored_voices = []
+
+                        # Bekannte Namen hochwertiger Systemstimmen
+                        female_keys = ["female", "zira", "hedda", "anna", "stefanie", "katja", "victoria", "helena", "tanja", "hazel", "sabina"]
+                        male_keys = ["male", "david", "stefan", "hans", "mark", "paul", "george", "herbert", "zero", "pavel"]
+                        
+                        target_keys = female_keys if target_gender == "Weiblich" else male_keys
+                        other_keys = male_keys if target_gender == "Weiblich" else female_keys
+
+                        for v in voices:
+                            score = 0
+                            v_info = (str(v.name) + str(v.id) + str(getattr(v, "gender", ""))).lower()
+                            v_langs = [str(l).lower() for l in getattr(v, "languages", [])]
+
+                            # 1. Geschlecht bewerten
+                            if any(key in v_info for key in target_keys): score += 100
+                            if any(key in v_info for key in other_keys): score -= 80
+                            
+                            # 2. Sprache bewerten (DE oder EN klingen deutlich natürlicher)
+                            if any("de" in l or "en" in l for l in v_langs) or "german" in v_info or "english" in v_info:
+                                score += 50
+                            
+                            scored_voices.append((score, v.id))
+                        
+                        if scored_voices:
+                            # Nimm die Stimme mit der höchsten Punktzahl
+                            scored_voices.sort(key=lambda x: x[0], reverse=True)
+                            selected_voice_id = scored_voices[0][1]
+
+                        # Nur setzen, wenn sich die Stimme wirklich geändert hat
+                        if selected_voice_id and selected_voice_id != current_voice_id:
+                            engine.setProperty("voice", selected_voice_id)
+                            current_voice_id = selected_voice_id
+
                         engine.say(text)
                         engine.runAndWait()
                     except Exception as e:

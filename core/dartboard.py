@@ -102,9 +102,9 @@ class DartBoard:
             # Die Maske wird einmal geladen und skaliert, um sie wiederverwenden zu können.
             self.original_dart_mask_pil = Image.open(self.dart_path).convert("RGBA")
 
-            # Skaliere den Dart proportional zur Board-Größe (Basis: 75px bei Originalgröße 2200)
+            # Skaliere den Dart proportional zur Board-Größe (Basis: 220px für die Originalgröße)
             scale = self.skaliert["outer_edge"] / DartboardGeometry.RADIEN["outer_edge"]
-            dart_size = max(20, int(75 * scale))
+            dart_size = max(20, int(220 * scale))
             self.resized_dart_mask_pil = self.original_dart_mask_pil.resize(
                 (dart_size, dart_size), Image.Resampling.LANCZOS
             )

@@ -119,17 +119,10 @@ class SoundManager:
         # Datengesteuerter Ansatz: Definiere alle Sounds an einer Stelle.
         # Das macht das Hinzufügen neuer Sounds einfacher.
         sound_definitions = {
-            "hit": "hit.wav",
-            "win": "win.wav",
-            "miss": "miss.wav",
-            "bust": "bust.wav",
-            "bull": "bull.wav",
-            "bullseye": "bullseye.wav",
-            "score_100": "100.wav",
-            "score_140": "140.wav",
-            "score_160": "160.wav",
-            "score_180": "180.wav",
-            "shanghai": "shanghai.wav",
+            "hit": "hit.wav", # Soundeffekt für Treffer
+            "miss": "miss.wav", # Soundeffekt für Fehlwurf
+            "bull": "bull.wav", # Soundeffekt für Bull
+            "bullseye": "bullseye.wav", # Soundeffekt für Bullseye
         }
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
         for attr_name, filename in sound_definitions.items():
@@ -199,26 +192,16 @@ class SoundManager:
         self.settings_manager.set("sound_enabled", self.sounds_enabled)
         if not self.sounds_enabled:
             logger.info("Soundeffekte deaktiviert.")
-
+            
     def play_hit(self):
         """Spielt den Sound für einen Treffer ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.hit_sound:
             self.hit_sound.play()
 
-    def play_win(self):
-        """Spielt den Sound für einen Spielgewinn ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.win_sound:
-            self.win_sound.play()
-
     def play_miss(self):
         """Spielt den Sound für einen Fehlwurf ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.miss_sound:
             self.miss_sound.play()
-
-    def play_bust(self):
-        """Spielt den Sound für einen Bust ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bust_sound:
-            self.bust_sound.play()
 
     def play_bull(self):
         """Spielt den Sound für ein Bull ab, falls Sounds aktiviert sind."""
@@ -229,33 +212,3 @@ class SoundManager:
         """Spielt den Sound für ein Bullseye ab, falls Sounds aktiviert sind."""
         if self.sounds_enabled and self.bullseye_sound:
             self.bullseye_sound.play()
-
-    def play_score_100(self):
-        """Spielt den Sound für einen Score von 100+ ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_100_sound:
-            self.score_100_sound.play()
-
-    def play_score_120(self):
-        """Spielt den Sound für einen Score von 100+ ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_100_sound:
-            self.score_100_sound.play()
-
-    def play_score_140(self):
-        """Spielt den Sound für einen Score von 140 ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_140_sound:
-            self.score_140_sound.play()
-
-    def play_score_160(self):
-        """Spielt den Sound für einen Score von 160 ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_160_sound:
-            self.score_160_sound.play()
-
-    def play_score_180(self):
-        """Spielt den Sound für einen Score von 180 ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.score_180_sound:
-            self.score_180_sound.play()
-
-    def play_shanghai(self):
-        """Spielt den Sound für ein Shanghai-Finish ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.shanghai_sound:
-            self.shanghai_sound.play()

@@ -386,16 +386,10 @@ class GameController:
         Kapselt die Sound-Auswahl-Logik.
         """
         if result.status == "win":
-            return "shanghai" if self.shanghai_finish else "win"
+            return None # Announcer sagt "Game shot"
         if result.status == "bust":
-            return "bust"
-
-        # Frage die Spiellogik nach einem spezifischen Sound (z.B. für 180er).
-        # Wenn die Logik None zurückgibt, wird der Standard-Sound verwendet.
-        if hasattr(self.game, "get_sound_for_throw"):
-            if specific_sound := self.game.get_sound_for_throw(player):
-                return specific_sound
-
+            return None # Announcer sagt "Bust"
+            
         # Standard-Treffer-Sound
         hit_sounds = {"Bullseye": "bullseye", "Bull": "bull", "Miss": "miss"}
         return hit_sounds.get(ring, "hit")
