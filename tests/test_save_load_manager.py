@@ -22,7 +22,7 @@ import json
 from core.save_load_manager import SaveLoadManager
 
 # Klassen, die als Abhängigkeiten gemockt werden
-from core.game import Game
+from core.game_controller import GameController
 from core.game_options import GameOptions
 from core.player import Player
 
@@ -34,7 +34,7 @@ def slm_setup(monkeypatch):
     Erstellt ein gemocktes Spiel mit Spielern und patcht UI-Abhängigkeiten.
     """
     # Mock für ein Game-Objekt mit Spielern und Daten
-    mock_game = MagicMock(spec=Game)
+    mock_game = MagicMock(spec=GameController)
     mock_game.current = 1
     mock_game.round = 5
     # Das Game-Objekt hat jetzt ein 'options'-Attribut

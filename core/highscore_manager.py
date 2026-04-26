@@ -19,7 +19,7 @@ from tkinter import ttk, filedialog, font
 from .database_manager import DatabaseManager
 import csv
 from .settings_manager import get_app_data_dir
-from .game import HIGHSCORE_MODES, CRICKET_MODES
+from .game_controller import HIGHSCORE_MODES, CRICKET_MODES
 from . import ui_utils
 
 

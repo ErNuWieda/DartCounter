@@ -22,7 +22,6 @@ from core.micky import Micky
 
 # Klassen, die als Abhängigkeiten gemockt werden
 from core.player import Player
-from core.game import Game
 
 @pytest.fixture
 def micky_logic(mock_game):

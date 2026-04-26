@@ -121,8 +121,11 @@ class SoundManager:
         sound_definitions = {
             "hit": "hit.wav", # Soundeffekt für Treffer
             "miss": "miss.wav", # Soundeffekt für Fehlwurf
-            "bull": "bull.wav", # Soundeffekt für Bull
-            "bullseye": "bullseye.wav", # Soundeffekt für Bullseye
+            "bust": "bust.wav", # Explosion/Bust
+            "no_score": "no_score.wav", # Schnecke
+            "low_score": "low_score.wav", # Weinendes Emoji
+            "one_eighty": "180.wav", # Blitze
+            "big_fish": "big_fish.wav", # Fisch
         }
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
         for attr_name, filename in sound_definitions.items():
@@ -203,12 +206,27 @@ class SoundManager:
         if self.sounds_enabled and self.miss_sound:
             self.miss_sound.play()
 
-    def play_bull(self):
-        """Spielt den Sound für ein Bull ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bull_sound:
-            self.bull_sound.play()
+    def play_bust(self):
+        """Spielt den Sound für ein Überwerfen ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.bust_sound:
+            self.bust_sound.play()
 
-    def play_bullseye(self):
-        """Spielt den Sound für ein Bullseye ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bullseye_sound:
-            self.bullseye_sound.play()
+    def play_no_score(self):
+        """Spielt den Sound für 0 Punkte ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.no_score_sound:
+            self.no_score_sound.play()
+
+    def play_low_score(self):
+        """Spielt den Sound für niedrige Scores ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.low_score_sound:
+            self.low_score_sound.play()
+
+    def play_one_eighty(self):
+        """Spielt den Sound für ein Maximum ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.one_eighty_sound:
+            self.one_eighty_sound.play()
+
+    def play_big_fish(self):
+        """Spielt den Sound für das Big Fish Finish ab, falls Sounds aktiviert sind."""
+        if self.sounds_enabled and self.big_fish_sound:
+            self.big_fish_sound.play()

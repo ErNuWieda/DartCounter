@@ -20,8 +20,6 @@ from core.ai_player import AIPlayer
 from core.player_profile import PlayerProfile
 from core.throw_result import ThrowResult
 from core.player import Player
-from core.game import Game
-from core.ai_strategy import AIStrategy
 from core.ai_strategy import (
     X01AIStrategy,
     CricketAIStrategy,
@@ -42,7 +40,11 @@ def ai_player_with_mocks():
 
     # Erstelle einen Mock für das Tkinter-Root-Fenster.
     mock_root = MagicMock()
-    mock_root.after = MagicMock()
+    # Mock .after to execute the function immediately for ms=0 to handle async logic in tests
+    def mock_after(ms, func, *args):
+        if ms == 0:
+            func(*args)
+    mock_root.after = MagicMock(side_effect=mock_after)
 
     # --- Neue Architektur-Struktur im Mock aufbauen ---
     mock_gvm = MagicMock()
@@ -110,6 +112,7 @@ def ai_player_with_mocks():
 
     mock_game.is_tournament_match = False
     mock_game.game.is_tournament_match = False
+    mock_gvm.is_tournament_match = False
     mock_game.options = Mock()  # Wichtig für die Strategie-Logik
 
     ai_profile = PlayerProfile(name="RoboCop", is_ai=True, difficulty="Fortgeschritten")
@@ -825,23 +828,44 @@ def test_execute_throw_announces_score(ai_player_with_mocks):
     mock_game.options.name = "501"
     ai_player.strategy = MagicMock()
     ai_player.strategy.get_target.return_value = ("Triple", 20)
-    
-    # Wurf am Spieler protokollieren, damit display_throw_feedback einen Treffer findet
-    ai_player.throws = [("Triple", 20, (0.5, 0.5))]
+    ai_player.score = 501
+
+    def mock_simulate_click(x, y):
+        # Simulate the game logic processing the click and calling display_throw_feedback
+        # We need to import GameViewManager here to call its static method.
+        from core.game_view_manager import GameViewManager
+        # Patch ui_utils to prevent crashes if show_message_for_throw_result is called
+        with patch("core.game_view_manager.ui_utils"):
+            # PDC-Logik: Scores werden erst nach dem 3. Dart angesagt (hier: 3x T20 = 180).
+            # Wir setzen die Wurfliste manuell auf 3 Darts, damit die Ansage-Bedingung triggert.
+            ai_player.throws = [("Triple", 20, (0.5, 0.1)), ("Triple", 20, (0.5, 0.1)), ("Triple", 20, (0.5, 0.1))]
+            res = ThrowResult(status="ok", message="60", sound="hit")
+            res.score = 60
+            GameViewManager.display_throw_feedback(mock_game.game_view_manager, res, ai_player, 1000)
+
+    mock_game.game_view_manager.dartboard.simulate_click.side_effect = mock_simulate_click
 
     # KI als am Zug markieren
     mock_game.current_player.return_value = ai_player
     mock_game.game.current_player.return_value = ai_player
 
-    # KORREKTUR: Wir rufen die ECHTE Methode auf dem Mock-Objekt auf, damit die Logik läuft
-    from core.game_view_manager import GameViewManager
-    res = ThrowResult(status="ok", message="60", sound="hit")
-    # Patch ui_utils, um einen Absturz zu verhindern, falls show_message_for_throw_result fehlt
-    with patch("core.game_view_manager.ui_utils"):
-        GameViewManager.display_throw_feedback(mock_game.game_view_manager, res, ai_player, 1000)
+    # Grundvoraussetzungen für den Wurf:
+    ai_player.turn_is_over = False
+    mock_game.end = False
+    mock_game.game.end = False
+    mock_game.is_finished.return_value = False
+    mock_game.game.is_finished.return_value = False
+    mock_game.is_tournament_match = False
+    mock_game.game_view_manager.is_tournament_match = False
+    # Sicherstellen, dass die Sprachausgabe im Mock-ViewManager als aktiviert gilt
+    mock_game.game_view_manager.voice_enabled = True
+
+    # Execute the throw, which will trigger the mocked simulate_click
+    ai_player._execute_throw(1)
 
     # Verifiziert, dass der Announcer den Score erhalten hat
-    mock_game.game_view_manager.announcer.announce_score.assert_called_with(60)
+    mock_announcer = mock_game.game_view_manager.announcer
+    mock_announcer.announce_score.assert_called_with(180)
 
 
 def test_execute_throw_stops_on_bust(ai_player_with_mocks):

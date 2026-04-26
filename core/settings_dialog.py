@@ -97,16 +97,34 @@ class AppSettingsDialog(tk.Toplevel):
             command=lambda: self.settings_manager.set("voice_enabled", self.voice_enabled_var.get()),
         ).pack(pady=5, padx=10, anchor="w")
 
-        # --- Voice Gender ---
-        gender_frame = ttk.Frame(voice_frame)
-        gender_frame.pack(fill="x", padx=10, pady=5)
-        ttk.Label(gender_frame, text="Stimme:").pack(side="left")
-        self.gender_combo = ttk.Combobox(gender_frame, values=["Männlich", "Weiblich"], state="readonly", width=12)
-        self.gender_combo.pack(side="right")
-        current_gender = self.settings_manager.get("voice_gender", "Weiblich")
-        self.gender_combo.set(current_gender)
-        self.gender_combo.bind("<<ComboboxSelected>>", 
-                               lambda e: self.settings_manager.set("voice_gender", self.gender_combo.get()))
+        # --- Voice Selection ---
+        v_select_frame = ttk.Frame(voice_frame)
+        v_select_frame.pack(fill="x", padx=10, pady=5)
+        ttk.Label(v_select_frame, text="Stimme wählen:").pack(side="left")
+        
+        self.available_voices = self.announcer.get_available_voices() if self.announcer else []
+        # Sortiere die Liste: Erst Frauen, dann Männer, dann Roboter
+        sorted_voices = sorted(self.available_voices, key=lambda x: x["category"])
+        voice_labels = [v["label"] for v in sorted_voices]
+        
+        self.voice_combo = ttk.Combobox(v_select_frame, values=voice_labels, state="readonly", width=25)
+        self.voice_combo.pack(side="right", padx=(5, 0))
+        
+        current_voice_id = self.settings_manager.get("voice_id")
+        if current_voice_id:
+            current_voice = next((v for v in self.available_voices if v["id"] == current_voice_id), None)
+            if current_voice:
+                self.voice_combo.set(current_voice["label"])
+
+        def _on_voice_selected(event):
+            selected_label = self.voice_combo.get()
+            selected_voice = next((v for v in self.available_voices if v["label"] == selected_label), None)
+            if selected_voice:
+                self.settings_manager.set("voice_id", selected_voice["id"])
+                # Kurz testen
+                self._test_voice()
+
+        self.voice_combo.bind("<<ComboboxSelected>>", _on_voice_selected)
 
         # --- Volume ---
         vol_frame = ttk.Frame(voice_frame)
@@ -158,11 +176,20 @@ class AppSettingsDialog(tk.Toplevel):
             self.announcer.announce("One hundred and eighty!")
 
     def _create_theme_settings(self, parent):
-        theme_frame = ttk.LabelFrame(parent, text="Design")
+        theme_frame = ttk.LabelFrame(parent, text="Darstellung")
         theme_frame.pack(fill="x", padx=15, pady=10)
 
+        self.effects_enabled_var = tk.BooleanVar(value=self.settings_manager.get("visual_effects_enabled", True))
+        ttk.Checkbutton(
+            theme_frame,
+            text="Visuelle Effekte aktivieren",
+            variable=self.effects_enabled_var,
+            command=lambda: self.settings_manager.set("visual_effects_enabled", self.effects_enabled_var.get()),
+        ).pack(pady=5, padx=10, anchor="w")
+
+        ttk.Label(theme_frame, text="Farbschema:").pack(pady=(5, 0), padx=10, anchor="w")
         self.theme_combo = ttk.Combobox(theme_frame, values=["Light", "Dark"], state="readonly")
-        self.theme_combo.pack(pady=10, padx=10, fill="x")
+        self.theme_combo.pack(pady=(2, 10), padx=10, fill="x")
         current_theme = self.settings_manager.get("theme", "light")
         self.theme_combo.set(current_theme.capitalize())
 

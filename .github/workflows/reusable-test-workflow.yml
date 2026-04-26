@@ -35,7 +35,7 @@ jobs:
         if: ${{ inputs.container-image }}
         run: |
           apt-get update
-          apt-get install -y git python3 python3-pip python3-tk python3-pil.imagetk xvfb
+          apt-get install -y git python3 python3-pip python3-tk python3-pil.imagetk xvfb libpq-dev
 
       - name: 2. Checkout Code
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'Linux' && !inputs.container-image
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk python3-pil.imagetk xvfb
+          sudo apt-get install -y python3-tk python3-pil.imagetk xvfb libpq-dev
 
       - name: 5. Install Python Dependencies (Container/PEP 668)
         if: inputs.container-image

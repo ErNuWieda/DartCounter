@@ -214,18 +214,72 @@ class GameViewManager:
             if sound_method and callable(sound_method):
                 sound_method()
 
+        effects_enabled = self.settings_manager.get("visual_effects_enabled", True)
+
         # Sprachansage für das Wurfergebnis
         if self.announcer:
             if result.status == "win":
-                self.announcer.announce_game_shot(player.name)
+                # Prüfen, ob der Sieg auf Doppel 1 (Madhouse) oder Bullseye erfolgte
+                last_throw = player.throws[-1] if player.throws else (None, None, None)
+                ring, segment, _ = last_throw
+                was_madhouse = ring == "Double" and segment == 1
+                was_bullseye = ring == "Bullseye"
+
+                # Prüfen auf den "Big Fish" (170 Finish: T20, T20, Bullseye)
+                is_big_fish = False
+                if len(player.throws) == 3:
+                    t1, t2, t3 = player.throws
+                    is_big_fish = (t1[0] == "Triple" and t1[1] == 20 and
+                                   t2[0] == "Triple" and t2[1] == 20 and
+                                   t3[0] == "Bullseye")
+
+                self.announcer.announce_game_shot(player.name, was_madhouse=was_madhouse, was_bullseye=was_bullseye, is_big_fish=is_big_fish)
+                
+                # Visueller Effekt auf dem Dartboard bei 170er Finish
+                if effects_enabled and is_big_fish and self.dartboard:
+                    self.dartboard.show_big_fish_effect()
+
+                # Verzögerter Soundeffekt für mehr Spannung (1,5 Sekunden Verzögerung)
+                if effects_enabled and is_big_fish and self.sound_manager:
+                    self.root.after(1500, self.sound_manager.play_big_fish)
+
+                # Bei X01-Spielen zusätzlich den Average ansagen
+                if self.game_options.name in ("301", "501", "701"):
+                    # Wir rufen get_average() auf dem Spieler-Objekt auf
+                    avg = player.get_average()
+                    self.announcer.announce_match_average(player.name, avg)
             elif result.status == "bust":
                 self.announcer.announce_bust()
+
+                # Visueller Effekt bei Überwerfen
+                if effects_enabled and self.dartboard:
+                    self.dartboard.show_no_score_effect(is_bust=True)
             elif result.status == "ok":
-                # Den Score des letzten Wurfs ansagen
-                if player.throws:
-                    ring, segment, _ = player.throws[-1]
-                    score_val = self.game_controller.get_score(ring, segment)
-                    self.announcer.announce_score(score_val)
+                # Ermittle den Ring des letzten Wurfs
+                last_ring = player.throws[-1][0] if player.throws else ""
+                
+                # Spezialfall: Bull/Bullseye werden (PDC-Style) sofort angesagt
+                if last_ring in ("Bull", "Bullseye"):
+                    self.announcer.announce_ring(last_ring)
+                
+                # Standard-Scores werden erst nach dem 3. Dart angesagt
+                elif len(player.throws) == 3:
+                    total_round_score = sum(
+                        self.game_controller.get_score(r, s) for r, s, _ in player.throws
+                    )
+                    self.announcer.announce_score(total_round_score)
+                    
+                    # Visueller Effekt bei einem Maximum (180)
+                    if effects_enabled and total_round_score == 180 and self.dartboard:
+                        self.dartboard.show_180_effect()
+
+                    # Visueller Effekt bei 0 Punkten
+                    if effects_enabled and total_round_score == 0 and self.dartboard:
+                        self.dartboard.show_no_score_effect()
+
+                    # Visueller Effekt bei niedrigem Score (1-7 Punkte)
+                    if effects_enabled and 1 <= total_round_score <= 7 and self.dartboard:
+                        self.dartboard.show_low_score_effect()
 
         if result.message and self.dartboard:
             ui_utils.show_message_for_throw_result(result, self.dartboard.root, auto_close_for_ai_after_ms=auto_close_ms)

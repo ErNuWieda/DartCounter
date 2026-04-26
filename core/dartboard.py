@@ -19,6 +19,7 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk, ImageColor
 import math
 import pathlib
+import random
 from typing import TYPE_CHECKING
 
 from .save_load_manager import SaveLoadManager # Wird für quit_game benötigt
@@ -365,3 +366,141 @@ class DartBoard:
             self.undo_button.config(state=tk.NORMAL)
         else:
             self.undo_button.config(state=tk.DISABLED)
+
+    def show_big_fish_effect(self):
+        """Zeigt einen speziellen visuellen Effekt für das 170er Finish (Big Fish)."""
+        if not self.canvas:
+            return
+
+        tag = "big_fish_overlay"
+
+        # Großer Fisch-Emoji in der Mitte (leicht nach oben versetzt)
+        self.canvas.create_text(
+            self.center_x, self.center_y - 20,
+            text="🐟",
+            font=("Arial", 120),
+            tags=tag
+        )
+
+        # Text "THE BIG FISH!" mit Schatten-Effekt für bessere Lesbarkeit
+        self.canvas.create_text(
+            self.center_x + 2, self.center_y + 92,
+            text="THE BIG FISH!",
+            font=("Arial", 40, "bold"),
+            fill="black",
+            tags=tag
+        )
+        self.canvas.create_text(
+            self.center_x, self.center_y + 90,
+            text="THE BIG FISH!",
+            font=("Arial", 40, "bold"),
+            fill="gold",
+            tags=tag
+        )
+
+        # Den Effekt nach 5 Sekunden automatisch entfernen
+        self.root.after(5000, lambda: self.canvas.delete(tag) if self.canvas else None)
+
+    def show_180_effect(self):
+        """Zeigt einen flackernden Effekt für einen Score von 180."""
+        if not self.canvas:
+            return
+
+        tag = "one_eighty_overlay"
+        colors = ["#ff0000", "#ffff00", "#ffaa00", "#ffffff"]  # Rot, Gelb, Orange, Weiß
+
+        # Großer "180" Text in der Mitte
+        text_id = self.canvas.create_text(
+            self.center_x, self.center_y,
+            text="180",
+            font=("Arial", 120, "bold"),
+            fill="red",
+            tags=tag
+        )
+
+        # Blitze drumherum positionieren
+        lightning_positions = [
+            (self.center_x - 140, self.center_y - 90),
+            (self.center_x + 140, self.center_y - 90),
+            (self.center_x - 140, self.center_y + 90),
+            (self.center_x + 140, self.center_y + 90),
+        ]
+        lightning_ids = []
+        for lx, ly in lightning_positions:
+            l_id = self.canvas.create_text(lx, ly, text="⚡", font=("Arial", 70), tags=tag)
+            lightning_ids.append(l_id)
+
+        def flicker(count):
+            if not self.canvas or not self.root.winfo_exists():
+                return
+            if count <= 0:
+                try: self.canvas.delete(tag)
+                except: pass
+                return
+
+            color = random.choice(colors)
+            try:
+                self.canvas.itemconfig(text_id, fill=color)
+                for lid in lightning_ids:
+                    self.canvas.itemconfig(lid, fill=color)
+                self.root.after(100, lambda: flicker(count - 1))
+            except: pass
+
+        flicker(30)  # 3 Sekunden lang flackern (30 * 100ms)
+
+    def show_no_score_effect(self, is_bust=False):
+        """Zeigt einen humorvollen Effekt für einen Score von 0 oder ein Überwerfen (Bust)."""
+        if not self.canvas:
+            return
+
+        tag = "no_score_overlay"
+        emoji = "💥" if is_bust else "🐌"
+        display_text = "BUST!" if is_bust else "NO SCORE!"
+        text_color = "red" if is_bust else "gray"
+
+        # Emoji (Schnecke für 0, Explosion für Bust)
+        self.canvas.create_text(
+            self.center_x, self.center_y - 20,
+            text=emoji,
+            font=("Arial", 100),
+            tags=tag
+        )
+
+        # Text-Hinweis
+        self.canvas.create_text(
+            self.center_x, self.center_y + 80,
+            text=display_text,
+            font=("Arial", 30, "bold"),
+            fill=text_color,
+            tags=tag
+        )
+
+        # Nach 3 Sekunden automatisch entfernen
+        self.root.after(3000, lambda: self.canvas.delete(tag) if self.canvas else None)
+
+    def show_low_score_effect(self):
+        """Zeigt einen mitleidigen Effekt für einen niedrigen Score (1-7 Punkte)."""
+        if not self.canvas:
+            return
+
+        tag = "low_score_overlay"
+
+        # Weinendes Emoji
+        self.canvas.create_text(
+            self.center_x, self.center_y - 20,
+            text="😢",
+            font=("Arial", 100),
+            tags=tag
+        )
+
+        # Text "LOW SCORE!" in einem traurigen Blau
+        self.canvas.create_text(
+            self.center_x, self.center_y + 80,
+            text="LOW SCORE!",
+            font=("Arial", 30, "bold"),
+            fill="dodgerblue",
+            tags=tag
+        )
+
+        # Nach 3 Sekunden automatisch entfernen
+        self.root.after(3000, lambda: self.canvas.delete(tag) if self.canvas else None)

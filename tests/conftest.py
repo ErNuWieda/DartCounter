@@ -19,7 +19,7 @@ import sys
 import logging
 import tkinter as tk
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from core.game_options import GameOptions
 from core.game_controller import GameController
 from core.player_profile_manager import PlayerProfileManager
@@ -150,17 +150,24 @@ def mock_settings_manager():
 @pytest.fixture(autouse=True, scope="session")
 def mock_engine():
     """
-    Mocks the entire pyttsx3 module for the entire test session.
-    This prevents actual pyttsx3 initialization issues during test collection or execution.
+    Mocks the TTS dependencies for the entire test session.
+    Previously handled pyttsx3, now updated for edge-tts.
     """
-    mock_engine_instance = MagicMock()
-    mock_pyttsx3 = MagicMock()
-    mock_pyttsx3.init.return_value = mock_engine_instance
+    # Wir mocken edge_tts, damit Tests nicht versuchen, echte Online-Anfragen zu stellen.
+    # Da edge-tts asynchron ist, müssen wir Communicate als Mock-Klasse bereitstellen.
+    mock_edge = MagicMock()
+    mock_edge.Communicate = MagicMock()
+    # WICHTIG: Die save-Methode muss ein AsyncMock sein, damit 'await' im Announcer funktioniert.
+    mock_edge.Communicate.return_value.save = AsyncMock()
+
+    mock_gtts = MagicMock()
     
-    # Wir patchen sys.modules UND das Modul-Attribut direkt, falls es bereits importiert wurde.
-    with patch.dict(sys.modules, {'pyttsx3': mock_pyttsx3}), \
-         patch('core.announcer.pyttsx3', mock_pyttsx3, create=True):
-        yield mock_engine_instance # Yield the mock engine for tests that need to assert calls on it
+    with patch.dict(sys.modules, {'edge_tts': mock_edge}), \
+         patch.dict(sys.modules, {'gtts': mock_gtts}), \
+         patch('core.announcer.edge_tts', mock_edge, create=True), \
+         patch('core.announcer.gTTS', mock_gtts, create=True), \
+         patch('core.announcer.EDGE_TTS_AVAILABLE', True):
+        yield mock_edge
 
 
 @pytest.fixture(scope="session")
@@ -183,8 +190,8 @@ def game_factory(tk_root_session, monkeypatch):
 
     def _create_game(game_options_dict: dict, player_names: list[str]):
         # Mock all external dependencies
-        monkeypatch.setattr("core.game.ui_utils.show_message", MagicMock())
-        monkeypatch.setattr("core.game.ui_utils.ask_question", MagicMock())
+        monkeypatch.setattr("core.game_controller.ui_utils.show_message", MagicMock())
+        monkeypatch.setattr("core.game_controller.ui_utils.ask_question", MagicMock())
 
         # Mock managers
         mock_highscore_manager = MagicMock()

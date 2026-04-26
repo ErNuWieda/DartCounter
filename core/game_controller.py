@@ -391,7 +391,7 @@ class GameController:
             return None # Announcer sagt "Bust"
             
         # Standard-Treffer-Sound
-        hit_sounds = {"Bullseye": "bullseye", "Bull": "bull", "Miss": "miss"}
+        hit_sounds = {"Miss": "miss"}
         return hit_sounds.get(ring, "hit")
 
     def _finalize_and_record_stats(self, winner: Player):

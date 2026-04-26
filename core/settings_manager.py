@@ -143,7 +143,8 @@ class SettingsManager:
             "voice_enabled": True,
             "voice_volume": 100,
             "voice_speed": 150,
-            "voice_gender": "Weiblich",
+            "voice_id": None,
+            "visual_effects_enabled": True,
         }
 
     def _load_settings(self, filepath):

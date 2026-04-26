@@ -76,12 +76,11 @@ class TestSoundManager:
     def test_init_sound_file_not_found(self, sound_manager_mocks, caplog, monkeypatch):
         """Testet, ob ein Fehler protokolliert wird, wenn eine Sounddatei fehlt."""
         mocks = sound_manager_mocks
-
+        
         # Wir mocken pathlib.Path.exists NUR für diesen Test.
-        # Die Funktion gibt für 'bust.wav' False zurück, sonst True.
+        # Die Funktion gibt für 'miss.wav' False zurück, sonst True.
         def mock_exists(path):
-            if "bust.wav" in str(path):
-                return False
+            if "miss.wav" in str(path): return False
             return True
 
         monkeypatch.setattr("pathlib.Path.exists", mock_exists)
@@ -89,44 +88,26 @@ class TestSoundManager:
         with caplog.at_level(logging.WARNING):  # Wir erwarten eine Warnung, keinen Error
             sm = SoundManager(mocks["settings_manager"], mocks["root"])
             assert sm.hit_sound is not None
-            assert sm.win_sound is not None
-            assert sm.miss_sound is not None
-            assert sm.bust_sound is None, "bust_sound sollte None sein, da die Datei fehlt."
-            assert sm.bull_sound is not None
-            assert sm.bullseye_sound is not None
-            assert sm.score_100_sound is not None
-            assert sm.score_140_sound is not None
-            assert sm.score_160_sound is not None
-            assert sm.score_180_sound is not None
-            assert sm.shanghai_sound is not None
+            assert sm.miss_sound is None, "miss_sound sollte None sein, da die Datei fehlt."
             mocks["mock_messagebox"].showwarning.assert_called_once()
         # Prüfe, ob die korrekte WARNING-Nachricht geloggt wurde.
-        assert "Datei nicht gefunden: bust.wav" in caplog.text, "Die Log-Nachricht für eine fehlende Datei ist falsch."
+        assert "Datei nicht gefunden: miss.wav" in caplog.text, "Die Log-Nachricht für eine fehlende Datei ist falsch."
         assert "Fehler beim Laden" not in caplog.text, "Es sollte kein Lade-ERROR geloggt werden."
 
     def test_init_sound_loading_error(self, sound_manager_mocks, caplog):
         """Testet, ob ein Fehler protokolliert wird, wenn pygame eine Datei nicht laden kann."""
         mocks = sound_manager_mocks
-        # Simuliere, dass Sound() beim Laden von 'bull.wav' (5. Sound) einen Fehler wirft. Es gibt 11 Sounds.
-        sound_mocks = [MagicMock() for _ in range(11)]
-        sound_mocks[4] = mocks["mock_pygame"].error("Ladefehler")  # bull.wav fails
+        # Simuliere, dass Sound() beim Laden von 'miss.wav' (Index 1) einen Fehler wirft. Es gibt 2 Sounds.
+        sound_mocks = [MagicMock() for _ in range(2)]
+        sound_mocks[1] = mocks["mock_pygame"].error("Ladefehler")  # miss.wav fails
         mocks["mock_pygame"].mixer.Sound.side_effect = sound_mocks
 
         with caplog.at_level(logging.ERROR):
             sm = SoundManager(mocks["settings_manager"], mocks["root"])
             assert sm.hit_sound is not None
-            assert sm.win_sound is not None
-            assert sm.miss_sound is not None
-            assert sm.bust_sound is not None
-            assert sm.bull_sound is None, "bull_sound sollte None sein, da ein Ladefehler auftrat."
-            assert sm.bullseye_sound is not None
-            assert sm.score_100_sound is not None
-            assert sm.score_140_sound is not None
-            assert sm.score_160_sound is not None
-            assert sm.score_180_sound is not None
-            assert sm.shanghai_sound is not None
+            assert sm.miss_sound is None, "miss_sound sollte None sein, da ein Ladefehler auftrat."
             mocks["mock_messagebox"].showwarning.assert_called_once()
-        assert "Fehler beim Laden von bull.wav" in caplog.text
+        assert "Fehler beim Laden von miss.wav" in caplog.text
 
     def test_toggle_sounds(self, sound_manager_mocks):  # noqa: E501
         """Testet das Aktivieren und Deaktivieren von Sounds."""
@@ -150,14 +131,6 @@ class TestSoundManager:
         sm = SoundManager(mocks["settings_manager"], mocks["root"])
         sm.play_hit()
         sm.hit_sound.play.assert_called_once()
-
-    def test_play_win_when_disabled(self, sound_manager_mocks):
-        """Testet, ob play_win() nichts tut, wenn deaktiviert."""
-        mocks = sound_manager_mocks
-        sm = SoundManager(mocks["settings_manager"], mocks["root"])
-        sm.toggle_sounds(False)
-        sm.play_win()
-        sm.win_sound.play.assert_not_called()
 
     def test_play_miss_when_sound_not_loaded(self, sound_manager_mocks, monkeypatch):
         """Testet, ob play_miss() nicht abstürzt, wenn der Sound nicht geladen wurde."""

@@ -4,7 +4,7 @@ from tkinter import ttk
 from unittest.mock import MagicMock, patch, call, ANY
 from datetime import date
 
-from core.game import HIGHSCORE_MODES
+from core.game_controller import HIGHSCORE_MODES
 from core.highscore_manager import HighscoreManager
 
 

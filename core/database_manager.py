@@ -162,7 +162,7 @@ class DatabaseManager:
         try:
             # SQLAlchemy Verbindungs-URL im Format: dialect+driver://user:password@host/dbname
             db_url = (
-                f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}"  # noqa: E501
+                f"postgresql+psycopg://{db_config['user']}:{db_config['password']}"  # noqa: E501
                 f"@{db_config['host']}/{db_config['database']}"
             )
             self.engine = create_engine(db_url)

@@ -23,7 +23,6 @@ from main import App, get_asset_path
 
 # Wir müssen auch die Klassen importieren, die wir mocken wollen,
 # damit 'isinstance' in den Tests funktioniert.
-from core.game import Game
 from core.game_options import GameOptions
 from core.tournament_manager import TournamentManager
 

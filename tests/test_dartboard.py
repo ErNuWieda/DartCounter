@@ -231,3 +231,48 @@ class TestDartboardInteractions:
 
         assert str(db.done_button.cget("state")) == expected_done_state
         assert str(db.undo_button.cget("state")) == expected_undo_state
+
+    def test_show_big_fish_effect(self, dartboard_instance):
+        """Verifiziert, dass der Big-Fish-Effekt Text-Elemente auf dem Canvas erstellt."""
+        db = dartboard_instance
+        db.show_big_fish_effect()
+        
+        # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
+        items = db.canvas.find_withtag("big_fish_overlay")
+        assert len(items) == 3  # Fisch, Schatten, Text
+
+    def test_show_180_effect(self, dartboard_instance):
+        """Verifiziert, dass der 180-Effekt Elemente auf dem Canvas erstellt."""
+        db = dartboard_instance
+        db.show_180_effect()
+        
+        # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
+        items = db.canvas.find_withtag("one_eighty_overlay")
+        assert len(items) == 5  # Text "180" + 4 Blitze
+
+    def test_show_no_score_effect(self, dartboard_instance):
+        """Verifiziert, dass der No-Score-Effekt Elemente auf dem Canvas erstellt."""
+        db = dartboard_instance
+        db.show_no_score_effect()
+        
+        # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
+        items = db.canvas.find_withtag("no_score_overlay")
+        assert len(items) == 2  # Schnecke + Text
+
+    def test_show_bust_effect(self, dartboard_instance):
+        """Verifiziert, dass der Bust-Effekt (Variante von no_score) korrekt erstellt wird."""
+        db = dartboard_instance
+        db.show_no_score_effect(is_bust=True)
+        
+        # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
+        items = db.canvas.find_withtag("no_score_overlay")
+        assert len(items) == 2
+
+    def test_show_low_score_effect(self, dartboard_instance):
+        """Verifiziert, dass der Low-Score-Effekt Elemente auf dem Canvas erstellt."""
+        db = dartboard_instance
+        db.show_low_score_effect()
+        
+        # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
+        items = db.canvas.find_withtag("low_score_overlay")
+        assert len(items) == 2  # Emoji + Text
