@@ -21,6 +21,8 @@ SCRIPT_DIR = pathlib.Path(__file__).parent
 VERSION_FILE = SCRIPT_DIR / "core" / "_version.py"
 CHANGELOG_FILE = SCRIPT_DIR / "CHANGELOG.md"
 RELEASE_CHECKLIST_FILE = SCRIPT_DIR / "RELEASE_CHECKLIST.md"
+BUILD_FILE = SCRIPT_DIR / "build.py"
+ISS_FILE = SCRIPT_DIR / "installer" / "create_installer.iss"
 
 
 def update_version_file(new_version: str):
@@ -28,16 +30,23 @@ def update_version_file(new_version: str):
     print(f"Aktualisiere {VERSION_FILE} auf Version {new_version}...")
     try:
         content = VERSION_FILE.read_text(encoding="utf-8")
+        
+        current_version_match = re.search(r"__version__\s*=\s*[\"'](.*?)[\"']", content)
+        current_version = current_version_match.group(1) if current_version_match else None
+
+        if current_version == new_version:
+            print(f"  -> Info: Version in {VERSION_FILE} ist bereits {new_version}. Keine Änderung nötig.")
+            return
+
         # Nutzt Regex, um den Versions-String zu finden und zu ersetzen
         new_content = re.sub(
             r"__version__\s*=\s*[\"'].*?[\"']",
             f'__version__ = "{new_version}"',
             content,
         )
-        if new_content == content:  # pragma: no cover
-            msg = f"  -> WARNUNG: Versions-String in {VERSION_FILE} nicht gefunden. Datei wurde nicht geändert."
-            print(msg)
-            return
+        if new_content == content:
+            print(f"  -> FEHLER: Versions-String in {VERSION_FILE} nicht gefunden oder konnte nicht ersetzt werden. Datei wurde nicht geändert.")
+            sys.exit(1)
 
         VERSION_FILE.write_text(new_content, encoding="utf-8")
         print(f"  -> Erfolg: {VERSION_FILE} wurde aktualisiert.")
@@ -110,6 +119,54 @@ def update_release_checklist(new_version: str):
         # Ein Fehler in der Versions- oder Changelog-Datei ist kritischer.
 
 
+def update_build_file():
+    """Stellt sicher, dass build.py die Version dynamisch aus _version.py liest."""
+    print(f"Überprüfe {BUILD_FILE} auf dynamische Versionierung...")
+    if not BUILD_FILE.exists():
+        print(f"  -> Hinweis: {BUILD_FILE} nicht gefunden. Überspringe.")
+        return
+    try:
+        content = BUILD_FILE.read_text(encoding="utf-8")
+        
+        # 1. Sicherstellen, dass der Import von __version__ vorhanden ist
+        import_line = "from core._version import __version__"
+        if import_line not in content:
+            # Fügt den Import am Anfang nach dem Header-Kommentar ein
+            content = re.sub(r"^(#.*?\n)*", rf"\g<0>{import_line}\n", content, count=1)
+        
+        # 2. Ersetze harte Zuweisung VERSION = "1.x.x" durch VERSION = __version__
+        new_content = re.sub(
+            r'VERSION\s*=\s*["\'][0-9.]+["\']',
+            'VERSION = __version__',
+            content
+        )
+        
+        if new_content != content:
+            BUILD_FILE.write_text(new_content, encoding="utf-8")
+            print(f"  -> Erfolg: {BUILD_FILE} wurde auf dynamische Versionierung umgestellt.")
+    except Exception as e:
+        print(f"  -> FEHLER: Konnte {BUILD_FILE} nicht aktualisieren: {e}")
+
+
+def update_iss_file(new_version: str):
+    """Aktualisiert die AppVersion in der Inno Setup Datei (.iss)."""
+    print(f"Aktualisiere {ISS_FILE} für Version {new_version}...")
+    if not ISS_FILE.exists():
+        return
+    try:
+        content = ISS_FILE.read_text(encoding="utf-8")
+        new_content = re.sub(
+            r'(#define AppVersion\s*")([0-9.]+)"',
+            rf'\1{new_version}"',
+            content
+        )
+        if new_content != content:
+            ISS_FILE.write_text(new_content, encoding="utf-8")
+            print(f"  -> Erfolg: {ISS_FILE} wurde aktualisiert.")
+    except Exception as e:
+        print(f"  -> FEHLER: Konnte {ISS_FILE} nicht aktualisieren: {e}")
+
+
 def main():
     """Hauptfunktion zur Orchestrierung des Versionssprungs."""
     if len(sys.argv) != 2 or not re.match(r"^\d+\.\d+\.\d+$", sys.argv[1]):
@@ -123,6 +180,8 @@ def main():
     update_version_file(new_version)
     update_changelog(new_version)
     update_release_checklist(new_version)
+    update_build_file()
+    update_iss_file(new_version)
     print("\n✅ Release-Vorbereitung abgeschlossen.")
     print("Bitte überprüfe die Änderungen in den modifizierten Dateien vor dem Commit.")
 
