@@ -6,13 +6,22 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [1.4.0] - 2026-04-27
 
 ### ✨ Features & Verbesserungen
+*   **Immersive Spielerfahrung:** Umfassende Überarbeitung der Ansage-Engine und Einführung visueller sowie akustischer Effekte für besondere Spielereignisse.
+    *   **"Big Fish" (170er Checkout):** Legendäre Ansagen und ein spezielles visuelles Overlay (Fisch-Emoji) auf dem Dartboard.
+    *   **"180" (Maximum):** Flackernde Blitze und eine große "180"-Anzeige auf dem Dartboard.
+    *   **"No Score" (0 Punkte):** Humorvoller Schnecken-Effekt auf dem Dartboard.
+    *   **"Bust" (Überwerfen):** Explosions-Emoji und "BUST!"-Schriftzug auf dem Dartboard.
+    *   **"Low Score" (1-7 Punkte):** Weinendes Emoji und "LOW SCORE!"-Schriftzug auf dem Dartboard.
+    *   **Optionale Effekte:** Alle visuellen Effekte und die dazugehörigen Sounds können in den Einstellungen deaktiviert werden.
+    *   **Verbessertes Timing:** Der "Big Fish"-Soundeffekt startet nun leicht verzögert nach der Sprachansage, um die Spannung zu erhöhen.
+*   **Robuste Sprachausgabe (TTS):** Die Ansage-Engine wurde auf `edge-tts` umgestellt, mit `gTTS` als intelligentem Fallback, um eine zuverlässige und hochwertige Sprachausgabe zu gewährleisten.
+*   **Kontextsensitive Ansagen:** Der Caller gibt nun detailliertere Ansagen für Match-Average, Madhouse-Finishes und Bullseye-Finishes.
+*   **Verbesserte Testabdeckung:** Die Testsuite wurde erweitert und stabilisiert, um die neuen Features und die asynchrone TTS-Logik zuverlässig zu verifizieren.
 
 ### 🐛 Bugfixes & Stabilität
-
----
 
 ## [1.3.3] - 2026-04-22
 

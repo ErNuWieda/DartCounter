@@ -23,12 +23,21 @@ Dieses Projekt zielt darauf ab, eine benutzerfreundliche Oberfläche für versch
     *   Spiele gegen KI-Gegner mit einstellbaren Schwierigkeitsgraden (von Anfänger bis Champion).
     *   Die KI verfolgt eine menschliche Wurfstrategie, inklusive Power-Scoring und cleveren Setup-Würfen im Finish-Bereich.
     *   **Adaptive 'KI-Klone':** Lassen Sie die KI die Wurf-Statistiken (Genauigkeit und Streuung) eines menschlichen Spielers analysieren und erstellen Sie einen Klon als perfekten, realistischen Sparringspartner.
+*   **Immersive Atmosphäre & Audio-Feedback:**
+    *   **Neuraler Voice-Caller:** Hochwertige, menschlich klingende Sprachausgabe (via edge-tts/gTTS) sagt Scores, Checkout-Wege und Siege an. Verschiedene Stimmen wählbar.
+    *   **Visuelle Highlights:** Spezielle Overlays und Animationen auf dem Dartboard für 180er, den legendären „Big Fish“ (170er Finish) sowie humorvolle Effekte für „No Score“ oder „Bust“.
+    <p align="center">
+      <img src="./assets/effect_180.png" width="300" alt="180er Effekt" />
+      <img src="./assets/effect_big_fish.png" width="300" alt="Big Fish Effekt" />
+    </p>
+    *   **Dynamische Soundeffekte:** Passende akustische Untermalung für besondere Momente, die für echtes „Ally Pally“-Feeling sorgt.
 *   **Spieler-Profile & Statistiken:**
     *   **Persistente Profile:** Erstelle und verwalte Spielerprofile (Mensch & KI) mit Namen, Avatar und individueller Dart-Farbe.
     *   **Detaillierte Statistiken:** Verfolge deine Leistung mit Statistiken wie 3-Dart-Average, MPR, Checkout-Quote und einem grafischen Formverlauf.
     *   **Wurf-Analyse:** Visualisiere deine Treffsicherheit mit einer persönlichen Wurf-Heatmap.
 *   **Moderne Benutzeroberfläche:**
     *   Interaktives, klickbares Dartboard zur einfachen Eingabe der Würfe.
+    *   **Dynamische Overlays:** Echtzeit-Anzeige von speziellen Ereignissen direkt auf dem Board.
     *   **High-DPI aware:** Automatische Skalierung der Overlays und Icons für 4K- und Retina-Monitore.
     *   Helles und dunkles Design wählbar.
     *   **Statistik-Integrität:** Intelligente Undo-Funktion, die auch bei Spiel-Ende die Datenbank-Einträge (Highscores/Stats) sauber bereinigt.
@@ -186,7 +195,7 @@ Das Skript erledigt automatisch die folgenden Aufgaben:
 2. Es bereinigt alte Build-Dateien. 
 3. Es führt PyInstaller mit den korrekten Einstellungen aus, um die Anwendung zu bauen. 
 4. Es erstellt ein Release-Verzeichnis, kopiert die ausführbare Datei, die README.md und eine config.ini.example hinein. 
-5. Es packt alles in eine ZIP-Datei, z.B. DartCounter_Windows_v1.2.0.zip. 
+5. Es packt alles in eine ZIP-Datei, z.B. DartCounter_Windows_v1.4.0.zip. 
 6. Anschließend werden alle temporären Build-Ordner wieder gelöscht. 
 
 #### Schritt 5: Ergebnis finden 

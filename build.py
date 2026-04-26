@@ -20,6 +20,8 @@ import shutil
 import subprocess
 import sys
 import pathlib
+import re
+import importlib.metadata
 from core._version import __version__
 
 # --- Konfiguration ---
@@ -33,6 +35,44 @@ BUILD_DIR = pathlib.Path("build")
 SPEC_FILE = pathlib.Path(f"{APP_NAME}.spec")
 
 FILES_TO_COPY_TO_RELEASE = ["README.md", "config.ini.example"]
+
+
+def check_installed_requirements():
+    """Prüft, ob alle in requirements.txt gelisteten Pakete installiert sind."""
+    print(">>> Schritt 0.2: Prüfe Abhängigkeiten aus requirements.txt...")
+    req_path = pathlib.Path("requirements.txt")
+    if not req_path.exists():
+        print("  -> Hinweis: keine requirements.txt gefunden. Überspringe Check.")
+        return True
+
+    try:
+        content = req_path.read_text(encoding="utf-8")
+        # Extrahiere Paketnamen (ignoriert Kommentare und Versionseinschränkungen)
+        required = []
+        for line in content.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                # Trennt den Namen von Operatoren wie ==, >=, etc.
+                name = re.split(r'[<>=!~]', line)[0].strip()
+                required.append(name)
+
+        missing = []
+        for pkg in required:
+            try:
+                importlib.metadata.version(pkg)
+            except importlib.metadata.PackageNotFoundError:
+                missing.append(pkg)
+
+        if missing:
+            print(f"\nFEHLER: Folgende Pakete fehlen in der Umgebung: {', '.join(missing)}")
+            print(f"Bitte installieren Sie diese mit: {sys.executable} -m pip install -r requirements.txt")
+            return False
+
+        print(">>> ✅ Alle Basis-Abhängigkeiten sind vorhanden.")
+        return True
+    except Exception as e:
+        print(f"  -> Warnung beim Requirements-Check: {e}")
+        return True
 
 
 def run_tests():
@@ -116,6 +156,10 @@ def main():
         print("\nFEHLER: Das Modul 'PyInstaller' wurde nicht gefunden.")
         print(f"Bitte installieren Sie es in der aktiven Python-Umgebung ({sys.executable}) mit:")
         print("pip install pyinstaller")
+        sys.exit(1)
+
+    # Prüfe installierte Pakete
+    if not check_installed_requirements():
         sys.exit(1)
 
     # Führe die Tests aus, bevor der Build-Prozess startet
