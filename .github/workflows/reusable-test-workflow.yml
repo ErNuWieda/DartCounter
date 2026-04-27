@@ -29,6 +29,10 @@ jobs:
       # Setzt den Matplotlib-Backend auf einen nicht-interaktiven Modus.
       # Wichtig für Tests, die Plots erstellen (z.B. Statistiken), um GUI-Fehler in der CI zu vermeiden.
       MPLBACKEND: Agg
+      # Verhindert Fehler bei der Initialisierung von Pygame-Mixer/Display in Headless-Umgebungen.
+      SDL_AUDIODRIVER: dummy
+      SDL_VIDEODRIVER: dummy
+      AVOID_GUI: "true"
 
     steps:
       - name: 1. Install System Prerequisites (for container)

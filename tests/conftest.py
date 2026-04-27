@@ -121,6 +121,23 @@ def mock_game():
     game.get_score.side_effect = _get_score_side_effect
     return game
 
+@pytest.fixture(autouse=True)
+def mock_pygame_mixer(request):
+    """Mocks the pygame mixer globally. Skipped for explicit mixer error tests."""
+    # Erlaubt es Tests, die gezielt Mixer-Fehler prüfen, den globalen Mock zu umgehen.
+    # Damit schlagen Tests wie 'test_announcer_handles_mixer_error' nicht mehr fehl.
+    if "mixer_error" in request.node.name:
+        yield
+        return
+
+    with patch("pygame.mixer.init"), \
+         patch("pygame.mixer.get_init", return_value=True), \
+         patch("pygame.mixer.music"), \
+         patch("pygame.mixer.Sound") as mock_sound:
+        # Stelle sicher, dass get_busy() sofort False liefert, um Endlosschleifen zu vermeiden
+        mock_sound.return_value.get_busy.return_value = False
+        yield
+
 @pytest.fixture
 def mock_profile_manager():
     """
