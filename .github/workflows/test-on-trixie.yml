@@ -15,4 +15,5 @@ jobs:
       os: ubuntu-latest
       python-version: '3.11' # Die Python-Version, die im Container verwendet werden soll
       container-image: debian:trixie
-      pytest-marker: 'not db'
+      setup-postgres: true
+      pytest-marker: ''

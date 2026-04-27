@@ -18,11 +18,29 @@ on:
         required: false
         type: string
         default: ""
+      setup-postgres:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   test:
     name: Test on ${{ inputs.os }} with Python ${{ inputs.python-version }}
     runs-on: ${{ inputs.os }}
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: dart_test
+          POSTGRES_USER: martin
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     container:
       image: ${{ inputs.container-image }}
     env:
@@ -43,6 +61,17 @@ jobs:
 
       - name: 2. Checkout Code
         uses: actions/checkout@v4
+
+      - name: 2b. Create Database Config
+        if: ${{ inputs.setup-postgres }}
+        run: |
+          cat <<EOF > config.ini
+          [postgresql]
+          host=${{ inputs.container-image && 'postgres' || 'localhost' }}
+          database=dart_test
+          user=martin
+          password=password
+          EOF
 
       - name: 3. Set up Python
         uses: actions/setup-python@v5
