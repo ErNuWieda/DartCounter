@@ -79,6 +79,13 @@ def run_tests():
     """Führt die Test-Suite aus und bricht bei Fehlern ab."""
     print("\n>>> Schritt 0.5: Führe Test-Suite aus...")
     try:
+        # Vorab-Check ob pytest installiert ist
+        import pytest
+    except ImportError:
+        print("  -> Warnung: 'pytest' nicht gefunden. Überspringe Tests.")
+        return True
+
+    try:
         # Die Konfiguration für Coverage etc. wird jetzt aus der pytest.ini gelesen.
         # Wir behalten nur die Flags, die wir speziell für den Build-Prozess wollen.
         test_command = [
@@ -93,7 +100,10 @@ def run_tests():
         # Auf Linux-Systemen (wie in der CI) müssen GUI-Tests in einer virtuellen Anzeige laufen.
         # Wir prüfen, ob wir in einer CI-Umgebung sind, um xvfb-run nur dort zu verwenden.
         if platform.system() == "Linux" and os.getenv("CI"):
-            test_command.insert(0, "xvfb-run")
+            if shutil.which("xvfb-run"):
+                test_command.insert(0, "xvfb-run")
+            else:
+                print("  -> Hinweis: CI erkannt, aber 'xvfb-run' nicht gefunden. Führe Tests ohne Xvfb aus...")
 
         # Führe den Befehl aus. Wir verwenden nicht check=True, um die Ausnahme selbst zu behandeln
         # und eine bessere Fehlermeldung auszugeben.
@@ -128,7 +138,8 @@ def clean_previous_builds(release_dir: pathlib.Path):
     print(">>> Schritt 1: Alte Build-Artefakte bereinigen...")
 
     # Eine Liste von Pfaden, die gelöscht werden sollen.
-    paths_to_clean = [release_dir, release_dir.with_suffix(".zip"), BUILD_DIR, DIST_DIR, SPEC_FILE]
+    zip_path = pathlib.Path(str(release_dir) + ".zip")
+    paths_to_clean = [release_dir, zip_path, BUILD_DIR, DIST_DIR, SPEC_FILE]
 
     for path in paths_to_clean:
         if path.is_dir():

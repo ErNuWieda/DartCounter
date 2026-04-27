@@ -32,7 +32,7 @@ def update_version_file(new_version: str):
         content = VERSION_FILE.read_text(encoding="utf-8")
         
         current_version_match = re.search(r"__version__\s*=\s*[\"'](.*?)[\"']", content)
-        current_version = current_version_match.group(1) if current_version_match else None
+        current_version = current_version_match.group(1).strip() if current_version_match else None
 
         if current_version == new_version:
             print(f"  -> Info: Version in {VERSION_FILE} ist bereits {new_version}. Keine Änderung nötig.")
@@ -136,7 +136,7 @@ def update_build_file():
         
         # 2. Ersetze harte Zuweisung VERSION = "1.x.x" durch VERSION = __version__
         new_content = re.sub(
-            r'VERSION\s*=\s*["\'][0-9.]+["\']',
+            r'VERSION\s*=\s*["\'].*?["\']',
             'VERSION = __version__',
             content
         )
@@ -156,7 +156,7 @@ def update_iss_file(new_version: str):
     try:
         content = ISS_FILE.read_text(encoding="utf-8")
         new_content = re.sub(
-            r'(#define AppVersion\s*")([0-9.]+)"',
+            r'(#define AppVersion\s*").*?"',
             rf'\1{new_version}"',
             content
         )
@@ -169,12 +169,18 @@ def update_iss_file(new_version: str):
 
 def main():
     """Hauptfunktion zur Orchestrierung des Versionssprungs."""
-    if len(sys.argv) != 2 or not re.match(r"^\d+\.\d+\.\d+$", sys.argv[1]):
+    if len(sys.argv) != 2:
         print("Verwendung: python3 prepare_release.py <version>")
         print("Beispiel:  python3 prepare_release.py 1.3.0")
         sys.exit(1)
 
     new_version = sys.argv[1]
+    # Bereinige die Version (entferne 'v' Prefix, falls vorhanden)
+    new_version = re.sub(r"^v", "", new_version).strip()
+
+    if not re.match(r"^\d+\.\d+\.\d+", new_version):
+        print(f"FEHLER: Ungültiges Versionsformat '{new_version}'. Erwartet wird X.Y.Z")
+        sys.exit(1)
 
     print(f"🚀 Bereite neues Release vor: v{new_version}\n")
     update_version_file(new_version)

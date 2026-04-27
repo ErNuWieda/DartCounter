@@ -23,13 +23,6 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🐛 Bugfixes & Stabilität
 
-## [1.3.3] - 2026-04-22
-
-### ✨ Features & Verbesserungen
-
-### 🐛 Bugfixes & Stabilität
-
----
 
 ## [1.3.3] - 2026-04-22
 
