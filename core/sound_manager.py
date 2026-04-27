@@ -77,6 +77,16 @@ class SoundManager:
         self.loading_errors = []  # To collect errors for a single messagebox
         self.loaded_sounds = []  # To store all sound objects
 
+        # Initialisiere alle Sound-Attribute mit None, um AttributeErrors zu vermeiden,
+        # falls optionale Dateien nicht vorhanden sind.
+        self.hit_sound = None
+        self.miss_sound = None
+        self.bust_sound = None
+        self.no_score_sound = None
+        self.low_score_sound = None
+        self.one_eighty_sound = None
+        self.big_fish_sound = None
+
         if not PYGAME_AVAILABLE:
             logger.warning("pygame ist nicht installiert. Soundeffekte sind deaktiviert.")
             self.sounds_enabled = False
@@ -118,24 +128,23 @@ class SoundManager:
         """Lädt alle definierten Sound-Dateien."""
         # Datengesteuerter Ansatz: Definiere alle Sounds an einer Stelle.
         # Das macht das Hinzufügen neuer Sounds einfacher.
+        # Format: "attribut_name": ("dateiname.wav", ist_pflichtfeld)
+        # Hinweis: 'hit.wav' ist die ehemalige 'thump.wav'.
         sound_definitions = {
-            "hit": "hit.wav", # Soundeffekt für Treffer
-            "miss": "miss.wav", # Soundeffekt für Fehlwurf
-            "bust": "bust.wav", # Explosion/Bust
-            "no_score": "no_score.wav", # Schnecke
-            "low_score": "low_score.wav", # Weinendes Emoji
-            "one_eighty": "180.wav", # Blitze
-            "big_fish": "big_fish.wav", # Fisch
+            "hit": ("hit.wav", True),   # Der dumpfe Einschlag (ehemals thump)
+            "miss": ("miss.wav", True), # Das "Ouch!" bei Fehlwürfen
+            "bust": ("bust.wav", False),
+            "no_score": ("no_score.wav", False),
+            "low_score": ("low_score.wav", False),
+            "one_eighty": ("180.wav", False),
+            "big_fish": ("big_fish.wav", False),
         }
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
-        for attr_name, filename in sound_definitions.items():
-            setattr(
-                self,
-                f"{attr_name}_sound",
-                self._load_sound(assets_dir / filename),
-            )
+        for attr_name, (filename, is_required) in sound_definitions.items():
+            sound_obj = self._load_sound(assets_dir / filename, required=is_required)
+            setattr(self, f"{attr_name}_sound", sound_obj)
 
-    def _load_sound(self, path):
+    def _load_sound(self, path, required=True):
         """
         Lädt eine einzelne Sounddatei sicher.
 
@@ -145,14 +154,16 @@ class SoundManager:
 
         Args:
             path (pathlib.Path): Der vollständige Pfad zur Sounddatei.
+            required (bool): Wenn True, wird ein Fehler geloggt/angezeigt, falls die Datei fehlt.
 
         Returns:
             pygame.mixer.Sound or None: Das geladene Sound-Objekt oder None bei einem Fehler.
         """
         if not path.exists():
-            msg = f"Datei nicht gefunden: {path.name}"
-            logger.warning(msg)
-            self.loading_errors.append(msg)
+            if required:
+                msg = f"Pflichtdatei nicht gefunden: {path.name}"
+                logger.warning(msg)
+                self.loading_errors.append(msg)
             return None
         try:
             sound = pygame.mixer.Sound(path)
@@ -196,37 +207,42 @@ class SoundManager:
         if not self.sounds_enabled:
             logger.info("Soundeffekte deaktiviert.")
             
+    def _play(self, sound_obj, ducking_factor=0.3):
+        """
+        Interne Hilfsmethode zum sicheren Abspielen.
+        Reduziert die Lautstärke automatisch (Ducking), wenn der Announcer spricht.
+        """
+        if self.sounds_enabled and sound_obj:
+            # Ducking: Wenn der Announcer (music) aktiv ist, Lautstärke temporär senken
+            is_speaking = pygame.mixer.music.get_busy()
+            actual_volume = self.volume * ducking_factor if is_speaking else self.volume
+            sound_obj.set_volume(actual_volume)
+            sound_obj.play()
+
     def play_hit(self):
         """Spielt den Sound für einen Treffer ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.hit_sound:
-            self.hit_sound.play()
+        self._play(self.hit_sound)
 
     def play_miss(self):
         """Spielt den Sound für einen Fehlwurf ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.miss_sound:
-            self.miss_sound.play()
+        self._play(self.miss_sound)
 
     def play_bust(self):
         """Spielt den Sound für ein Überwerfen ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.bust_sound:
-            self.bust_sound.play()
+        self._play(self.bust_sound)
 
     def play_no_score(self):
         """Spielt den Sound für 0 Punkte ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.no_score_sound:
-            self.no_score_sound.play()
+        self._play(self.no_score_sound)
 
     def play_low_score(self):
         """Spielt den Sound für niedrige Scores ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.low_score_sound:
-            self.low_score_sound.play()
+        self._play(self.low_score_sound)
 
     def play_one_eighty(self):
         """Spielt den Sound für ein Maximum ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.one_eighty_sound:
-            self.one_eighty_sound.play()
+        self._play(self.one_eighty_sound)
 
     def play_big_fish(self):
         """Spielt den Sound für das Big Fish Finish ab, falls Sounds aktiviert sind."""
-        if self.sounds_enabled and self.big_fish_sound:
-            self.big_fish_sound.play()
+        self._play(self.big_fish_sound)

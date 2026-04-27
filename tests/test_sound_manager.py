@@ -30,6 +30,9 @@ def sound_manager_mocks(monkeypatch):
     mock_messagebox = MagicMock()
     monkeypatch.setattr("core.sound_manager.messagebox", mock_messagebox)
 
+    # Mocke Path.exists global für diese Fixture, damit die Tests nicht von echten Dateien abhängen
+    monkeypatch.setattr("pathlib.Path.exists", lambda p: True)
+
     # Mock the SettingsManager
     mock_settings_manager = MagicMock()
     mock_settings_manager.get.return_value = True
@@ -91,16 +94,23 @@ class TestSoundManager:
             assert sm.miss_sound is None, "miss_sound sollte None sein, da die Datei fehlt."
             mocks["mock_messagebox"].showwarning.assert_called_once()
         # Prüfe, ob die korrekte WARNING-Nachricht geloggt wurde.
-        assert "Datei nicht gefunden: miss.wav" in caplog.text, "Die Log-Nachricht für eine fehlende Datei ist falsch."
+        assert "Pflichtdatei nicht gefunden: miss.wav" in caplog.text, "Die Log-Nachricht für eine fehlende Datei ist falsch."
         assert "Fehler beim Laden" not in caplog.text, "Es sollte kein Lade-ERROR geloggt werden."
 
-    def test_init_sound_loading_error(self, sound_manager_mocks, caplog):
+    def test_init_sound_loading_error(self, sound_manager_mocks, caplog, monkeypatch):
         """Testet, ob ein Fehler protokolliert wird, wenn pygame eine Datei nicht laden kann."""
         mocks = sound_manager_mocks
-        # Simuliere, dass Sound() beim Laden von 'miss.wav' (Index 1) einen Fehler wirft. Es gibt 2 Sounds.
-        sound_mocks = [MagicMock() for _ in range(2)]
-        sound_mocks[1] = mocks["mock_pygame"].error("Ladefehler")  # miss.wav fails
-        mocks["mock_pygame"].mixer.Sound.side_effect = sound_mocks
+
+        # Stelle sicher, dass die Dateien als vorhanden gemeldet werden
+        monkeypatch.setattr("pathlib.Path.exists", lambda p: True)
+
+        # Verwende eine Funktion für side_effect, um gezielt einen Fehler bei miss.wav zu provozieren
+        def mock_sound_init(path):
+            if "miss.wav" in str(path):
+                raise mocks["mock_pygame"].error("Ladefehler")
+            return MagicMock()
+
+        mocks["mock_pygame"].mixer.Sound.side_effect = mock_sound_init
 
         with caplog.at_level(logging.ERROR):
             sm = SoundManager(mocks["settings_manager"], mocks["root"])
@@ -153,3 +163,27 @@ class TestSoundManager:
             sm.play_miss()
         except Exception as e:
             pytest.fail(f"play_miss() hat einen unerwarteten Fehler ausgelöst: {e}")
+
+    def test_init_optional_sound_missing_is_silent(self, sound_manager_mocks, caplog, monkeypatch):
+        """Testet, dass fehlende optionale Sounds keine Warnung oder Fehler auslösen."""
+        mocks = sound_manager_mocks
+
+        # Mocke exists: bust.wav fehlt, alle anderen existieren
+        def mock_exists(path):
+            if "bust.wav" in str(path):
+                return False
+            return True
+
+        monkeypatch.setattr("pathlib.Path.exists", mock_exists)
+
+        with caplog.at_level(logging.WARNING):
+            sm = SoundManager(mocks["settings_manager"], mocks["root"])
+            # bust_sound sollte None sein
+            assert sm.bust_sound is None
+            # Aber hit_sound (Pflicht) sollte geladen sein
+            assert sm.hit_sound is not None
+
+        # Es sollte KEINE Warnung für bust.wav im Log sein
+        assert "bust.wav" not in caplog.text
+        # Die MessageBox sollte NICHT gerufen worden sein (da nur optionale Datei fehlt)
+        mocks["mock_messagebox"].showwarning.assert_not_called()

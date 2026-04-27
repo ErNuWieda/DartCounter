@@ -374,11 +374,19 @@ class DartBoard:
 
         tag = "big_fish_overlay"
 
-        # Großer Fisch-Emoji in der Mitte (leicht nach oben versetzt)
+        # Fisch-Emoji mit Schatten für maximalen Kontrast
+        self.canvas.create_text(
+            self.center_x + 3, self.center_y - 17,
+            text="🐟",
+            font=("Arial", 120),
+            fill="black",
+            tags=tag
+        )
         self.canvas.create_text(
             self.center_x, self.center_y - 20,
             text="🐟",
             font=("Arial", 120),
+            fill="gold",
             tags=tag
         )
 
@@ -426,7 +434,11 @@ class DartBoard:
             (self.center_x + 140, self.center_y + 90),
         ]
         lightning_ids = []
+        
         for lx, ly in lightning_positions:
+            # Permanenter schwarzer Schatten für die Blitze
+            self.canvas.create_text(lx + 2, ly + 2, text="⚡", font=("Arial", 70), fill="black", tags=tag)
+            # Haupt-Blitz (wird flackern)
             l_id = self.canvas.create_text(lx, ly, text="⚡", font=("Arial", 70), tags=tag)
             lightning_ids.append(l_id)
 
@@ -457,16 +469,32 @@ class DartBoard:
         emoji = "💥" if is_bust else "🐌"
         display_text = "BUST!" if is_bust else "NO SCORE!"
         text_color = "red" if is_bust else "gray"
+        emoji_color = "orange" if is_bust else "gold"
 
-        # Emoji (Schnecke für 0, Explosion für Bust)
+        # Emoji mit Schatten
+        self.canvas.create_text(
+            self.center_x + 2, self.center_y - 18,
+            text=emoji,
+            font=("Arial", 100),
+            fill="black",
+            tags=tag
+        )
         self.canvas.create_text(
             self.center_x, self.center_y - 20,
             text=emoji,
             font=("Arial", 100),
+            fill=emoji_color,
             tags=tag
         )
 
-        # Text-Hinweis
+        # Text-Hinweis mit Schatten
+        self.canvas.create_text(
+            self.center_x + 2, self.center_y + 82,
+            text=display_text,
+            font=("Arial", 30, "bold"),
+            fill="black",
+            tags=tag
+        )
         self.canvas.create_text(
             self.center_x, self.center_y + 80,
             text=display_text,
@@ -485,15 +513,30 @@ class DartBoard:
 
         tag = "low_score_overlay"
 
-        # Weinendes Emoji
+        # Weinendes Emoji mit Schatten
+        self.canvas.create_text(
+            self.center_x + 2, self.center_y - 18,
+            text="😢",
+            font=("Arial", 100),
+            fill="black",
+            tags=tag
+        )
         self.canvas.create_text(
             self.center_x, self.center_y - 20,
             text="😢",
             font=("Arial", 100),
+            fill="gold",
             tags=tag
         )
 
-        # Text "LOW SCORE!" in einem traurigen Blau
+        # Text mit Schatten
+        self.canvas.create_text(
+            self.center_x + 2, self.center_y + 82,
+            text="LOW SCORE!",
+            font=("Arial", 30, "bold"),
+            fill="black",
+            tags=tag
+        )
         self.canvas.create_text(
             self.center_x, self.center_y + 80,
             text="LOW SCORE!",

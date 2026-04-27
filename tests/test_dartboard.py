@@ -239,7 +239,7 @@ class TestDartboardInteractions:
         
         # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
         items = db.canvas.find_withtag("big_fish_overlay")
-        assert len(items) == 3  # Fisch, Schatten, Text
+        assert len(items) == 4  # Fisch (Shadow + Color), Text (Shadow + Color)
 
     def test_show_180_effect(self, dartboard_instance):
         """Verifiziert, dass der 180-Effekt Elemente auf dem Canvas erstellt."""
@@ -248,7 +248,7 @@ class TestDartboardInteractions:
         
         # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
         items = db.canvas.find_withtag("one_eighty_overlay")
-        assert len(items) == 5  # Text "180" + 4 Blitze
+        assert len(items) == 9  # Text "180" + 4 Blitze (jeweils Shadow + Main)
 
     def test_show_no_score_effect(self, dartboard_instance):
         """Verifiziert, dass der No-Score-Effekt Elemente auf dem Canvas erstellt."""
@@ -257,7 +257,7 @@ class TestDartboardInteractions:
         
         # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
         items = db.canvas.find_withtag("no_score_overlay")
-        assert len(items) == 2  # Schnecke + Text
+        assert len(items) == 4  # Emoji (Shadow + Color) + Text (Shadow + Color)
 
     def test_show_bust_effect(self, dartboard_instance):
         """Verifiziert, dass der Bust-Effekt (Variante von no_score) korrekt erstellt wird."""
@@ -266,7 +266,7 @@ class TestDartboardInteractions:
         
         # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
         items = db.canvas.find_withtag("no_score_overlay")
-        assert len(items) == 2
+        assert len(items) == 4  # Emoji (Shadow + Color) + Text (Shadow + Color)
 
     def test_show_low_score_effect(self, dartboard_instance):
         """Verifiziert, dass der Low-Score-Effekt Elemente auf dem Canvas erstellt."""
@@ -275,4 +275,4 @@ class TestDartboardInteractions:
         
         # Prüfen, ob die Elemente mit dem speziellen Tag vorhanden sind
         items = db.canvas.find_withtag("low_score_overlay")
-        assert len(items) == 2  # Emoji + Text
+        assert len(items) == 4  # Emoji (Shadow + Color) + Text (Shadow + Color)
