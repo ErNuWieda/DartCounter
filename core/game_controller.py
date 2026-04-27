@@ -255,6 +255,27 @@ class GameController:
             self.shanghai_finish_round = None # Auch die Runde zurücksetzen
             self.shanghai_finish = False
         player = self.current_player()
+
+        # NEU: Unterstützung für das Rückgängigmachen über Runden- und Spieler-Grenzen hinweg.
+        # Wenn der aktuelle Spieler noch keine Würfe hat, springen wir zum vorherigen Spieler zurück.
+        if player and not player.throws and not self.end:
+            prev_idx = (self.current - 1) % len(self.players)
+            # Abbrechen, wenn wir am absoluten Anfang des Spiels sind.
+            if self.round == 1 and self.current == 0:
+                return
+
+            # Index und ggf. Runde aktualisieren
+            if self.current == 0:
+                self.round -= 1
+            self.current = prev_idx
+            player = self.current_player()
+
+            # Die Würfe der letzten Aufnahme dieses Spielers wiederherstellen
+            if player.turn_history:
+                num_to_restore = player.turn_history.pop()
+                player.throws = player.all_game_throws[-num_to_restore:]
+                player.all_game_throws = player.all_game_throws[:-num_to_restore]
+
         if player and player.throws and self.game_view_manager: # type: ignore
             popped_throw = player.throws.pop()  # This is now a 3-tuple (ring, segment, coords)
             self.game._handle_throw_undo(player, popped_throw[0], popped_throw[1], self.players)

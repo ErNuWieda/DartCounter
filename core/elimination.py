@@ -52,6 +52,17 @@ class Elimination(GameLogicBase):
 
     def _handle_throw_undo(self, player, ring, segment, players):
         """Macht einen Wurf im Elimination-Modus rückgängig, inklusive Eliminierungen."""
+        # 0. Bust-Schutz: Wenn der Wurf ein Bust war, wurde der Score nicht erhöht.
+        if player.turn_is_over and player.score != self.count_to:
+            player.turn_is_over = False
+            player.sb.update_score(player.score)
+            return ("ok", None)
+
+        # 1. Miss-Schutz: Bei einem Miss hat sich am Score nichts geändert.
+        if ring == "Miss":
+            player.sb.update_score(player.score)
+            return ("ok", None)
+
         # 1. Prüfen, ob dieser Wurf eine Eliminierung ausgelöst hat.
         # Dies muss VOR der Korrektur des Werfer-Scores geschehen, da wir den
         # Zustand zum Zeitpunkt der Eliminierung benötigen.
@@ -78,6 +89,7 @@ class Elimination(GameLogicBase):
         # 2. Punktzahl des Werfers korrigieren
         score_to_undo = self.game.get_score(ring, segment)
         player.update_score_value(score_to_undo, subtract=True)
+        return ("ok", None)
 
     def to_dict(self) -> dict:
         """Serialisiert das Eliminierungs-Protokoll für das Speichern."""

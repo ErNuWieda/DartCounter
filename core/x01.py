@@ -138,11 +138,22 @@ class X01(GameLogicBase):
 
         score_after_throw = player.score
         score_before_throw = score_after_throw + throw_score
+
+        # Erkennung eines Bust-Wurfs: Der Zug war beendet, aber der Score ist nicht 0.
+        # Da wir den Wurf gerade rückgängig machen, setzen wir auch das 'turn_is_over' Flag zurück.
+        was_bust = player.turn_is_over and score_after_throw != 0
+        if was_bust:
+            player.turn_is_over = False
+            # Bei einem Bust wurden keine Statistiken aktualisiert, also überspringen wir den Abzug.
+            self._update_ui_after_undo(player)
+            return
+
         was_winning_throw = score_after_throw == 0
 
         # 2. Statistiken zurücksetzen (muss vor der Score-Änderung geschehen)
-        player.stats["total_darts_thrown"] -= 1
-        player.stats["total_score_thrown"] -= throw_score
+        if player.has_opened:
+            player.stats["total_darts_thrown"] -= 1
+            player.stats["total_score_thrown"] -= throw_score
 
         # Checkout-Statistiken zurücksetzen, falls es eine Checkout-Möglichkeit war
         if score_before_throw == throw_score and self.opt_out != "Single":
@@ -165,6 +176,10 @@ class X01(GameLogicBase):
         player.score = score_before_throw
 
         # 4. UI aktualisieren
+        self._update_ui_after_undo(player)
+
+    def _update_ui_after_undo(self, player: "Player"):
+        """Hilfsmethode zur Aktualisierung der UI nach einem Undo."""
         preferred_double = player.profile.preferred_double if player.profile else None
         darts_remaining = 3 - len(player.throws)
         suggestion = CheckoutCalculator.get_checkout_suggestion(

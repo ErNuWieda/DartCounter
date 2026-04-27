@@ -142,3 +142,31 @@ class TestGameWithCricket:
         game.throw("Single", 20)
         assert alice.score == 0
         assert bob.score == 20
+
+    def test_cricket_cross_turn_undo(self, cricket_game):
+        """Testet, ob Undo über Runden- und Spielerwechsel hinweg im Cricket funktioniert."""
+        game = cricket_game
+        alice = game.players[0]
+        bob = game.players[1]
+
+        # 1. Alice wirft 3 Darts und schließt die 20
+        game.throw("Triple", 20)
+        game.throw("Single", 1)
+        game.throw("Single", 1)
+        game.next_player()
+
+        assert game.current_player() == bob
+        assert alice.state["hits"]["20"] == 3
+
+        # 2. Bob wirft 1 Dart
+        game.throw("Single", 19)
+
+        # 3. Undo Bob's Wurf
+        game.undo()
+        assert bob.throws == []
+
+        # 4. Erneutes Undo springt zu Alice zurück und stellt ihren Zustand wieder her
+        game.undo()
+        assert game.current_player() == alice
+        assert alice.throws == [("Triple", 20, None), ("Single", 1, None)]
+        assert alice.state["hits"]["20"] == 3

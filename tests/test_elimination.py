@@ -106,3 +106,35 @@ def test_undo_elimination_restores_victim_score(elimination_logic, players):
 
     assert player1.score == 40
     assert player2.score == 100
+
+def test_undo_bust_restores_turn_state(elimination_logic, players):
+    """Verifiziert, dass das Undo eines Busts den Punktestand nicht korrumpiert."""
+    player1 = players[0]
+    player1.score = 280
+    # Wurf auf T20 (60) -> 340 > 301 (Bust)
+    elimination_logic._handle_throw(player1, "Triple", 20, [])
+    assert player1.score == 280
+    assert player1.turn_is_over is True
+
+    elimination_logic._handle_throw_undo(player1, "Triple", 20, [])
+    assert player1.score == 280
+    assert player1.turn_is_over is False
+
+def test_elimination_cross_turn_undo(elimination_logic, players):
+    """Testet, ob eine Eliminierung über einen Spielerwechsel hinweg rückgängig gemacht werden kann."""
+    p1, p2 = players
+    p1.score = 100
+    p2.score = 40
+
+    # 1. P2 wirft T20 (60) -> Score 100. P1 wird eliminiert (Score 0).
+    elimination_logic._handle_throw(p2, "Triple", 20, players)
+    assert p1.score == 0
+    assert p2.score == 100
+    p2.reset_turn() # Spielerwechsel simulieren
+
+    # 2. Undo für P2 aufrufen (der GameController würde P2 als 'previous' wiederherstellen)
+    elimination_logic._handle_throw_undo(p2, "Triple", 20, players)
+
+    # 3. Ergebnisse prüfen
+    assert p1.score == 100, "P1 hätte seine 100 Punkte zurückerhalten müssen."
+    assert p2.score == 40, "P2 hätte wieder auf 40 Punkte fallen müssen."

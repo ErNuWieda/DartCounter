@@ -87,6 +87,7 @@ class Player:
         # Eindeutige ID zuweisen und den Zähler erhöhen
         self.id = Player.id
         Player.id += 1
+        self.turn_history = []  # Speichert die Anzahl der Würfe pro abgeschlossener Aufnahme
         self.turn_is_over = False
         self.all_game_throws = []  # Hält alle Würfe des gesamten Spiels für Statistiken
         self.throws = []
@@ -157,6 +158,8 @@ class Player:
         Setzt die Wurfhistorie für die aktuelle Runde zurück.
         Wird am Ende des Zugs eines Spielers aufgerufen.
         """
+        if self.throws:
+            self.turn_history.append(len(self.throws))
         self.all_game_throws.extend(self.throws)
         self.turn_is_over = False
         self.throws = []

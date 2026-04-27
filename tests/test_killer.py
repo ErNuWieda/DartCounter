@@ -134,3 +134,23 @@ def test_undo_take_life_restores_victim_life(killer_logic, players, mock_game):
     killer_logic._handle_throw_undo(killer, "Double", 19, players)
 
     assert victim.score == mock_game.options.lifes
+
+    def test_killer_cross_turn_undo(self, killer_logic, players):
+        """Testet, ob Undo über Rundenwechsel hinweg im Killer funktioniert."""
+        player1, player2 = players
+        
+        # 1. Player 1 setzt sein Lebensfeld auf 20 (Aufnahme beendet)
+        killer_logic._handle_throw(player1, "Single", 20, players)
+        player1.reset_turn()
+        
+        # 2. Player 2 setzt sein Lebensfeld auf 19 (Aufnahme beendet)
+        killer_logic._handle_throw(player2, "Single", 19, players)
+        
+        # 3. Undo für Player 2 (macht sein Feld rückgängig)
+        killer_logic._handle_throw_undo(player2, "Single", 19, players)
+        assert player2.state["life_segment"] is None
+        
+        # 4. Erneutes Undo (simuliert Rücksprung zu Player 1)
+        # In der echten App würde der GameController player1 wiederherstellen.
+        killer_logic._handle_throw_undo(player1, "Single", 20, players)
+        assert player1.state["life_segment"] is None

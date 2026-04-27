@@ -1,4 +1,5 @@
 import pytest
+import random
 from unittest.mock import MagicMock, patch
 
 from core.game_controller import GameController
@@ -430,4 +431,35 @@ def test_save_and_load_tournament_state():
     assert tm2.bracket["winners"][0][0]["winner"] == "P1"
     next_match_restored = tm2.get_next_match()
     assert next_match_restored["player1"] == "P3" and next_match_restored["player2"] == "P4"
-    # assert game.game.player_set_scores[alice.id] == 2
+
+def test_x01_undo_chaos_monkey(x01_game):
+    """
+    Simuliert einen 'verwirrten' Spieler, der 50 Mal wahllos wirft
+    und danach alles rückgängig macht. Testet die Konsistenz des Scores.
+    """
+    game = x01_game
+    alice = game.players[0]
+    initial_score = alice.score # 301
+    game.players = [alice] # Test auf einen Spieler begrenzen für sauberes Cross-Turn-Undo
+    
+    throw_history = []
+    
+    # 1. Chaos-Phase: Wahlloses Werfen (ohne Bust-Gefahr)
+    for _ in range(50):
+        ring = random.choice(["Single", "Double", "Triple"])
+        segment = random.randint(1, 20)
+        score = game.get_score(ring, segment)
+        
+        if alice.score - score > 2:
+            game.throw(ring, segment)
+            throw_history.append((ring, segment))
+            
+            if len(alice.throws) == 3:
+                game.next_player()
+
+    # 2. Reue-Phase: Alles rückgängig machen
+    for _ in range(len(throw_history)):
+        game.undo()
+        
+    assert alice.score == initial_score, \
+        f"Eichhörnchen im Undo-Code gefunden! Score ist {alice.score} statt {initial_score}"

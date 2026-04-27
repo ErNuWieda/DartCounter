@@ -105,9 +105,14 @@ class Killer(GameLogicBase):
         last_action = self.turn_log.pop()
         action_type = last_action.get("action")
 
+        if action_type == "none":
+            player.sb.update_score(player.score)
+            return ("ok", None)
+
         match action_type:
             case "set_life_segment":
                 player.state["life_segment"] = None
+                player.turn_is_over = False
                 return ("info", f"Lebensfeld für {player.name} zurückgesetzt.")
             case "become_killer":
                 player.state["can_kill"] = False
@@ -255,12 +260,18 @@ class Killer(GameLogicBase):
         """
         Verarbeitet einen Wurf, indem er an die Methode für die aktuelle Spielphase delegiert.
         """
-        if not player.throws:  # Erster Wurf des Zugs
-            self.turn_log.clear()
+        log_len_before = len(self.turn_log)
 
         if not player.state.get("life_segment"):
-            return self._handle_life_segment_phase(player, ring, segment, players)
+            res = self._handle_life_segment_phase(player, ring, segment, players)
         elif not player.state.get("can_kill"):
-            return self._handle_become_killer_phase(player, ring, segment)
+            res = self._handle_become_killer_phase(player, ring, segment)
         else:
-            return self._handle_killer_phase(player, ring, segment, players)
+            res = self._handle_killer_phase(player, ring, segment, players)
+
+        # Jeder Wurf muss einen Eintrag im Log haben, um das Cross-Turn-Undo zu ermöglichen.
+        # Wenn die Phase keine Aktion geloggt hat (z.B. Fehlwurf), fügen wir einen Platzhalter ein.
+        if len(self.turn_log) == log_len_before:
+            self.turn_log.append({"action": "none"})
+
+        return res

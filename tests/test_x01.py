@@ -34,6 +34,7 @@ def mock_player():
     player.score = 501
     player.throws = []
     player.state = {"has_opened": False}
+    player.turn_is_over = False
     player.stats = {
         "checkout_opportunities": 0,
         "checkouts_successful": 0,
