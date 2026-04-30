@@ -50,13 +50,34 @@ class TestCheckoutCalculator(unittest.TestCase):
 
     def test_bogey_numbers(self):
         """Testet "Bogey"-Nummern, die nicht gefinished werden können."""
-        bogey_scores = [169, 168, 166, 165, 163, 162, 159]
-        for score in bogey_scores:
+        # Klassische 3-Dart-Bogey-Zahlen
+        bogey_scores_3_darts = [169, 168, 166, 165, 163, 162, 159]
+        for score in bogey_scores_3_darts:
             with self.subTest(score=score):
                 self.assertEqual(
                     CheckoutCalculator.get_checkout_suggestion(score),
                     "-",
-                    f"Score {score} sollte ein Bogey sein.",
+                    f"Score {score} sollte ein 3-Dart-Bogey sein.",
+                )
+        
+        # Echte 2-Dart-Bogey-Zahlen (über 110 oder mathematisch unmöglich)
+        bogey_scores_2_darts = [111, 109, 108, 106, 105, 103, 102, 99, 1]
+        for score in bogey_scores_2_darts:
+            with self.subTest(score=score, darts_left=2):
+                self.assertEqual(
+                    CheckoutCalculator.get_checkout_suggestion(score, darts_left=2),
+                    "-",
+                    f"Score {score} sollte ein 2-Dart-Bogey sein.",
+                )
+
+        # 1-Dart-Bogey-Zahlen (ungerade Zahlen oder Zahlen > 40)
+        bogey_scores_1_dart = [39, 52, 1] # Beispiele
+        for score in bogey_scores_1_dart:
+            with self.subTest(score=score, darts_left=1):
+                self.assertEqual(
+                    CheckoutCalculator.get_checkout_suggestion(score, darts_left=1),
+                    "-",
+                    f"Score {score} sollte ein 1-Dart-Bogey sein.",
                 )
 
     def test_single_out_logic(self):

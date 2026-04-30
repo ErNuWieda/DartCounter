@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, PropertyMock, ANY
+from unittest.mock import Mock, patch, MagicMock, PropertyMock, ANY, call
 from core.ai_player import AIPlayer
 from core.player_profile import PlayerProfile
 from core.throw_result import ThrowResult
@@ -444,6 +444,55 @@ def test_get_strategic_target_for_cricket_defensive_move(cricket_ai_player):
     ), "KI sollte das gefährlichste offene Ziel des Gegners schließen."
 
 
+def test_get_strategic_target_for_cricket_catch_up_logic(cricket_ai_player):
+    """
+    Verifiziert die taktische Entscheidung: Wenn die KI bei den Punkten hinten liegt,
+    sollte sie auf einem bereits geschlossenen Feld punkten, anstatt das nächste
+    Feld zu öffnen.
+    """
+    ai_player, mock_game = cricket_ai_player
+    ai_player.difficulty = "Profi"
+
+    # Szenario: KI hat die 20 zu, aber 0 Punkte.
+    # Gegner hat die 20 noch offen und führt mit 60 Punkten.
+    # Die KI hat die 19 noch komplett offen.
+    ai_player.state["hits"] = {"20": 3, "19": 0}
+    ai_player.score = 0
+
+    mock_opponent = MagicMock(spec=Player)
+    mock_opponent.score = 60
+    mock_opponent.state = {"hits": {"20": 0, "19": 0}}
+    mock_opponent.hits = mock_opponent.state["hits"]
+    mock_game.players = [ai_player, mock_opponent]
+
+    # Taktik: Aufholen! Die KI muss auf der 20 punkten, solange der Gegner sie offen hat.
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Triple", 20), "KI sollte punkten (T20), um den Punkterückstand aufzuholen."
+
+
+def test_get_strategic_target_for_cricket_leading_logic(cricket_ai_player):
+    """
+    Verifiziert: Wenn die KI führt, sollte sie das nächste Feld schließen,
+    anstatt unnötig weiter zu punkten.
+    """
+    ai_player, mock_game = cricket_ai_player
+    ai_player.difficulty = "Profi"
+
+    # Szenario: KI hat 20 zu und führt mit 100 zu 20 Punkten.
+    ai_player.state["hits"] = {"20": 3, "19": 0}
+    ai_player.score = 100
+
+    mock_opponent = MagicMock(spec=Player)
+    mock_opponent.score = 20
+    mock_opponent.state = {"hits": {"20": 0, "19": 0}}
+    mock_opponent.hits = mock_opponent.state["hits"]
+    mock_game.players = [ai_player, mock_opponent]
+
+    # Taktik: Vorwärts! Da sie führt, sollte sie das nächste Ziel (19) schließen.
+    target = ai_player.strategy.get_target(throw_number=1)
+    assert target == ("Triple", 19), "KI sollte 19 schließen, da sie bereits in Führung liegt."
+
+
 def test_get_strategic_target_fallback(ai_player_with_mocks):
     """Testet die Fallback-Zielauswahl."""
     ai_player, mock_game = ai_player_with_mocks
@@ -737,6 +786,59 @@ def test_adaptive_ai_fallback_if_no_specific_model(ai_player_with_mocks):
     assert throw_x == 150
     assert throw_y == 150
 
+def test_adaptive_ai_full_execution_with_bias_and_variance(ai_player_with_mocks):
+    """
+    Verifiziert den kompletten Ablauf der adaptiven KI: 
+    Vom Profil-Modell über den Bias bis zur Streuung (Varianz).
+    """
+    ai_player, _ = ai_player_with_mocks
+    ai_player.difficulty = "Adaptiv"
+    
+    # Modell: Bias nach rechts (+20px) und unten (+10px)
+    # Geringe Streuung (1.0)
+    ai_player.profile.accuracy_model = {
+        "T20": {
+            "mean_offset_x": 20.0,
+            "mean_offset_y": 10.0,
+            "std_dev_x": 1.0,
+            "std_dev_y": 1.0,
+        }
+    }
+    
+    target_coords = (100, 100)
+    
+    # Wir mocken random.gauss, um zu prüfen, ob die Parameter korrekt übergeben werden
+    with patch("core.ai_player.random.gauss") as mock_gauss:
+        # Erster Aufruf (X): Mean=100+20, Std=1.0
+        # Zweiter Aufruf (Y): Mean=100+10, Std=1.0
+        mock_gauss.side_effect = [121.0, 110.0] 
+        
+        throw_x, throw_y = ai_player._get_adaptive_throw_coords(target_coords, "T20")
+        
+        # X-Aufruf: gauss(Zentrum + Offset, Standardabweichung)
+        assert mock_gauss.mock_calls[0] == call(120.0, 1.0)
+        # Y-Aufruf: gauss(Zentrum + Offset, Standardabweichung)
+        assert mock_gauss.mock_calls[1] == call(110.0, 1.0)
+        
+        assert throw_x == 121
+        assert throw_y == 110
+
+def test_adaptive_ai_execution_lookup_key_format(ai_player_with_mocks):
+    """Prüft, ob der Lookup-Key für das Modell im richtigen Format (z.B. 'T20') erzeugt wird."""
+    ai_player, _ = ai_player_with_mocks
+    ai_player.difficulty = "Adaptiv"
+    ai_player.profile.accuracy_model = {"T20": {"mean_offset_x": 5.0}}
+    
+    with patch.object(ai_player, "_get_adaptive_throw_coords") as mock_adaptive:
+        mock_adaptive.return_value = (0, 0)
+        # Strategie liefert ein Triple-Ziel
+        ai_player.strategy = MagicMock()
+        ai_player.strategy.get_target.return_value = ("Triple", 20)
+        
+        ai_player._execute_throw(1)
+        
+        # Der Key für die adaptive Berechnung muss 'T20' sein
+        assert mock_adaptive.call_args[0][1] == "T20"
 
 def test_parse_target_string(ai_player_with_mocks):
     """Testet die Hilfsmethode zum Parsen von Ziel-Strings."""

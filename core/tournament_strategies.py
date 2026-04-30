@@ -27,6 +27,7 @@ class TournamentStrategyBase:
         self.player_names = player_names
         # shuffle wird an die konkrete Implementierung weitergegeben
         self.bracket = self._create_initial_bracket(player_names, shuffle=shuffle)
+        self.forfeited_players = set()
         self.winner = None
 
     @property
@@ -36,14 +37,61 @@ class TournamentStrategyBase:
 
     def record_match_winner(self, match_to_update: dict, winner_name: str):
         """Trägt den Gewinner eines Matches ein und aktualisiert den Turnierbaum."""
-        if winner_name not in (
-            match_to_update.get("player1"),
-            match_to_update.get("player2"),
+        if winner_name != "BYE" and winner_name not in (
+            match_to_update.get("player1"),  # Kann None sein
+            match_to_update.get("player2"),  # Kann None sein
         ):
             raise ValueError(f"Spieler '{winner_name}' ist kein Teilnehmer dieses Matches.")
 
         match_to_update["winner"] = winner_name
         self._update_bracket_state()
+
+    def forfeit_player(self, player_name: str):
+        """
+        Sucht alle Matches des Spielers und wertet sie als Walkover für den Gegner.
+        Führt die Logik iterativ aus, um Progressionen (z.B. ins Losers Bracket) abzufangen.
+        """
+        self.forfeited_players.add(player_name)
+        self._auto_resolve_forfeits()
+
+    def _auto_resolve_forfeits(self):
+        """Hilfsmethode, um neu entstandene Matches mit aufgegebenen Spielern zu klären."""
+        for name in list(self.forfeited_players):
+            while True:
+                m = self._find_undecided_match_with_player(name)
+                if not m: break
+                p1, p2 = m.get("player1"), m.get("player2")
+                opp = p2 if p1 == name else p1
+                
+                if opp is None:
+                    # Gegner steht noch nicht fest. Wir müssen warten, bis der Baum aktualisiert wird.
+                    break
+                
+                # Falls der Gegner ein BYE ist, muss der forfeiting player technisch "gewinnen",
+                # damit er im Baum vorrückt und dann gegen einen echten Menschen verlieren kann.
+                # Andernfalls gewinnt der Gegner (Walkover).
+                winner = name if opp == "BYE" else opp
+                self.record_match_winner(m, winner)
+
+    def _find_undecided_match_with_player(self, player_name: str) -> dict | None:
+        """Sucht im gesamten Baum nach dem nächsten entscheidbaren Match des Spielers."""
+        for key in ["winners", "losers", "grand_final", "final_bracket"]:
+            if key not in self.bracket:
+                continue
+            data = self.bracket[key]
+            if not data:
+                continue
+
+            # Normalisierung: Manche Brackets sind flach, andere verschachtelt (Runden)
+            rounds = data if isinstance(data[0], list) else [data]
+            for round_matches in rounds:
+                for match in round_matches:
+                    if match.get("winner") is None:
+                        p1, p2 = match.get("player1"), match.get("player2")
+                        # Ein Match ist "unentschieden" und beinhaltet player_name, wenn winner None ist UND (player1 player_name ist ODER player2 player_name ist).
+                        if p1 == player_name or p2 == player_name:
+                            return match
+        return None
 
     def restore_state(self, bracket_data: dict, winner_data: str | None):
         """
@@ -190,6 +238,9 @@ class SingleEliminationStrategy(TournamentStrategyBase):
         # abgeschlossen ist, damit die Podiumsanzeige korrekt ist.
         if final_match_finished and third_place_finished:
             self.winner = final_match["winner"]
+        
+        # Automatisches Vorrücken bei Walkovers
+        self._auto_resolve_forfeits()
 
     def get_next_match(self) -> dict | None:
         """Sucht das nächste spielbare Match im K.o.-System."""
@@ -222,18 +273,18 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
     def _create_initial_bracket(self, players: list[str], shuffle: bool = True) -> dict:
         players_for_r1, players_with_byes = self._prepare_initial_players(players, shuffle)
 
-        round1_matches = self._create_matches_from_players(players_for_r1)
+        wb_round1_matches = self._create_matches_from_players(players_for_r1)
         for player_with_bye in players_with_byes:
-            round1_matches.append(
+            wb_round1_matches.append(
                 {
                     "player1": player_with_bye,
                     "player2": "BYE",
                     "winner": player_with_bye,
                 }
             )
-
-        wb_rounds = [round1_matches]
-        current_round_size = len(round1_matches)
+        
+        wb_rounds = [wb_round1_matches]
+        current_round_size = len(wb_round1_matches)
         while current_round_size > 1:
             next_round_size = current_round_size // 2
             next_round_matches = [
@@ -271,6 +322,9 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
         self._update_winners_bracket()
         self._update_losers_bracket()
         self._update_grand_final()
+        
+        # Automatisches Vorrücken bei Walkovers
+        self._auto_resolve_forfeits()
 
     def _update_winners_bracket(self):
         """Aktualisiert das Winners Bracket, indem Gewinner in die nächste Runde vorrücken."""
@@ -321,6 +375,17 @@ class DoubleEliminationStrategy(TournamentStrategyBase):
                     if wb_parent.get("winner") and match_to_fill.get("player2") is None:
                         if wb_loser := self._get_match_loser(wb_parent):
                             match_to_fill["player2"] = wb_loser
+
+                # Automatisches Auflösen von Freilosen im Losers Bracket
+                if match_to_fill.get("winner") is None:
+                    p1, p2 = match_to_fill.get("player1"), match_to_fill.get("player2")
+                    # Explizite Prüfung auf None, um Truthiness-Fallen bei leeren Strings zu vermeiden
+                    if p1 == "BYE" and p2 == "BYE": 
+                        match_to_fill["winner"] = "BYE"
+                    elif p1 is not None and p1 != "BYE" and p2 == "BYE":
+                        match_to_fill["winner"] = p1
+                    elif p2 is not None and p2 != "BYE" and p1 == "BYE":
+                        match_to_fill["winner"] = p2
 
     def _update_grand_final(self):
         """Erstellt das Grand Final und handhabt den Bracket-Reset."""

@@ -130,3 +130,11 @@ def test_update_bracket_tree_finished_tournament(view, mock_manager):
     assert view.podium_labels["first_name"].cget("text") == "Alice"
     assert view.podium_labels["second_name"].cget("text") == "Bob"
     assert view.podium_labels["third_name"].cget("text") == "Charlie"
+
+def test_next_match_button_triggers_callback(view, mock_manager):
+    """Verifiziert, dass der Button 'Nächstes Match' den bereitgestellten Callback ausführt."""
+    # Simuliere den Klick auf den Button
+    view.next_match_button.invoke()
+    
+    # Prüfe, ob der beim Erstellen der View übergebene Callback aufgerufen wurde
+    view.start_match_callback.assert_called_once()

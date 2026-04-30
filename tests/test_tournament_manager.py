@@ -48,6 +48,131 @@ def tm_8_players():
     return TournamentManager(player_names=players, game_mode="501", system="Doppel-K.o.")
 
 
+@pytest.fixture
+def tm_5_players():
+    """Fixture für ein Turnier mit 5 Spielern (und Freilosen)."""
+    players = ["Alice", "Bob", "Charlie", "David", "Eve"]
+    return TournamentManager(
+        player_names=players,
+        game_mode="501",
+        system="Doppel-K.o.",
+        shuffle=False,
+    )
+
+def test_bye_handling_3_players_double_elim():
+    """
+    Testet das BYE-Handling bei 3 Spielern (Power of 2 = 4, also 1 BYE).
+    Szenario: Alice vs Bob, Charlie hat ein Freilos.
+    """
+    players = ["Alice", "Bob", "Charlie"]
+    tm = TournamentManager(players, "501", "Doppel-K.o.", shuffle=False)
+    
+    # In WB Runde 1 müssen 2 Matches existieren (1 echtes, 1 BYE)
+    wb_r1 = tm.bracket["winners"][0]
+    assert len(wb_r1) == 2
+    
+    # Alice sollte das BYE haben (da shuffle=False und num_byes=1 am Anfang nimmt)
+    bye_match = next(m for m in wb_r1 if m["player2"] == "BYE")
+    assert bye_match["player1"] == "Alice"
+    assert bye_match["winner"] == "Alice"
+    
+    # Das spielbare Match finden
+    active_match = tm.get_next_match()
+    assert active_match["player1"] == "Bob"
+    assert active_match["player2"] == "Charlie"
+    
+    # Bob gewinnt gegen Charlie
+    tm.record_match_winner(active_match, "Bob")
+    
+    # Das WB-Finale muss nun Alice vs Bob sein
+    wb_final = tm.get_next_match()
+    assert {wb_final["player1"], wb_final["player2"]} == {"Alice", "Bob"}
+    
+    # Charlie muss im LB gelandet sein (gegen ein BYE, da nur 3 Spieler)
+    lb_r1 = tm.bracket["losers"][0][0]
+    assert lb_r1["player1"] == "Charlie"
+    assert lb_r1["player2"] == "BYE"
+
+def test_lb_progression_6_players():
+    """
+    Testet den komplexeren Feed-in-Mechanismus bei 6 Spielern.
+    Hier kommen Verlierer aus verschiedenen WB-Runden in unterschiedliche LB-Runden.
+    """
+    players = ["P1", "P2", "P3", "P4", "P5", "P6"]
+    tm = TournamentManager(players, "501", "Doppel-K.o.", shuffle=False)
+    
+    # WB R1 (shuffle=False): [P3-P4, P5-P6, P1-BYE, P2-BYE]
+    # Die Strategie hängt Byes hinten an.
+    wb_r1_matches = tm.bracket["winners"][0]
+
+    # Resolve actual WB R1 matches (P3-P4, P5-P6)
+    match_p3_p4 = next(m for m in wb_r1_matches if m["player1"] == "P3" and m["player2"] == "P4")
+    tm.record_match_winner(match_p3_p4, "P3") # P4 loses
+    match_p5_p6 = next(m for m in wb_r1_matches if m["player1"] == "P5" and m["player2"] == "P6")
+    tm.record_match_winner(match_p5_p6, "P5") # P6 loses
+    
+    # WB R2: [P3 vs P5, P1 vs P2] (Byes rücken vor)
+    wb_r2 = tm.bracket["winners"][1]
+    match_p3_p5 = next(m for m in wb_r2 if m["player1"] == "P3" and m["player2"] == "P5")
+    tm.record_match_winner(match_p3_p5, "P5") # P3 verliert -> LB R2
+    match_p1_p2 = next(m for m in wb_r2 if m["player1"] == "P1" and m["player2"] == "P2")
+    tm.record_match_winner(match_p1_p2, "P2") # P1 verliert -> LB R2
+    
+    # Check LB R1: Verlierer aus WB R1 m0 (P4) und m1 (P6)
+    lb_r1 = tm.bracket["losers"][0]
+    match_p4_p6_lb = next(m for m in lb_r1 if m["player1"] == "P4" and m["player2"] == "P6")
+    assert {match_p4_p6_lb["player1"], match_p4_p6_lb["player2"]} == {"P4", "P6"}
+    tm.record_match_winner(match_p4_p6_lb, "P4") # P4 gewinnt LB R1
+    
+    # Check LB R2: Gewinner LB R1 (P4) vs Verlierer WB R2 (P3)
+    lb_r2 = tm.bracket["losers"][1]
+    match_p4_p3_lb = next(m for m in lb_r2 if "P4" in [m["player1"], m["player2"]] and "P3" in [m["player1"], m["player2"]])
+    tm.record_match_winner(match_p4_p3_lb, "P3") # P3 gewinnt
+
+    # LB R2 m1 hat den Verlierer von P1-P2 (P1) gegen den Gewinner des anderen LB R1 Matches (BYE-BYE)
+    match_p1_bye_lb = next(m for m in lb_r2 if "P1" in [m["player1"], m["player2"]])
+    assert "BYE" in [match_p1_bye_lb.get("player1"), match_p1_bye_lb.get("player2")], "P1 hätte ein BYE im LB R2 erhalten müssen."
+    tm.record_match_winner(match_p1_bye_lb, "P1")
+
+    # Now check LB R3: P3 vs P1
+    lb_r3 = tm.bracket["losers"][2]
+    assert {lb_r3[0].get("player1"), lb_r3[0].get("player2")} == {"P3", "P1"}
+
+def test_grand_final_reset_logic():
+    """
+    Testet explizit das Szenario, wenn der LB-Sieger das erste Finale gewinnt.
+    Das Turnier darf dann noch nicht beendet sein.
+    """
+    players = ["Winner", "Loser"]
+    # Benutze 4 Spieler, da das System für Grand Finals mindestens 2 WB Runden erwartet
+    players = ["W1", "W2", "L1", "L2"]
+    tm = TournamentManager(players, "501", "Doppel-K.o.", shuffle=False)
+    
+    # Alles durchspielen bis zum Grand Final
+    while not tm.bracket["grand_final"]:
+        m = tm.get_next_match()
+        if not m: break # Safety break for unexpected empty matches
+        # Assume player1 always wins to quickly get to the final
+        tm.record_match_winner(m, m.get("player1"))
+
+    gf1 = tm.bracket["grand_final"][0]
+    lb_winner = gf1["player2"] # The player coming from the Losers Bracket
+    wb_winner = gf1["player1"] # The player coming from the Winners Bracket
+
+    # LB-Spieler gewinnt das erste Finale -> Bracket Reset
+    tm.record_match_winner(gf1, lb_winner)
+    assert tm.is_finished is False
+    assert len(tm.bracket["grand_final"]) == 2 # A second grand final match should be created
+    
+    # The second final should now be available
+    gf2 = tm.get_next_match()
+    assert gf2 is not None
+    assert gf2["winner"] is None
+
+    # WB-Spieler gewinnt das zweite Finale -> Turnier Ende
+    tm.record_match_winner(gf2, wb_winner)
+    assert tm.is_finished is True and tm.winner == wb_winner
+
 def test_initialization_with_invalid_player_count_raises_error():
     """Testet, ob bei weniger als 2 Spielern ein Fehler ausgelöst wird."""
     with pytest.raises(ValueError, match="mindestens 2 Spieler"):
@@ -368,3 +493,67 @@ def test_serialization_to_and_from_dict(tm_4_players):
     tm_rehydrated.restore_state(state_dict)
 
     assert tm_rehydrated.to_dict() == tm_original.to_dict()
+
+def test_double_elimination_walkover_behavior(tm_4_players):
+    """
+    Testet das Verhalten, wenn ein Spieler das Turnier abbricht (Walkover).
+    Szenario: David wird 'gelöscht'/gibt auf. Alle seine Spiele müssen
+    für die Gegner gewertet werden, damit das Turnier nicht hängen bleibt.
+    """
+    tm = tm_4_players
+    p = sorted(tm.player_names) # A, B, C, David
+    
+    # 1. Runde WB: Alice schlägt Bob.
+    tm.record_match_winner(tm.get_next_match(), "Alice")
+    
+    # 2. David ist das Problem. Er sollte gegen Charlie spielen.
+    match_charlie_david = tm.get_next_match()
+    assert "David" in [match_charlie_david["player1"], match_charlie_david["player2"]]
+    
+    # Wir simulieren den Walkover: Charlie gewinnt ohne Spiel.
+    tm.record_match_winner(match_charlie_david, "Charlie")
+    
+    # Aktueller Stand: WB Final (A vs C), LB R1 (B vs D)
+    # Das System priorisiert das Winners Bracket.
+    
+    match_wb_final = tm.get_next_match()
+    assert {match_wb_final["player1"], match_wb_final["player2"]} == {"Alice", "Charlie"}
+    tm.record_match_winner(match_wb_final, "Alice") # Alice im GF, Charlie -> LB Final
+    
+    # Jetzt LB R1: Bob vs David
+    match_lb_r1 = tm.get_next_match()
+    assert {match_lb_r1["player1"], match_lb_r1["player2"]} == {"Bob", "David"}
+    tm.record_match_winner(match_lb_r1, "Bob") # Bob gewinnt, David raus
+    
+    # Jetzt LB Final: Charlie vs Bob
+    match_lb_final = tm.get_next_match()
+    assert {match_lb_final["player1"], match_lb_final["player2"]} == {"Charlie", "Bob"}
+    tm.record_match_winner(match_lb_final, "Charlie") # Charlie im GF
+    
+    # Finale muss Alice vs Charlie sein
+    next_match = tm.get_next_match()
+    assert {next_match["player1"], next_match["player2"]} == {"Alice", "Charlie"}
+    
+    # Das Turnier bleibt nicht hängen (Orphaned Matches), solange wir 
+    # einen Gewinner für den 'abwesenden' Spieler eintragen können.
+
+def test_forfeit_player_automated_walkover(tm_4_players):
+    """Testet die neue forfeit_player Methode für automatische Walkovers."""
+    tm = tm_4_players
+    # Initialbesetzung: Alice vs Bob, Charlie vs David (determinisiert)
+    
+    # David gibt sofort auf
+    tm.forfeit_player("David")
+    
+    # In WB R1: Charlie vs David -> Charlie muss automatisch gewonnen haben
+    wb_r1 = tm.bracket["winners"][0]
+    charlie_match = next(m for m in wb_r1 if "Charlie" in [m["player1"], m["player2"]])
+    assert charlie_match["winner"] == "Charlie"
+    
+    # David fällt ins LB. Wenn wir jetzt Bob verlieren lassen, landet er gegen David.
+    # Da David bereits geforfeited hat, sollte auch dieses Match (LB) 
+    # sofort entschieden werden, sobald Bob dort eintrifft.
+    tm.record_match_winner(tm.get_next_match(), "Alice") # Bob verliert -> LB
+    
+    lb_r1 = tm.bracket["losers"][0][0]
+    assert lb_r1["winner"] == "Bob", "Bob hätte kampflos gegen David gewinnen müssen."

@@ -116,3 +116,23 @@ def test_draw_bracket_with_bye(bracket_canvas):
     # Check if the BYE text has the specific loser styling
     bye_color = bracket_canvas.itemcget(bye_item_id, "fill")
     assert bye_color == bracket_canvas.LOSER_COLOR
+
+def test_match_box_count(bracket_canvas, simple_bracket_data):
+    """
+    Prüft, ob die strukturellen Elemente der Matches (Namen) korrekt gezeichnet werden.
+    In dieser Implementierung zählen wir die Spieler-Labels statt Rechtecke.
+    """
+    bracket_canvas.draw_bracket(simple_bracket_data, next_match=None, bracket_winner=None)
+    
+    # Ein 4-Spieler-Turnier hat 4 Namen in R1 und 2 Namen in R2 = 6 Player-Labels
+    player_labels = [i for i in bracket_canvas.find_all() if bracket_canvas.type(i) == "text" 
+                     and "Runde" not in bracket_canvas.itemcget(i, "text")]
+    
+    assert len(player_labels) >= 6, "Es sollten mindestens 6 Spieler-Namen im Baum gezeichnet sein."
+
+def test_connectors_are_drawn(bracket_canvas, simple_bracket_data):
+    """Verifiziert, dass Verbindungslinien zwischen den Runden gezeichnet werden."""
+    bracket_canvas.draw_bracket(simple_bracket_data, next_match=None, bracket_winner=None)
+    
+    lines = [i for i in bracket_canvas.find_all() if bracket_canvas.type(i) == "line"]
+    assert len(lines) > 0, "Das Bracket sollte Verbindungslinien zwischen den Matches enthalten."
