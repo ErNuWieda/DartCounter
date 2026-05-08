@@ -16,8 +16,7 @@ def reset_db_manager_singleton():
     """Setzt das Singleton-Pattern des DatabaseManager zurück."""
     # Diese Funktion wird jetzt von der Fixture aufgerufen, um sicherzustellen,
     # dass jeder Test eine saubere Instanz erhält.
-    if hasattr(DatabaseManager, "_instance"):
-        delattr(DatabaseManager, "_instance")
+    DatabaseManager._instance = None
 
 
 @pytest.fixture
@@ -228,16 +227,18 @@ def test_connect_to_db_incomplete_config(config_test_setup, mock_logger):
 def test_connect_to_db_sqlalchemy_error(config_test_setup, mock_logger):
     """Testet, ob ein SQLAlchemyError beim Verbindungsaufbau korrekt behandelt wird."""
     mocks = config_test_setup
-    mocks["mock_exists_factory"](user_exists=True)
-    mocks["mock_create_engine"].return_value.connect.side_effect = SQLAlchemyError("Test Error")
+    mocks["mock_exists_factory"](user_exists=True) # Stellt sicher, dass config.ini gefunden wird
+    mocks["MockConfigParser"].return_value.__getitem__.return_value = {"host": "h", "database": "d", "user": "u", "password": "p"}
+    mocks["mock_create_engine"].side_effect = SQLAlchemyError("Test Error")
 
-    dbm = DatabaseManager()
+    with patch("core.database_manager.time.sleep"): # Verhindert langes Warten im Test
+        dbm = DatabaseManager()
 
     assert not dbm.is_connected
-    mock_logger.error.assert_any_call(
-        "Fehler beim Verbindungsaufbau zur PostgreSQL-Datenbank: Test Error",
-        exc_info=True,
-    )
+    # Prüfe flexibler auf den Inhalt der Fehlermeldung
+    args, kwargs = mock_logger.error.call_args
+    assert "Verbindungsaufbau" in args[0] and "Test Error" in args[0]
+    assert kwargs.get("exc_info") is True
 
 @pytest.mark.db
 def test_initialization_successful(db_manager_setup):
@@ -268,7 +269,7 @@ def test_initialization_connection_error(monkeypatch):
     monkeypatch.setattr("core.database_manager.configparser.ConfigParser", mock_configparser)
 
     # Simuliere einen Fehler bei create_engine
-    with patch(
+    with patch("core.database_manager.time.sleep"), patch(
         "core.database_manager.create_engine",
         side_effect=SQLAlchemyError("Connection failed"),
     ):

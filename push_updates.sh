@@ -14,13 +14,12 @@ fi
 echo ">>> Tests erfolgreich. Committe Änderungen..."
 
 # 2. Änderungen hinzufügen
-git add core/ai_strategy.py
-git add tests/test_ai_player.py
+git add tests/conftest.py
 git add .github/workflows/reusable-test-workflow.yml
-git add .github/workflows/release.yml
+git add .github/workflows/test-on-trixie.yml
 
 # 3. Commit erstellen
-git commit -m "fix: AI Killer strategy, fallback test setup and workflow marker logic"
+git commit -m "fix: resolve ALSA audio errors in CI using SDL dummy driver and global mixer mocking"
 
 # 4. Push
 echo ">>> Pushe zum Repository..."

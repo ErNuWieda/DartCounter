@@ -26,5 +26,20 @@ jobs:
     with:
       os: ${{ matrix.os }}
       python-version: ${{ matrix.python-version }}
-      pytest-marker: "not db"
+      # container-image wird nicht übergeben, da wir auf dem Host-System testen
+
+  test-alembic-migrations:
+    name: Test Alembic Migrations on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    uses: ./.github/workflows/reusable-test-workflow.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest] # Migrationen sind OS-agnostisch, ein OS ist ausreichend
+        python-version: ['3.11'] # Eine spezifische Python-Version verwenden
+
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      pytest-marker: "alembic_migrations" # Marker für diesen spezifischen Test, der @pytest.mark.db verwendet
+      setup-postgres: true # Wichtig: PostgreSQL-Dienst einrichten
       # container-image wird nicht übergeben, da wir auf dem Host-System testen

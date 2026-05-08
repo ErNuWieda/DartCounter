@@ -43,6 +43,8 @@ class SplitScore(GameLogicBase):
     def initialize_player_state(self, player):
         """Initialisiert den Spieler mit dem Start-Score."""
         player.score = self.start_score
+        # State für robustes Undo initialisieren
+        player.state['halved_in_round'] = None
 
     def get_targets(self) -> list[str]:
         """Gibt keine festen Ziele für das Scoreboard zurück, da es rundenbasiert ist."""
@@ -61,12 +63,30 @@ class SplitScore(GameLogicBase):
         return None
 
     def _handle_throw_undo(self, player, ring, segment, players):
-        """Die Undo-Logik ist einfach, da der Score erst am Ende der Runde berechnet wird."""
-        pass
+        """Macht die Punkteaddition oder die Halbierung rückgängig."""
+        # 1. War dieser Wurf der Auslöser für eine Halbierung? (Wird über den State geprüft)
+        if player.state.get('halved_in_round') == self.game.round:
+            # Da wir die Halbierung rückgängig machen, stellen wir den Score vor der Halbierung wieder her.
+            if 'score_before_halving' in player.state:
+                player.score = player.state['score_before_halving']
+                player.state['halved_in_round'] = None
+
+        # 2. War es ein Treffer? Dann ziehen wir die addierten Punkte wieder ab.
+        round_index = self.game.round - 1
+        target_ring, target_segment = self.targets[round_index]
+        if ring == target_ring and segment == target_segment:
+            player.score -= self.game.get_score(ring, segment)
+
+        player.sb.update_score(player.score)
 
     def _handle_throw(self, player, ring, segment, players):
-        """Verarbeitet einen einzelnen Wurf. Die Hauptlogik ist in handle_end_of_turn."""
-        # Scoreboard nach jedem Wurf aktualisieren, um die Wurfhistorie anzuzeigen.
+        """Verarbeitet einen Wurf. Bei Treffern werden Punkte sofort addiert."""
+        round_index = self.game.round - 1
+        target_ring, target_segment = self.targets[round_index]
+
+        if ring == target_ring and segment == target_segment:
+            player.score += self.game.get_score(ring, segment)
+
         player.sb.update_score(player.score)
         return ("ok", None)  # Der Haupt-Score wird erst am Ende der Runde aktualisiert
 
@@ -82,8 +102,10 @@ class SplitScore(GameLogicBase):
         hit_in_round = any(r == target_ring and s == target_segment for r, s, _ in player.throws)
 
         if not hit_in_round and player.throws:
-            # Score halbieren und aufrunden
+            # Score speichern für Undo, dann halbieren und aufrunden
+            player.state['score_before_halving'] = player.score
             player.score = (player.score + 1) // 2
+            player.state['halved_in_round'] = self.game.round
 
         player.sb.update_score(player.score)
         

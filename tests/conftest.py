@@ -55,13 +55,8 @@ def pytest_configure(config):
     # Hole den Root-Logger, auf dem die Handler in `logger_setup.py` konfiguriert werden.
     root_logger = logging.getLogger()
 
-    # Entferne alle existierenden Handler, um eine saubere Konfiguration zu gewährleisten.
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-
-    # Füge einen NullHandler hinzu. Dieser "schluckt" alle Log-Nachrichten,
-    # ohne sie auszugeben. Dies verhindert, dass Anwendungs-Logs die Testausgabe stören.
-    root_logger.addHandler(logging.NullHandler())
+    # Setze das Level auf INFO, damit caplog diese Nachrichten einfangen kann.
+    root_logger.setLevel(logging.INFO)
 
 
 @pytest.fixture
@@ -71,7 +66,9 @@ def mock_game():
     """
     game = MagicMock(spec=GameController)
     game.round = 1
+    game.current = 0
     game.end = False
+    game.players = []  # Fix: Fehlendes Attribut für Split-Score Tests
     game.highscore_manager = MagicMock()
     game.player_stats_manager = MagicMock()
     game.profile_manager = MagicMock()

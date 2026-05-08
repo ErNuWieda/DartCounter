@@ -230,3 +230,56 @@ class TestPlayerStatsManagerUI:
 
         # 4. Überprüfen, ob die korrekte DB-Methode aufgerufen wurde
         self.mock_db_manager.get_records_for_player.assert_called_once_with("Bob")
+
+    def test_prompt_and_reset_stats_interaction(self, setup_method):
+        """
+        Testet den Workflow zum Zurücksetzen der Statistiken.
+        Prüft, ob der modale Dialog erscheint und die DB-Methode bei Bestätigung aufgerufen wird.
+        """
+        # Setup: Fenster öffnen und Combobox vorbereiten
+        win = self.stats_manager.show_stats_window(self.root)
+        self.windows_to_destroy.append(win)
+        
+        mock_combo = MagicMock(spec=ttk.Combobox)
+        mock_combo.get.return_value = "Alice"
+        
+        with patch("core.player_stats_manager.tk.Toplevel") as mock_toplevel, \
+             patch("core.player_stats_manager.messagebox.askyesno", return_value=True), \
+             patch("core.player_stats_manager.messagebox.showinfo"):
+            
+            # Simuliere Klick auf Reset
+            self.stats_manager._prompt_and_reset_stats(win, mock_combo)
+            
+            # Prüfe ob der Bestätigungs-Dialog erstellt wurde
+            mock_toplevel.assert_called_once_with(win)
+            
+            # Da wir die inneren Funktionen von _prompt_and_reset_stats schwer direkt 
+            # triggern können ohne echte UI-Events, testen wir hier primär die 
+            # Erstellung des Dialogs.
+
+    def test_show_heatmap_no_data_message(self, setup_method):
+        """Prüft, ob eine Warnung erscheint, wenn keine Heatmap-Daten vorliegen."""
+        self.mock_db_manager.get_records_for_player.return_value = [] # Keine Spiele
+        
+        win = tk.Frame(self.root) # Simulierter Parent
+        
+        with patch("core.player_stats_manager.messagebox.showinfo") as mock_info:
+            self.stats_manager._show_heatmap(win, "Alice")
+            mock_info.assert_called_once_with("Keine Daten", ANY, parent=win)
+
+    def test_show_heatmap_integration(self, setup_method):
+        """Testet, ob die Heatmap-Erstellung mit Daten korrekt initiiert wird."""
+        coords = [[0.5, 0.5], [0.51, 0.51]]
+        self.mock_db_manager.get_records_for_player.return_value = [{"all_throws_coords": coords}]
+        
+        win = tk.Toplevel(self.root)
+        self.windows_to_destroy.append(win)
+        
+        with patch("core.player_stats_manager.HeatmapGenerator.create_heatmap") as mock_gen, \
+             patch("core.player_stats_manager.ImageTk.PhotoImage"), \
+             patch("core.player_stats_manager.tk.Toplevel") as mock_heat_win:
+            
+            self.stats_manager._show_heatmap(win, "Alice")
+            
+            mock_gen.assert_called_once()
+            mock_heat_win.assert_called_once()

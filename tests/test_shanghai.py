@@ -126,3 +126,18 @@ def test_undo_restores_state(shanghai_logic, players, mock_game):
 
     assert player1.score == 0
     assert player1.hits.get("4") == 0
+
+def test_end_of_rounds_tie_winner(shanghai_logic, players, mock_game):
+    """Testet, wer bei Gleichstand am Ende gewinnt (der erste in der Liste)."""
+    mock_game.options.rounds = 2
+    mock_game.round = 3
+    p1, p2 = players
+    p1.score = 100
+    p2.score = 100
+
+    # P2 beendet seinen Wurf
+    status, message = shanghai_logic._handle_throw(p2, "Miss", 0, players)
+
+    assert mock_game.end is True
+    # Da p1 vor p2 in der Liste 'players' steht, gewinnt p1 bei max()
+    assert p1.name in message

@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from .settings_manager import get_app_data_dir
 
@@ -27,11 +28,12 @@ def setup_logging():
     - Fügt einen FileHandler hinzu, der Logs in eine rotierende Datei schreibt.
     - Fügt einen StreamHandler hinzu, der Logs in die Konsole ausgibt.
     """
-    # Root-Logger konfigurieren
-    logger = logging.getLogger()
+    # WICHTIG: In der Testumgebung (Pytest) darf das Logging nicht manuell
+    # konfiguriert werden, da sonst caplog keine Nachrichten mehr einfangen kann.
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return
 
-    # Bereinige eventuell vorhandene, von anderen Bibliotheken gesetzte Handler,
-    # um eine saubere und kontrollierte Logging-Konfiguration sicherzustellen.
+    logger = logging.getLogger()
     if logger.hasHandlers():
         logger.handlers.clear()
 

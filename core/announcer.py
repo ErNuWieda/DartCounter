@@ -138,6 +138,15 @@ class Announcer:
             except Exception:
                 pass
 
+    def clear_queue(self):
+        """Entfernt alle noch ausstehenden Ansagen aus der Warteschlange."""
+        try:
+            while not self.queue.empty():
+                self.queue.get_nowait()
+                self.queue.task_done()
+        except queue.Empty:
+            pass
+
     def _worker(self):
         """Interne Worker-Methode für den Sprachausgabe-Thread."""
         # Sicherstellen, dass der Pygame-Mixer bereit ist
@@ -173,9 +182,11 @@ class Announcer:
                 # Erlaube Sprachausgabe, wenn mindestens ein Dienst verfügbar ist
                 if enabled and (EDGE_TTS_AVAILABLE or GTTS_AVAILABLE):
                     try:
-                        # Kurze Pause (600ms), damit der Soundeffekt des Pfeileinschlags
-                        # nicht von der Sprachansage überlagert wird.
-                        time.sleep(0.6)
+                        # Kurze Pause, damit der Soundeffekt des Pfeileinschlags
+                        # nicht überlagert wird. Wenn die Queue aber voll ist (>1),
+                        # überspringen wir das, um den Rückstau abzuarbeiten.
+                        if self.queue.qsize() == 0:
+                            time.sleep(0.4)
 
                         # Fallback falls ID ungültig/alt aus settings.json
                         valid_ids = [v["id"] for v in self.available_voices]
@@ -237,6 +248,10 @@ class Announcer:
 
     def announce_game_shot(self, player_name: str, was_madhouse: bool = False, was_bullseye: bool = False, is_big_fish: bool = False):
         """Kündigt den Sieg an (Klassischer Caller-Spruch)."""
+        # Bei einem Sieg löschen wir den Rückstau an alten Scores,
+        # damit der Siegesspruch sofort kommt.
+        self.clear_queue()
+        
         if is_big_fish:
             phrases = [
                 f"Game shot and the match, {player_name}! The big fish! One hundred and seventy!",

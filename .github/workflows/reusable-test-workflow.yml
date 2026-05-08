@@ -67,7 +67,7 @@ jobs:
         run: |
           cat <<EOF > config.ini
           [postgresql]
-          host=${{ inputs.container-image && 'postgres' || 'localhost' }}
+          host=${{ inputs.container-image && 'postgres' || '127.0.0.1' }}
           database=dart_test
           user=martin
           password=password

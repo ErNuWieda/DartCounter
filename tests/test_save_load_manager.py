@@ -189,6 +189,51 @@ def test_load_game_data_version_mismatch(mock_read_json, slm_setup):
     )
 
 
+@patch("core.save_load_manager.JsonIOHandler.read_json")
+def test_load_game_data_checksum_missing(mock_read_json, slm_setup):
+    """Testet, dass das Laden fehlschlägt, wenn der Checksum fehlt (v3+)."""
+    _, mock_parent, mock_ui_utils = slm_setup
+    mock_data_content = {
+        "save_format_version": 3,
+        "save_type": SaveLoadManager.GAME_SAVE_TYPE,
+        "name": "301",
+    }
+    # Kein 'checksum' Key vorhanden
+    mock_read_json.return_value = mock_data_content
+
+    with patch("core.save_load_manager.filedialog.askopenfilename", return_value="/dummy/path/load.json"):
+        result = SaveLoadManager.load_game_data(mock_parent)
+
+    assert result is None
+    mock_ui_utils.show_message.assert_called_once_with(
+        "error", "Fehler beim Laden", "Die Speicherdatei enthält keinen Integritäts-Checksum.", parent=mock_parent
+    )
+
+
+@patch("core.save_load_manager.JsonIOHandler.read_json")
+def test_load_game_data_checksum_invalid(mock_read_json, slm_setup):
+    """Testet, dass das Laden bei falschem Checksum (korrupte Datei) abgelehnt wird."""
+    _, mock_parent, mock_ui_utils = slm_setup
+    mock_data_content = {
+        "save_format_version": 3,
+        "save_type": SaveLoadManager.GAME_SAVE_TYPE,
+        "name": "301",
+    }
+    # Manipuliere Daten mit einem ungültigen Checksum
+    mock_data_with_bad_checksum = {**mock_data_content, "checksum": "wrong_hash"}
+    mock_read_json.return_value = mock_data_with_bad_checksum
+
+    with patch("core.save_load_manager.filedialog.askopenfilename", return_value="/dummy/path/load.json"):
+        result = SaveLoadManager.load_game_data(mock_parent)
+
+    assert result is None
+    mock_ui_utils.show_message.assert_called_once_with(
+        "error", "Fehler beim Laden", ANY, parent=mock_parent
+    )
+    # Die Nachricht enthält den Hinweis auf Korruption
+    assert "korrupt" in mock_ui_utils.show_message.call_args[0][2]
+
+
 def test_restore_game_state(slm_setup):
     """Testet, ob der Spielzustand korrekt aus den geladenen Daten wiederhergestellt wird."""
     mock_game, _, _ = slm_setup

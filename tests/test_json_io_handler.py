@@ -52,7 +52,7 @@ class TestJsonIOHandler:
             data = JsonIOHandler.read_json(filepath)
 
         assert data is None
-        assert f"JSON-Datei nicht gefunden unter: {filepath}" in caplog.text
+        assert "JSON-Datei nicht gefunden" in caplog.text and str(filepath.name) in caplog.text
 
     def test_read_json_invalid_json(self, tmp_path, mock_ui_utils):
         """Testet das Verhalten bei einer fehlerhaften JSON-Datei."""

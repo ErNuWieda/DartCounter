@@ -135,6 +135,20 @@ def test_undo_take_life_restores_victim_life(killer_logic, players, mock_game):
 
     assert victim.score == mock_game.options.lifes
 
+def test_killer_suicide(killer_logic, players):
+    """Testet den Fall, dass ein Killer sein eigenes Lebensfeld trifft."""
+    killer = players[0]
+    killer.state["life_segment"] = "20"
+    killer.state["can_kill"] = True
+    initial_lives = killer.score
+
+    # Killer trifft Double 20 (sein eigenes Lebensfeld)
+    status, message = killer_logic._handle_throw(killer, "Double", 20, players)
+
+    assert killer.score == initial_lives - 1
+    assert "sich selbst" in message
+    assert status == "info"
+
     def test_killer_cross_turn_undo(self, killer_logic, players):
         """Testet, ob Undo über Rundenwechsel hinweg im Killer funktioniert."""
         player1, player2 = players

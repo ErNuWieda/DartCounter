@@ -130,3 +130,58 @@ class DartboardGeometry:
         x = int(DartboardGeometry.CENTER + radius * math.cos(angle_rad))
         y = int(DartboardGeometry.CENTER - radius * math.sin(angle_rad))  # Y-Achse ist invertiert
         return (x, y)
+
+    @staticmethod
+    def get_target_coords_scaled(ring: str, segment: int, canvas, skaliert: dict) -> tuple[int, int] | None:
+        """
+        Ermittelt die (x, y)-Koordinaten für ein Ziel auf einem skalierten Board-Bild.
+        Berechnet das Zentrum basierend auf der Canvas-Größe und den Board-Offsets.
+
+        Args:
+            ring (str): Der Zielring.
+            segment (int): Das Zielsegment.
+            canvas (tk.Canvas): Das Canvas-Widget (für die aktuelle Größe).
+            skaliert (dict): Die bereits skalierten Radien.
+        """
+        if not skaliert or not canvas:
+            return None
+
+        # Bestimme die aktuelle Skalierung relativ zum Original
+        scale = skaliert["outer_edge"] / DartboardGeometry.RADIEN["outer_edge"]
+
+        # Berechne das Zentrum (muss exakt mit DartBoard.BOARD_CENTER_OFFSET übereinstimmen)
+        # Offsets: X=-8, Y=-7
+        center_x = (canvas.winfo_width() // 2) + int(-8 * scale)
+        center_y = (canvas.winfo_height() // 2) + int(-7 * scale)
+
+        # Sonderfall Bullseye/Bull (beide zielen auf die absolute Mitte)
+        if ring in ("Bullseye", "Bull"):
+            return int(center_x), int(center_y)
+
+        try:
+            seg_val = int(segment)
+            segment_index = DartboardGeometry.SEGMENTS.index(seg_val)
+        except (ValueError, IndexError, TypeError):
+            return None
+
+        # Winkel berechnen (0 Grad ist rechts bei der 6)
+        angle_deg = -(segment_index * 18)
+
+        # Radien-Mapping für die skalierten Werte
+        radius_keys_map = {
+            "Triple": ("triple_inner", "triple_outer"),
+            "Double": ("double_inner", "double_outer"),
+            "Single": ("bull", "triple_inner"),
+        }
+
+        if ring not in radius_keys_map:
+            return None
+
+        inner_key, outer_key = radius_keys_map[ring]
+        radius = (skaliert[inner_key] + skaliert[outer_key]) / 2
+
+        # Umrechnung in kartesische Koordinaten mit dem skalierten Zentrum
+        angle_rad = math.radians(angle_deg)
+        x = int(center_x + radius * math.cos(angle_rad))
+        y = int(center_y - radius * math.sin(angle_rad))
+        return x, y
