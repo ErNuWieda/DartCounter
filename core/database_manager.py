@@ -162,10 +162,11 @@ class DatabaseManager:
             host=db_config['host'],
             database=db_config['database']
         )
-        self.engine = create_engine(db_url)
         
         for attempt in range(5):
             try:
+                if not self.engine:
+                    self.engine = create_engine(db_url)
                 with self.engine.connect():
                     self.Session = sessionmaker(bind=self.engine)
                     self.is_connected = True
@@ -176,6 +177,7 @@ class DatabaseManager:
                     time.sleep(2)
                 else:
                     logger.error(f"Fehler beim Verbindungsaufbau zur DB: {error}", exc_info=True)
+                    self.engine = None
                     self.is_connected = False
 
     def _model_to_dict(self, model_instance):
@@ -234,15 +236,15 @@ class DatabaseManager:
         if not self.Session:
             return
 
-        with self.Session() as session:
-            # Prüfen, ob bereits Profile existieren.
-            # .first() ist effizienter als .count(), da es die Abfrage sofort beendet.
-            if session.query(PlayerProfileORM).first() is not None:
-                return  # Tabelle ist nicht leer, also nichts tun.
+        try:
+            with self.Session() as session:
+                # Prüfen, ob bereits Profile existieren.
+                # .first() ist effizienter als .count(), da es die Abfrage sofort beendet.
+                # Wir führen dies innerhalb des try-Blocks aus, falls die Tabelle fehlt.
+                if session.query(PlayerProfileORM).first() is not None:
+                    return  # Tabelle ist nicht leer, also nichts tun.
 
-            logger.info("Player-Tabelle ist leer. Fülle sie mit Standard-KI-Profilen...")
-
-            try:
+                logger.info("Player-Tabelle ist leer. Fülle sie mit Standard-KI-Profilen...")
                 # Pfad zur JSON-Datei relativ zu diesem Skript
                 json_path = get_application_root_dir() / "assets" / "default_profiles.json"
                 with open(json_path, "r", encoding="utf-8") as f:
@@ -261,12 +263,12 @@ class DatabaseManager:
 
                 session.commit()
                 logger.info(f"{len(default_profiles)} Standard-Profile erfolgreich hinzugefügt.")
-            except (FileNotFoundError, json.JSONDecodeError, SQLAlchemyError) as e:
-                logger.error(
-                    f"Fehler beim Hinzufügen der Standard-Profile: {e}",
-                    exc_info=True,
-                )
-                session.rollback()
+        except (FileNotFoundError, json.JSONDecodeError, SQLAlchemyError) as e:
+            logger.error(
+                f"Fehler beim Prüfen oder Hinzufügen der Standard-Profile: {e}",
+                # Wir loggen den Fehler, verhindern aber den Absturz der App.
+                exc_info=True,
+            )
 
     def get_scores(self, game_mode):
         """Ruft die Top 10 Highscores für einen bestimmten Spielmodus ab."""

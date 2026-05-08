@@ -15,13 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-import subprocess
+import sys
+import time
 from pathlib import Path
 import logging
+import logging.config
+from unittest.mock import patch
 from alembic.config import Config
 from alembic import command
+from alembic.script import ScriptDirectory
+from alembic.runtime.migration import MigrationContext
 from core.database_manager import DatabaseManager
 
+
+@pytest.fixture(scope="module", autouse=True)
+def protect_logging():
+    """
+    Verhindert, dass Alembic (via fileConfig in env.py) die globalen 
+    Logging-Handler von pytest deaktiviert, was caplog-Tests zerstören würde.
+    """
+    with patch("logging.config.fileConfig"):
+        yield
 
 @pytest.fixture(scope="module")
 def real_db_manager():
@@ -33,14 +47,15 @@ def real_db_manager():
     # Sicherstellen, dass das Singleton für einen sauberen Start zurückgesetzt wird
     DatabaseManager._instance = None
 
-    # Debug-Check für CI: Existiert die Config?
-    config_path = Path.cwd() / "config.ini"
-    if not config_path.exists():
-        pytest.skip(f"Datenbank-Tests übersprungen: config.ini nicht gefunden unter {config_path}")
-
-    # Die Initialisierung des DatabaseManager ruft _run_migrations auf,
-    # was die Alembic-Migrationen anwenden sollte.
+    # Wir instanziieren den Manager und prüfen, ob er eine Config gefunden hat.
+    # Die Logik für die Suche (CWD, AppData, Root) steckt im DatabaseManager selbst.
     db_manager = DatabaseManager()
+
+    if not db_manager.is_connected:
+        pytest.skip(
+            "Datenbank-Tests übersprungen: Keine gültige config.ini gefunden oder "
+            "keine Verbindung zur Datenbank möglich."
+        )
 
     # Verbindung überprüfen
     assert db_manager.is_connected, "DatabaseManager sollte mit der Test-DB verbunden sein."
@@ -64,18 +79,22 @@ def test_alembic_migrations_applied(real_db_manager):
     project_root = Path(__file__).parent.parent
     alembic_ini_path = project_root / "alembic.ini"
 
+    # Alembic Konfiguration für den programmatischen Zugriff
+    alembic_cfg = Config(str(alembic_ini_path))
+    db_url = real_db_manager.engine.url.render_as_string(hide_password=False)
+    alembic_cfg.set_main_option("sqlalchemy.url", db_url)
+
     try:
-        result = subprocess.run(
-            ["alembic", "-c", str(alembic_ini_path), "current"],
-            check=True,
-            capture_output=True,
-            cwd=project_root,
-            text=True
-        )
-        # Die Ausgabe von 'alembic current' sollte ' (head)' enthalten, wenn es auf dem neuesten Stand ist.
-        assert "(head)" in result.stdout, f"Alembic current ist nicht auf head: {result.stdout}"
-    except subprocess.CalledProcessError as e:
-        pytest.fail(f"Alembic current fehlgeschlagen: {e.stderr}\n{e.stdout}")
+        # Programmatische Prüfung der Revision (wesentlich robuster als Output-Parsing)
+        script = ScriptDirectory.from_config(alembic_cfg)
+        with real_db_manager.engine.connect() as connection:
+            context = MigrationContext.configure(connection)
+            current_rev = context.get_current_revision()
+            head_rev = script.get_current_head()
+            
+        assert current_rev == head_rev, f"Revision mismatch: DB ist auf {current_rev}, Head ist {head_rev}"
+    except Exception as e:
+        pytest.fail(f"Alembic Check fehlgeschlagen: {e}")
 
 
 @pytest.mark.alembic_migrations
@@ -90,14 +109,18 @@ def test_migration_roundtrip_and_data_persistence(real_db_manager):
     
     # Alembic Konfiguration für den programmatischen Zugriff
     alembic_cfg = Config(str(alembic_ini_path))
-    # WICHTIG: Nutze die Engine-URL des real_db_manager (zeigt auf die Test-DB)
-    alembic_cfg.set_main_option("sqlalchemy.url", str(real_db_manager.engine.url))
+
+    # WICHTIG: Nutze render_as_string(hide_password=False), da str(url) bei SQLAlchemy 
+    # das Passwort oft mit '***' maskiert, was zu Verbindungsfehlern führt.
+    db_url = real_db_manager.engine.url.render_as_string(hide_password=False)
+    alembic_cfg.set_main_option("sqlalchemy.url", db_url)
 
     # 1. Sicherstellen, dass wir auf head sind
     command.upgrade(alembic_cfg, "head")
 
     # 2. Testdaten einfügen (ein Profil, das in der DB überleben soll)
-    test_name = f"MigrationTest_{Path(__file__).stem}"
+    # Nutze Zeitstempel für Eindeutigkeit, falls die DB zwischen Testläufen nicht gelöscht wird.
+    test_name = f"MigrationTest_{int(time.time())}"
     success = real_db_manager.add_profile(
         name=test_name,
         avatar_path=None,

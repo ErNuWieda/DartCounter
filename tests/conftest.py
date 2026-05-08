@@ -48,10 +48,15 @@ if sys.platform == "win32":  # "win32" is the value for both 32-bit and 64-bit W
 
 def pytest_configure(config):
     """
-    Konfiguriert das Logging für die Test-Suite, um die Konsolenausgabe zu unterdrücken.
+    Konfiguriert pytest und das Logging für die Test-Suite.
 
     Diese Funktion wird von pytest automatisch vor der Testausführung aufgerufen.
     """
+    # Registriere benutzerdefinierte Marker, um PytestUnknownMarkWarning zu vermeiden
+    config.addinivalue_line("markers", "alembic_migrations: Tests für Datenbank-Migrationen")
+    config.addinivalue_line("markers", "db: Tests, die eine Datenbankverbindung erfordern")
+    config.addinivalue_line("markers", "ui: Tests, die grafische Oberflächen (Tkinter) involvieren")
+
     # Hole den Root-Logger, auf dem die Handler in `logger_setup.py` konfiguriert werden.
     root_logger = logging.getLogger()
 
