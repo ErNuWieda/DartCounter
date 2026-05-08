@@ -98,15 +98,11 @@ class TournamentManager:
         self.strategy.record_match_winner(match_to_update, winner_name)
 
     def forfeit_player(self, player_name: str):
-<<<<<<< HEAD
-        """Delegiert die Aufgabe eines Spielers an die Strategie."""
-=======
         """
         Handhabt das Ausscheiden eines Spielers aus dem Turnier (Walkover).
         Alle aktuellen und zukünftigen Partien des Spielers werden automatisch 
         als verloren gewertet.
         """
->>>>>>> 7c86b98 (fix(db): resolve alembic migration hang and build driver mismatch)
         self.strategy.forfeit_player(player_name)
 
     def get_match_game_options(self) -> GameOptions:
@@ -127,8 +123,6 @@ class TournamentManager:
             count_to=int(self.game_mode),
             legs_to_win=1,  # Turnierspiele sind immer einzelne Legs/Sets
             sets_to_win=1,
-            # Die folgenden Werte sind für X01-Turniere irrelevant, werden aber von der Datenklasse benötigt.
-            opt_atc="Single", lifes=3, rounds=7,
         )
 
     def to_dict(self) -> dict:

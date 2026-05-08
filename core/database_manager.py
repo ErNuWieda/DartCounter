@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import os
+import subprocess
+from datetime import datetime
 import configparser
 import json
 import logging
@@ -57,13 +60,13 @@ class DatabaseManager:
         self.engine = None
         self.Session = None
         self.is_connected = False
+        self.db_config = None  # Speichert die Konfiguration für Backups
         config = self._load_config()
 
         if config:
             self._connect_to_db(config)
             if self.is_connected:
                 self._run_migrations()
-                # WICHTIG: Nur seeden, wenn die Migrationen (is_connected bleibt True) erfolgreich waren
                 if self.is_connected:
                     self._seed_default_profiles()
 
@@ -153,6 +156,7 @@ class DatabaseManager:
             logger.error(log_msg)
             return
 
+        self.db_config = db_config
         # Schritt 3: Verbindung mit Retry-Logik (wichtig für CI/Docker)
         # Nutze URL.create für Robustheit gegenüber Sonderzeichen in Passwort/Benutzername.
         db_url = URL.create(
@@ -191,26 +195,25 @@ class DatabaseManager:
         # Speichere das aktuelle Logging-Level, da Alembic es oft auf WARNING zurücksetzt.
         old_level = logging.getLogger().getEffectiveLevel()
         try:
-            # Alembic-Konfig und Migrationen sind Teil des Programmbündels.
             alembic_ini_path = get_bundle_dir() / "alembic.ini"
             if not alembic_ini_path.exists():
                 logger.error(f"Alembic-Konfigurationsdatei nicht gefunden: {alembic_ini_path}")
                 return
 
+            # Vor der Migration eine Sicherung erstellen
+            self._backup_database()
+
             logger.info("Prüfe und führe Datenbank-Migrationen aus...")
             alembic_cfg = Config(str(alembic_ini_path))
 
-            # --- WICHTIG: Übergib die aktuelle Datenbank-URL an die Alembic-Konfiguration ---
-            # WICHTIG: render_as_string(hide_password=False) verwenden, damit Alembic das echte Passwort erhält.
+            # WICHTIG: render_as_string(hide_password=False) verwenden, damit Alembic das Passwort erhält.
             alembic_cfg.set_main_option("sqlalchemy.url", self.engine.url.render_as_string(hide_password=False))
 
             try:
                 command.upgrade(alembic_cfg, "head")
                 logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
             except Exception as e:
-                # Fange alle Fehler ab (Alembic- oder DB-Fehler)
                 logger.error(f"Datenbank-Migration fehlgeschlagen: {e}", exc_info=True)
-                # Markiere Verbindung als fehlerhaft, um Folge-Crashes (Seeding) zu verhindern
                 self.is_connected = False
         except Exception as e:
             logger.error(f"Unerwarteter Fehler beim Setup der Migration: {e}", exc_info=True)
@@ -224,6 +227,56 @@ class DatabaseManager:
         if not self.is_connected or not self.Session:
             return None
         return self.Session()
+
+    def _backup_database(self):
+        """
+        Erstellt eine Sicherung der Datenbank mittels pg_dump.
+        Implementiert eine einfache Rotation (behält die letzten 5 Sicherungen).
+        """
+        if not self.db_config:
+            return
+
+        pg_dump_path = shutil.which("pg_dump")
+        if not pg_dump_path:
+            logger.warning("Datenbank-Sicherung übersprungen: 'pg_dump' wurde nicht im Systempfad gefunden.")
+            return
+
+        backup_dir = get_app_data_dir() / "backups"
+        try:
+            backup_dir.mkdir(parents=True, exist_ok=True)
+
+            # Rotation: Alte Backups entfernen
+            existing_backups = sorted(list(backup_dir.glob("backup_*.sql")))
+            while len(existing_backups) >= 5:
+                old_backup = existing_backups.pop(0)
+                old_backup.unlink()
+                logger.info(f"Alte Sicherung rotiert: {old_backup.name}")
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_file = backup_dir / f"backup_{timestamp}.sql"
+
+            logger.info(f"Erstelle Datenbank-Sicherung vor Migration: {backup_file.name}...")
+
+            # PGPASSWORD nutzen, um eine Passwortabfrage zu vermeiden
+            env = os.environ.copy()
+            env["PGPASSWORD"] = self.db_config.get("password", "")
+
+            cmd = [
+                pg_dump_path,
+                "-h", self.db_config.get("host", "localhost"),
+                "-U", self.db_config.get("user", ""),
+                "-f", str(backup_file),
+                self.db_config.get("database", "")
+            ]
+
+            result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                logger.info("Datenbank-Sicherung erfolgreich erstellt.")
+            else:
+                logger.error(f"Fehler bei der Datenbank-Sicherung: {result.stderr}")
+        except Exception as e:
+            logger.error(f"Unerwarteter Fehler bei der Datenbank-Sicherung: {e}", exc_info=True)
 
     def _seed_default_profiles(self):
         """
