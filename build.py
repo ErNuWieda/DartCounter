@@ -200,7 +200,7 @@ def main():
         # Notwendig, damit PyInstaller die Brücke zwischen Pillow und Tkinter korrekt einbindet.
         "--hidden-import=PIL._tkinter_finder",
         # PostgreSQL-Treiber (wird über Connection-String geladen und sonst oft übersehen)
-        "--hidden-import=psycopg2",
+        "--hidden-import=psycopg",
     ]
 
     # Plattformspezifisches Icon hinzufügen (sauberere Logik)
@@ -217,6 +217,7 @@ def main():
         (pathlib.Path("core/checkout_paths.json"), pathlib.Path("core")),
         (pathlib.Path("alembic.ini"), pathlib.Path(".")),
         (pathlib.Path("alembic"), pathlib.Path("alembic")),
+        (pathlib.Path("config.ini.example"), pathlib.Path(".")),
     ]
 
     # Füge die --add-data Argumente hinzu, formatiert für PyInstaller.

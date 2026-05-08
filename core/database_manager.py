@@ -18,7 +18,9 @@ import configparser
 import json
 import logging
 import shutil
-from sqlalchemy import create_engine, desc, asc, func
+import time
+from pathlib import Path
+from sqlalchemy import create_engine, desc, asc, func, URL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from alembic.config import Config
@@ -69,15 +71,21 @@ class DatabaseManager:
         """Sucht und lädt die config.ini-Datei."""
         config = configparser.ConfigParser()
 
-        # 1. Im Benutzer-spezifischen Anwendungsordner (bevorzugt für installierte Version)
+        # 0. Im aktuellen Arbeitsverzeichnis (Priorität für CI und Entwicklung)
+        cwd_config_path = Path.cwd() / "config.ini"
+
+        # 1. Im Benutzer-spezifischen Anwendungsordner
         user_config_path = get_app_data_dir() / "config.ini"
 
-        # 2. Im Hauptverzeichnis der Anwendung (für Entwicklung oder portable Nutzung)
+        # 2. Im Hauptverzeichnis der Anwendung
         app_root_path = get_application_root_dir()
         root_config_path = app_root_path / "config.ini"
 
         config_path_to_use = None
-        if user_config_path.exists():
+        if cwd_config_path.exists():
+            config_path_to_use = cwd_config_path
+            logger.info(f"Lade Datenbank-Konfiguration von CWD: {cwd_config_path}")
+        elif user_config_path.exists():
             config_path_to_use = user_config_path
             logger.info(f"Lade Datenbank-Konfiguration von: {user_config_path}")
         elif root_config_path.exists():
@@ -108,7 +116,7 @@ class DatabaseManager:
 
         if not config_path_to_use or not config_path_to_use.exists():
             log_msg = (
-                "'config.ini' weder im Anwendungsordner noch im Benutzerverzeichnis "
+                "'config.ini' wurde an keinem der erwarteten Orte (CWD, AppData, Root) "
                 "gefunden. Datenbankfunktionen sind deaktiviert."
             )
             logger.info(log_msg)
@@ -145,28 +153,30 @@ class DatabaseManager:
             logger.error(log_msg)
             return
 
-        # Schritt 3: Versuchen, die Verbindung aufzubauen. Nur hier fangen wir SQLAlchemy-Fehler.
-        try:
-            # SQLAlchemy Verbindungs-URL im Format: dialect+driver://user:password@host/dbname
-            db_url = (
-                f"postgresql+psycopg://{db_config['user']}:{db_config['password']}"  # noqa: E501
-                f"@{db_config['host']}/{db_config['database']}"
-            )
-            self.engine = create_engine(db_url)
-            # Teste die Verbindung, indem du eine Verbindung aus dem Pool holst und
-            # sie sofort wieder freigibst. Der `with`-Block stellt sicher, dass
-            # die Verbindung korrekt geschlossen wird, was den Pool gesund hält.
-            with self.engine.connect():
-                pass  # Verbindung erfolgreich, wenn hier keine Exception auftritt
-
-            self.Session = sessionmaker(bind=self.engine)
-            self.is_connected = True
-        except SQLAlchemyError as error:
-            logger.error(
-                f"Fehler beim Verbindungsaufbau zur PostgreSQL-Datenbank: {error}",
-                exc_info=True,
-            )
-            self.is_connected = False
+        # Schritt 3: Verbindung mit Retry-Logik (wichtig für CI/Docker)
+        # Nutze URL.create für Robustheit gegenüber Sonderzeichen in Passwort/Benutzername.
+        db_url = URL.create(
+            drivername="postgresql+psycopg",
+            username=db_config['user'],
+            password=db_config['password'],
+            host=db_config['host'],
+            database=db_config['database']
+        )
+        self.engine = create_engine(db_url)
+        
+        for attempt in range(5):
+            try:
+                with self.engine.connect():
+                    self.Session = sessionmaker(bind=self.engine)
+                    self.is_connected = True
+                    return
+            except SQLAlchemyError as error:
+                if attempt < 4:
+                    logger.info(f"DB-Verbindung fehlgeschlagen (Versuch {attempt+1}/5). Warte...")
+                    time.sleep(2)
+                else:
+                    logger.error(f"Fehler beim Verbindungsaufbau zur DB: {error}", exc_info=True)
+                    self.is_connected = False
 
     def _model_to_dict(self, model_instance):
         """Konvertiert eine SQLAlchemy-Modellinstanz in ein Dictionary."""
@@ -176,21 +186,23 @@ class DatabaseManager:
         """Führt Alembic-Migrationen aus, um die Datenbank auf den neuesten Stand zu bringen."""
         if not self.engine:
             return
+        # Speichere das aktuelle Logging-Level, da Alembic es oft auf WARNING zurücksetzt.
+        old_level = logging.getLogger().getEffectiveLevel()
         try:
-            # Der Pfad zur alembic.ini relativ zum Projekt-Root
-            alembic_ini_path = get_application_root_dir() / "alembic.ini"
-            logger.info("Prüfe und führe Datenbank-Migrationen aus...")
+            # Alembic-Konfig und Migrationen sind Teil des Programmbündels.
+            alembic_ini_path = get_bundle_dir() / "alembic.ini"
+            if not alembic_ini_path.exists():
+                logger.error(f"Alembic-Konfigurationsdatei nicht gefunden: {alembic_ini_path}")
+                return
 
-            # Erstelle eine Alembic-Konfiguration und setze den Pfad zur .ini-Datei
+            logger.info("Prüfe und führe Datenbank-Migrationen aus...")
             alembic_cfg = Config(str(alembic_ini_path))
 
             # --- WICHTIG: Übergib die aktuelle Datenbank-URL an die Alembic-Konfiguration ---
-            # Dies stellt sicher, dass env.py die richtige Datenbank verwendet, anstatt
-            # zu versuchen, die Konfiguration selbst aus einer .ini-Datei zu lesen.
-            alembic_cfg.set_main_option("sqlalchemy.url", str(self.engine.url))
+            # WICHTIG: render_as_string(hide_password=False) verwenden, damit Alembic das echte Passwort erhält.
+            alembic_cfg.set_main_option("sqlalchemy.url", self.engine.url.render_as_string(hide_password=False))
 
             try:
-                # Führe den 'upgrade head'-Befehl aus
                 command.upgrade(alembic_cfg, "head")
                 logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
             except Exception as e:
@@ -201,6 +213,9 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Unerwarteter Fehler beim Setup der Migration: {e}", exc_info=True)
             self.is_connected = False
+        finally:
+            # Stelle das ursprüngliche Logging-Level wieder her.
+            logging.getLogger().setLevel(old_level)
 
     def _get_session(self):
         """Interne Hilfsmethode für sicheren Session-Zugriff."""
