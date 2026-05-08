@@ -228,6 +228,9 @@ class DatabaseManager:
         Füllt die 'player_profiles'-Tabelle mit Standard-KI-Profilen,
         falls die Tabelle leer ist. Wird nur beim allerersten Start ausgeführt.
         """
+        if not self.is_connected:
+            return
+
         if not self.Session:
             return
 
