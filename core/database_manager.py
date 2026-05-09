@@ -12,22 +12,6 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-# Dartcounter Deluxe
-# Copyright (C) 2025 Martin Hehl (airnooweeda)
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import configparser
@@ -38,7 +22,8 @@ from sqlalchemy import create_engine, desc, asc, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from alembic.config import Config
-from alembic import command # type: ignore
+
+from alembic import command
 from .settings_manager import get_app_data_dir, get_application_root_dir, get_bundle_dir
 from .db_models import Highscore, PlayerProfileORM, GameRecord
 
@@ -76,7 +61,9 @@ class DatabaseManager:
             self._connect_to_db(config)
             if self.is_connected:
                 self._run_migrations()
-                self._seed_default_profiles()
+                # WICHTIG: Nur seeden, wenn die Migrationen (is_connected bleibt True) erfolgreich waren
+                if self.is_connected:
+                    self._seed_default_profiles()
 
     def _load_config(self):
         """Sucht und lädt die config.ini-Datei."""
@@ -98,7 +85,7 @@ class DatabaseManager:
             logger.info(f"Lade Datenbank-Konfiguration von: {root_config_path}")
         else:
             # Fallback: Versuche, die Beispiel-Konfiguration zu kopieren
-            example_config_path = get_bundle_dir() / "config.ini.example"
+            example_config_path = app_root_path / "config.ini.example"
             if example_config_path.exists():
                 try:
                     shutil.copy(example_config_path, user_config_path)
@@ -191,7 +178,7 @@ class DatabaseManager:
             return
         try:
             # Der Pfad zur alembic.ini relativ zum Projekt-Root
-            alembic_ini_path = get_bundle_dir() / "alembic.ini"
+            alembic_ini_path = get_application_root_dir() / "alembic.ini"
             logger.info("Prüfe und führe Datenbank-Migrationen aus...")
 
             # Erstelle eine Alembic-Konfiguration und setze den Pfad zur .ini-Datei
@@ -202,14 +189,24 @@ class DatabaseManager:
             # zu versuchen, die Konfiguration selbst aus einer .ini-Datei zu lesen.
             alembic_cfg.set_main_option("sqlalchemy.url", str(self.engine.url))
 
-            # Führe den 'upgrade head'-Befehl aus
-            command.upgrade(alembic_cfg, "head")
-
-            logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
+            try:
+                # Führe den 'upgrade head'-Befehl aus
+                command.upgrade(alembic_cfg, "head")
+                logger.info("Datenbank-Migrationen erfolgreich abgeschlossen.")
+            except Exception as e:
+                # Fange alle Fehler ab (Alembic- oder DB-Fehler)
+                logger.error(f"Datenbank-Migration fehlgeschlagen: {e}", exc_info=True)
+                # Markiere Verbindung als fehlerhaft, um Folge-Crashes (Seeding) zu verhindern
+                self.is_connected = False
         except Exception as e:
-            # Fängt Fehler ab, die während der Migration auftreten können
-            logger.error(f"Fehler während der Datenbank-Migration: {e}", exc_info=True)
+            logger.error(f"Unerwarteter Fehler beim Setup der Migration: {e}", exc_info=True)
             self.is_connected = False
+
+    def _get_session(self):
+        """Interne Hilfsmethode für sicheren Session-Zugriff."""
+        if not self.is_connected or not self.Session:
+            return None
+        return self.Session()
 
     def _seed_default_profiles(self):
         """
@@ -229,7 +226,7 @@ class DatabaseManager:
 
             try:
                 # Pfad zur JSON-Datei relativ zu diesem Skript
-                json_path = get_bundle_dir() / "assets" / "default_profiles.json"
+                json_path = get_application_root_dir() / "assets" / "default_profiles.json"
                 with open(json_path, "r", encoding="utf-8") as f:
                     default_profiles = json.load(f)
 
@@ -254,18 +251,13 @@ class DatabaseManager:
                 session.rollback()
 
     def get_scores(self, game_mode):
-        """
-        Ruft die Top 10 Highscores für einen bestimmten Spielmodus ab.
-        """
-        if not self.Session:
+        """Ruft die Top 10 Highscores für einen bestimmten Spielmodus ab."""
+        session_obj = self._get_session()
+        if not session_obj:
             return []
         try:
-            with self.Session() as session:
-                # Spiele, bei denen eine hohe Punktzahl besser ist (DESC)
-                if game_mode in ("Cricket", "Cut Throat", "Tactics", "Split Score", "Shanghai"):
-                    sort_func = desc
-                else:  # X01 (ASC) oder ATC (ASC - weniger Darts sind besser)
-                    sort_func = asc
+            with session_obj as session:
+                sort_func = desc if game_mode in ("Cricket", "Cut Throat", "Tactics") else asc
 
                 results = (
                     session.query(Highscore)
@@ -295,16 +287,17 @@ class DatabaseManager:
         """
         Ruft die persönliche Bestleistung für jeden Spieler in einem bestimmten Modus ab.
         """
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return {}
 
         # Bestimme die Aggregationsfunktion basierend auf dem Spielmodus
-        if game_mode in ("Cricket", "Cut Throat", "Tactics", "Split Score", "Shanghai"):
+        if game_mode in ("Cricket", "Cut Throat", "Tactics"):
             agg_func = func.max(Highscore.score_metric)
         else:  # X01
             agg_func = func.min(Highscore.score_metric)
 
-        with self.Session() as session:
+        with session_obj as session:
             try:
                 results = (
                     session.query(Highscore.player_name, agg_func)
@@ -358,9 +351,10 @@ class DatabaseManager:
 
     def get_all_player_names_from_records(self):
         """Gibt eine Liste einzigartiger Spielernamen aus der game_records Tabelle zurück."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return []
-        with self.Session() as session:
+        with session_obj as session:
             results = (
                 session.query(GameRecord.player_name)
                 .distinct()
@@ -371,9 +365,10 @@ class DatabaseManager:
 
     def get_records_for_player(self, player_name):
         """Ruft alle Spiel-Datensätze für einen bestimmten Spieler ab."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return []
-        with self.Session() as session:
+        with session_obj as session:
             results = (
                 session.query(GameRecord)
                 .filter_by(player_name=player_name)
@@ -400,9 +395,10 @@ class DatabaseManager:
 
     def get_all_profiles(self) -> list[PlayerProfileORM]:
         """Ruft alle Spielerprofile aus der Datenbank ab."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return []
-        with self.Session() as session:
+        with session_obj as session:
             results = session.query(PlayerProfileORM).order_by(PlayerProfileORM.name).all()
             return results
 

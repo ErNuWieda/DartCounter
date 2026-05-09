@@ -97,6 +97,10 @@ class TournamentManager:
         """Delegiert die Verarbeitung des Match-Ergebnisses an die Strategie."""
         self.strategy.record_match_winner(match_to_update, winner_name)
 
+    def forfeit_player(self, player_name: str):
+        """Delegiert die Aufgabe eines Spielers an die Strategie."""
+        self.strategy.forfeit_player(player_name)
+
     def get_match_game_options(self) -> GameOptions:
         """
         Erstellt ein sauberes GameOptions-Objekt für ein einzelnes Turniermatch.

@@ -259,11 +259,14 @@ class GameSettingsDialog(tk.Toplevel):
     def _on_player_count_changed(self, event=None):
         num_players = int(self.player_count_var.get())
         for i in range(self.max_players):
+            entry = self.player_name_entries[i]
+            if not entry:
+                continue
             if i < num_players:
-                self.player_name_entries[i].config(state="normal")
+                entry.config(state="normal")
             else:
-                self.player_name_entries[i].config(state="disabled")
-                self.player_name_entries[i].delete(0, tk.END)
+                entry.config(state="disabled")
+                entry.delete(0, tk.END)
         self._update_available_profiles()
 
     def _create_players_frame(self, parent, row):

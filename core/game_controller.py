@@ -9,7 +9,6 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 from . import ui_utils
 from .game_logic_base import GameLogicBase
-from .game_logic import GameLogic
 from .game_options import GameOptions
 from .player import Player
 from .ai_player import AIPlayer
