@@ -515,7 +515,7 @@ class PlayerStatsManager:
         all_coords = []
         game_records = self.db_manager.get_records_for_player(player_name)
         for record in game_records:
-            # 'all_throws_coords' wird als JSON gespeichert und von psycopg2 als Liste zurückgegeben
+            # 'all_throws_coords' wird als JSON gespeichert und vom DB-Treiber als Liste zurückgegeben
             coords_list = record.get("all_throws_coords")
             if coords_list and isinstance(coords_list, list):
                 all_coords.extend(coords_list)
