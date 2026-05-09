@@ -318,9 +318,10 @@ class DatabaseManager:
         """Fügt einen neuen Highscore-Eintrag hinzu."""
         from datetime import date
 
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return
-        with self.Session() as session:
+        with session_obj as session:
             new_score = Highscore(
                 game_mode=game_mode,
                 player_name=player_name,
@@ -332,9 +333,10 @@ class DatabaseManager:
 
     def add_game_record(self, player_name, game_stats):
         """Fügt einen neuen Spiel-Datensatz in die Datenbank ein."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return
-        with self.Session() as session:
+        with session_obj as session:
             record = GameRecord(
                 player_name=player_name,
                 game_mode=game_stats["game_mode"],
@@ -382,9 +384,10 @@ class DatabaseManager:
         """
         Setzt Spiel-Datensätze zurück. Entweder für einen spezifischen Spieler oder alle.
         """
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return
-        with self.Session() as session:
+        with session_obj as session:
             query = session.query(GameRecord)
             if player_name:
                 query = query.filter_by(player_name=player_name)
@@ -414,9 +417,10 @@ class DatabaseManager:
     ):
         """Fügt ein neues Spielerprofil hinzu. Gibt True bei Erfolg zurück,
         oder False bei Fehlern (z.B. doppelter Name)."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return False
-        with self.Session() as session:
+        with session_obj as session:
             try:
                 new_profile = PlayerProfileORM(
                     name=name,
@@ -455,9 +459,10 @@ class DatabaseManager:
         accuracy_model=None,
     ):
         """Aktualisiert ein bestehendes Spielerprofil. Gibt True bei Erfolg zurück."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return False
-        with self.Session() as session:
+        with session_obj as session:
             try:
                 profile = session.query(PlayerProfileORM).filter_by(id=profile_id).one_or_none()
                 if profile:
@@ -486,9 +491,10 @@ class DatabaseManager:
 
     def update_profile_accuracy_model(self, player_name: str, model: dict) -> bool:
         """Aktualisiert nur das Genauigkeitsmodell eines Profils."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return False
-        with self.Session() as session:
+        with session_obj as session:
             try:
                 profile = session.query(PlayerProfileORM).filter_by(name=player_name).one_or_none()
                 if profile:
@@ -508,9 +514,10 @@ class DatabaseManager:
 
     def delete_profile_by_id(self, profile_id: int) -> bool:
         """Löscht ein Spielerprofil aus der Datenbank anhand seiner ID."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return False
-        with self.Session() as session:
+        with session_obj as session:
             profile = session.query(PlayerProfileORM).filter_by(id=profile_id).one_or_none()
             if profile:
                 session.delete(profile)
@@ -520,9 +527,10 @@ class DatabaseManager:
 
     def delete_profile(self, profile_name):
         """Löscht ein Spielerprofil aus der Datenbank anhand seines Namens."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return False
-        with self.Session() as session:
+        with session_obj as session:
             profile = session.query(PlayerProfileORM).filter_by(name=profile_name).one_or_none()
             if profile:
                 session.delete(profile)
@@ -532,9 +540,10 @@ class DatabaseManager:
 
     def reset_scores(self, game_mode=None):
         """Setzt Highscores zurück. Entweder für einen spezifischen Modus oder alle."""
-        if not self.Session:
+        session_obj = self._get_session()
+        if not session_obj:
             return
-        with self.Session() as session:
+        with session_obj as session:
             query = session.query(Highscore)
             if game_mode:
                 query = query.filter_by(game_mode=game_mode)
